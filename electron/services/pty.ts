@@ -13,7 +13,8 @@ const sessions = new Map<string, PtySession>()
 export function createPty(worktreePath: string, cols: number, rows: number, webContents: WebContents): string {
   const id = uuidv4()
 
-  const process = pty.spawn('opencode', ['--continue'], {
+  // Resolve the user's login shell — Electron may not inherit $SHELL
+  const process = pty.spawn('/bin/zsh', ['-l', '-c', 'opencode --continue'], {
     name: 'xterm-256color',
     cols,
     rows,
