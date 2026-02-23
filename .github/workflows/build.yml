@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build and package
+        run: pnpm dist
+
+      - name: Upload DMG artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Treebeard-mac
+          path: dist/*.dmg
+          retention-days: 30
