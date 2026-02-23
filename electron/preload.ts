@@ -43,6 +43,26 @@ const api = {
     opencode: (worktreePath: string): Promise<void> =>
       ipcRenderer.invoke('launch:opencode', worktreePath)
   },
+  pty: {
+    create: (worktreePath: string, cols: number, rows: number): Promise<string> =>
+      ipcRenderer.invoke('pty:create', worktreePath, cols, rows),
+    write: (id: string, data: string): Promise<void> =>
+      ipcRenderer.invoke('pty:write', id, data),
+    resize: (id: string, cols: number, rows: number): Promise<void> =>
+      ipcRenderer.invoke('pty:resize', id, cols, rows),
+    close: (id: string): Promise<void> =>
+      ipcRenderer.invoke('pty:close', id),
+    onData: (callback: (id: string, data: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, id: string, data: string) => callback(id, data)
+      ipcRenderer.on('pty:data', handler)
+      return () => ipcRenderer.off('pty:data', handler)
+    },
+    onExit: (callback: (id: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, id: string) => callback(id)
+      ipcRenderer.on('pty:exit', handler)
+      return () => ipcRenderer.off('pty:exit', handler)
+    }
+  },
   system: {
     homedir: (): Promise<string> => ipcRenderer.invoke('system:homedir')
   },

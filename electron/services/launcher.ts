@@ -16,16 +16,3 @@ export function launchGhostty(worktreePath: string): void {
     stdio: 'ignore'
   }).unref()
 }
-
-export function launchOpenCode(worktreePath: string): void {
-  // -n is required here because -e with a custom command needs a fresh launch
-  // to have its argv respected; passing to a running instance silently drops --args.
-  spawn(
-    'open',
-    ['-na', 'Ghostty.app', '--args', `--working-directory=${worktreePath}`, '-e', 'opencode'],
-    {
-      detached: true,
-      stdio: 'ignore'
-    }
-  ).unref()
-}

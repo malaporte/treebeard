@@ -5,10 +5,14 @@ import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './se
 import { getWorktrees, getGitHubRepo, extractJiraKey, getDefaultBranch, addWorktree, buildWorktreePath, getRemoteBranches, getWorktreeStatus, removeWorktree } from './services/git'
 import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
-import { launchVSCode, launchGhostty, launchOpenCode } from './services/launcher'
+import { launchVSCode, launchGhostty } from './services/launcher'
+import { createPty, writePty, resizePty, closePty } from './services/pty'
 import type { AppConfig } from './types'
 
 let mainWindow: BrowserWindow | null = null
+
+// Track open terminal windows by worktree path so we focus instead of duplicating
+const terminalWindows = new Map<string, BrowserWindow>()
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -119,7 +123,57 @@ ipcMain.handle('launch:ghostty', (_event, worktreePath: string) => {
 })
 
 ipcMain.handle('launch:opencode', (_event, worktreePath: string) => {
-  launchOpenCode(worktreePath)
+  // Reuse an existing window for this worktree path rather than opening a duplicate
+  const existing = terminalWindows.get(worktreePath)
+  if (existing && !existing.isDestroyed()) {
+    existing.focus()
+    return
+  }
+
+  const worktreeName = path.basename(worktreePath)
+  const win = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    minWidth: 400,
+    minHeight: 300,
+    title: `opencode — ${worktreeName}`,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 14 },
+    backgroundColor: '#0d1117',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  })
+
+  terminalWindows.set(worktreePath, win)
+  win.on('closed', () => terminalWindows.delete(worktreePath))
+
+  const query = `?worktreePath=${encodeURIComponent(worktreePath)}`
+  if (process.env.ELECTRON_RENDERER_URL) {
+    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/terminal.html${query}`)
+  } else {
+    win.loadFile(path.join(__dirname, '../renderer/terminal.html'), { search: query })
+  }
+})
+
+// PTY — used by the embedded OpenCode panel
+ipcMain.handle('pty:create', (event, worktreePath: string, cols: number, rows: number) => {
+  return createPty(worktreePath, cols, rows, event.sender)
+})
+
+ipcMain.handle('pty:write', (_event, id: string, data: string) => {
+  writePty(id, data)
+})
+
+ipcMain.handle('pty:resize', (_event, id: string, cols: number, rows: number) => {
+  resizePty(id, cols, rows)
+})
+
+ipcMain.handle('pty:close', (_event, id: string) => {
+  closePty(id)
 })
 
 // System

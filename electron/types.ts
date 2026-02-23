@@ -69,5 +69,11 @@ export const IPC = {
   LAUNCH_VSCODE: 'launch:vscode',
   LAUNCH_GHOSTTY: 'launch:ghostty',
   LAUNCH_OPENCODE: 'launch:opencode',
+  PTY_CREATE: 'pty:create',
+  PTY_WRITE: 'pty:write',
+  PTY_RESIZE: 'pty:resize',
+  PTY_CLOSE: 'pty:close',
+  PTY_DATA: 'pty:data',
+  PTY_EXIT: 'pty:exit',
   SYSTEM_HOMEDIR: 'system:homedir'
 } as const

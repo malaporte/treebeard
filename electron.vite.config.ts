@@ -25,7 +25,10 @@ export default defineConfig({
     build: {
       outDir: 'out/renderer',
       rollupOptions: {
-        input: 'index.html'
+        input: {
+          index: 'index.html',
+          terminal: 'terminal.html'
+        }
       }
     },
     plugins: [react()]
