@@ -6,7 +6,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "dist": "electron-vite build && electron-builder --mac",
     "postinstall": "electron-rebuild -f -w node-pty"
   },
@@ -17,6 +17,11 @@
     "files": [
       "out/**/*",
       "!out/**/*.map"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/node-pty/**",
+      "node_modules/.pnpm/node-pty*/**"
     ],
     "extraResources": [
       {

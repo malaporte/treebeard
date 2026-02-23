@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -7,6 +7,19 @@ export function TerminalWindow() {
   const containerRef = useRef<HTMLDivElement>(null)
   const worktreePath = new URLSearchParams(window.location.search).get('worktreePath') ?? ''
   const worktreeName = worktreePath.split('/').filter(Boolean).at(-1) ?? ''
+
+  // The terminal layout needs height: 100% to propagate from the viewport
+  // through html → body → #root → component tree
+  useLayoutEffect(() => {
+    const root = document.getElementById('root')
+    for (const el of [document.documentElement, document.body, root]) {
+      if (el) {
+        el.style.height = '100%'
+        el.style.margin = '0'
+        el.style.overflow = 'hidden'
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -42,6 +55,10 @@ export function TerminalWindow() {
 
     const { cols, rows } = term
     window.treebeard.pty.create(worktreePath, cols, rows).then((id) => {
+      if (!id) {
+        term.write('\r\nopencode not found — check that it is installed and on your PATH.\r\n')
+        return
+      }
       ptyIdBox.current = id
     })
 

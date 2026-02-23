@@ -23,13 +23,7 @@ export default defineConfig({
   renderer: {
     root: '.',
     build: {
-      outDir: 'out/renderer',
-      rollupOptions: {
-        input: {
-          index: 'index.html',
-          terminal: 'terminal.html'
-        }
-      }
+      outDir: 'out/renderer'
     },
     plugins: [react()]
   }

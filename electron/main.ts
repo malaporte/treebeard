@@ -6,7 +6,7 @@ import { getWorktrees, getGitHubRepo, extractJiraKey, getDefaultBranch, addWorkt
 import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
 import { launchVSCode, launchGhostty } from './services/launcher'
-import { createPty, writePty, resizePty, closePty } from './services/pty'
+import { createPty, writePty, resizePty, closePty, closeAllPty } from './services/pty'
 import type { AppConfig } from './types'
 
 let mainWindow: BrowserWindow | null = null
@@ -153,15 +153,19 @@ ipcMain.handle('launch:opencode', (_event, worktreePath: string) => {
 
   const query = `?worktreePath=${encodeURIComponent(worktreePath)}`
   if (process.env.ELECTRON_RENDERER_URL) {
-    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/terminal.html${query}`)
+    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}${query}`)
   } else {
-    win.loadFile(path.join(__dirname, '../renderer/terminal.html'), { search: query })
+    win.loadFile(path.join(__dirname, '../renderer/index.html'), { search: query })
   }
 })
 
-// PTY — used by the embedded OpenCode panel
+// PTY — used by the embedded terminal window
 ipcMain.handle('pty:create', (event, worktreePath: string, cols: number, rows: number) => {
-  return createPty(worktreePath, cols, rows, event.sender)
+  try {
+    return createPty(worktreePath, cols, rows, event.sender)
+  } catch {
+    return null
+  }
 })
 
 ipcMain.handle('pty:write', (_event, id: string, data: string) => {
@@ -216,6 +220,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', () => {
+  closeAllPty()
 })
 
 // Re-export for type inference in renderer
