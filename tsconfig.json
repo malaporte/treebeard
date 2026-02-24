@@ -14,5 +14,6 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["bun-types"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "electrobun.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/build-css.ts", "electrobun.config.ts"],
+  "exclude": ["node_modules"]
 }

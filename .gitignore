@@ -1,4 +1,6 @@
 node_modules/
+build/
 out/
 dist/
 .DS_Store
+src/mainview/styles.css

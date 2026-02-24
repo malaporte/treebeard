@@ -155,6 +155,8 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:opencode': ({ worktreePath }) => {
         openTerminalWindow(worktreePath)
       },
+
+
       'system:homedir': () => {
         return os.homedir()
       },

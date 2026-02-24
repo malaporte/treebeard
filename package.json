@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "electrobun dev",
     "build": "electrobun build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run scripts/typecheck.ts",
     "postcss": "bun run scripts/build-css.ts"
   },
   "dependencies": {
