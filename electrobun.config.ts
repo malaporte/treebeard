@@ -10,6 +10,9 @@ export default {
     exitOnLastWindowClosed: true
   },
   build: {
+    mac: {
+      icons: 'AppIcon.iconset'
+    },
     bun: {
       entrypoint: 'src/bun/index.ts'
     },

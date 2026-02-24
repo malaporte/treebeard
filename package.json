@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "electrobun dev",
-    "build": "electrobun build",
+    "build": "electrobun build --env=stable",
     "typecheck": "bun run scripts/typecheck.ts",
     "postcss": "bun run scripts/build-css.ts"
   },

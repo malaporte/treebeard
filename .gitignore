@@ -1,6 +1,6 @@
 node_modules/
 build/
-out/
-dist/
+artifacts/
+AppIcon.iconset/
 .DS_Store
 src/mainview/styles.css
