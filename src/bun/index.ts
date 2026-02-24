@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView, Utils } from 'electrobun/bun'
+import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from 'electrobun/bun'
 import Electrobun from 'electrobun/bun'
 import path from 'node:path'
 import os from 'node:os'
@@ -170,6 +170,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         })
         if (!paths || paths.length === 0) return null
         return paths[0]
+      },
+      'app:quit': () => {
+        Utils.quit()
+      },
+      'app:closeWindow': () => {
+        win.close()
       }
     },
     messages: {}
@@ -181,6 +187,31 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
 Electrobun.events.on('before-quit', () => {
   closeAllPty()
 })
+
+// --- Application Menu ---
+
+ApplicationMenu.setApplicationMenu([
+  {
+    label: 'Treebeard',
+    submenu: [
+      { role: 'about' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'showAll' },
+      { type: 'separator' },
+      { role: 'quit' },
+    ],
+  },
+  {
+    label: 'Window',
+    submenu: [
+      { role: 'minimize' },
+      { role: 'zoom' },
+      { role: 'close' },
+    ],
+  },
+])
 
 // --- Main Window ---
 

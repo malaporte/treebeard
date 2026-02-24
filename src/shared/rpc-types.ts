@@ -84,6 +84,14 @@ export type TreebeardRPC = {
         params: Record<string, never>
         response: string | null
       }
+      'app:quit': {
+        params: Record<string, never>
+        response: void
+      }
+      'app:closeWindow': {
+        params: Record<string, never>
+        response: void
+      }
     }
     messages: Record<string, never>
   }>
