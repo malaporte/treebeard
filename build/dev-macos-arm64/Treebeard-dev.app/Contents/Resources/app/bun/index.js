@@ -1344,6 +1344,13 @@ var init_BuildConfig = __esm(() => {
 });
 
 // node_modules/electrobun/dist/api/bun/core/Socket.ts
+var exports_Socket = {};
+__export(exports_Socket, {
+  socketMap: () => socketMap,
+  sendMessageToWebviewViaSocket: () => sendMessageToWebviewViaSocket,
+  rpcServer: () => rpcServer,
+  rpcPort: () => rpcPort
+});
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 function base64ToUint8Array(base64) {
   {
@@ -1696,6 +1703,10 @@ var init_BrowserView = __esm(async () => {
 });
 
 // node_modules/electrobun/dist/api/bun/core/Paths.ts
+var exports_Paths = {};
+__export(exports_Paths, {
+  VIEWS_FOLDER: () => VIEWS_FOLDER
+});
 import { resolve as resolve2 } from "path";
 var RESOURCES_FOLDER, VIEWS_FOLDER;
 var init_Paths = __esm(() => {
@@ -2555,6 +2566,47 @@ function deserializeMenuAction(encodedAction) {
   }
   return { action: actualAction, data };
 }
+
+class SessionCookies {
+  partitionId;
+  constructor(partitionId) {
+    this.partitionId = partitionId;
+  }
+  get(filter) {
+    const filterJson = JSON.stringify(filter || {});
+    const result = native.symbols.sessionGetCookies(toCString(this.partitionId), toCString(filterJson));
+    if (!result)
+      return [];
+    try {
+      return JSON.parse(result.toString());
+    } catch {
+      return [];
+    }
+  }
+  set(cookie) {
+    const cookieJson = JSON.stringify(cookie);
+    return native.symbols.sessionSetCookie(toCString(this.partitionId), toCString(cookieJson));
+  }
+  remove(url, name) {
+    return native.symbols.sessionRemoveCookie(toCString(this.partitionId), toCString(url), toCString(name));
+  }
+  clear() {
+    native.symbols.sessionClearCookies(toCString(this.partitionId));
+  }
+}
+
+class SessionInstance {
+  partition;
+  cookies;
+  constructor(partition) {
+    this.partition = partition;
+    this.cookies = new SessionCookies(partition);
+  }
+  clearStorageData(types = "all") {
+    const typesArray = types === "all" ? ["all"] : types;
+    native.symbols.sessionClearStorageData(toCString(this.partition), toCString(JSON.stringify(typesArray)));
+  }
+}
 function toCString(jsString, addNullTerminator = true) {
   let appendWith = "";
   if (addNullTerminator && !jsString.endsWith("\x00")) {
@@ -2563,7 +2615,7 @@ function toCString(jsString, addNullTerminator = true) {
   const buff = Buffer.from(jsString + appendWith, "utf8");
   return ptr(buff);
 }
-var menuDataRegistry, menuDataCounter = 0, ELECTROBUN_DELIMITER = "|EB|", native, ffi, windowCloseCallback, windowMoveCallback, windowResizeCallback, windowFocusCallback, getMimeType, getHTMLForWebviewSync, urlOpenCallback, quitRequestedCallback, globalShortcutHandlers, globalShortcutCallback, sessionCache, webviewDecideNavigation, webviewEventHandler = (id, eventName, detail) => {
+var menuDataRegistry, menuDataCounter = 0, ELECTROBUN_DELIMITER = "|EB|", native, ffi, windowCloseCallback, windowMoveCallback, windowResizeCallback, windowFocusCallback, getMimeType, getHTMLForWebviewSync, urlOpenCallback, quitRequestedCallback, globalShortcutHandlers, globalShortcutCallback, GlobalShortcut, Screen, sessionCache, Session, webviewDecideNavigation, webviewEventHandler = (id, eventName, detail) => {
   const webview = BrowserView.getById(id);
   if (!webview) {
     console.error("[webviewEventHandler] No webview found for id:", id);
@@ -3591,7 +3643,93 @@ window.__electrobunBunBridge = window.__electrobunBunBridge || window.webkit?.me
     threadsafe: true
   });
   native.symbols.setGlobalShortcutCallback(globalShortcutCallback);
+  GlobalShortcut = {
+    register: (accelerator, callback) => {
+      if (globalShortcutHandlers.has(accelerator)) {
+        return false;
+      }
+      const result = native.symbols.registerGlobalShortcut(toCString(accelerator));
+      if (result) {
+        globalShortcutHandlers.set(accelerator, callback);
+      }
+      return result;
+    },
+    unregister: (accelerator) => {
+      const result = native.symbols.unregisterGlobalShortcut(toCString(accelerator));
+      if (result) {
+        globalShortcutHandlers.delete(accelerator);
+      }
+      return result;
+    },
+    unregisterAll: () => {
+      native.symbols.unregisterAllGlobalShortcuts();
+      globalShortcutHandlers.clear();
+    },
+    isRegistered: (accelerator) => {
+      return native.symbols.isGlobalShortcutRegistered(toCString(accelerator));
+    }
+  };
+  Screen = {
+    getPrimaryDisplay: () => {
+      const jsonStr = native.symbols.getPrimaryDisplay();
+      if (!jsonStr) {
+        return {
+          id: 0,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          workArea: { x: 0, y: 0, width: 0, height: 0 },
+          scaleFactor: 1,
+          isPrimary: true
+        };
+      }
+      try {
+        return JSON.parse(jsonStr.toString());
+      } catch {
+        return {
+          id: 0,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          workArea: { x: 0, y: 0, width: 0, height: 0 },
+          scaleFactor: 1,
+          isPrimary: true
+        };
+      }
+    },
+    getAllDisplays: () => {
+      const jsonStr = native.symbols.getAllDisplays();
+      if (!jsonStr) {
+        return [];
+      }
+      try {
+        return JSON.parse(jsonStr.toString());
+      } catch {
+        return [];
+      }
+    },
+    getCursorScreenPoint: () => {
+      const jsonStr = native.symbols.getCursorScreenPoint();
+      if (!jsonStr) {
+        return { x: 0, y: 0 };
+      }
+      try {
+        return JSON.parse(jsonStr.toString());
+      } catch {
+        return { x: 0, y: 0 };
+      }
+    }
+  };
   sessionCache = new Map;
+  Session = {
+    fromPartition: (partition) => {
+      let session = sessionCache.get(partition);
+      if (!session) {
+        session = new SessionInstance(partition);
+        sessionCache.set(partition, session);
+      }
+      return session;
+    },
+    get defaultSession() {
+      return Session.fromPartition("persist:default");
+    }
+  };
   webviewDecideNavigation = new JSCallback((_webviewId, _url) => {
     return true;
   }, {
@@ -4176,10 +4314,196 @@ await __promiseAll([
 // node_modules/electrobun/dist/api/bun/core/ApplicationMenu.ts
 init_eventEmitter();
 await init_native();
+var exports_ApplicationMenu = {};
+__export(exports_ApplicationMenu, {
+  setApplicationMenu: () => setApplicationMenu,
+  on: () => on
+});
+
+// node_modules/electrobun/dist/api/bun/core/menuRoles.ts
+var roleLabelMap = {
+  about: "About",
+  quit: "Quit",
+  hide: "Hide",
+  hideOthers: "Hide Others",
+  showAll: "Show All",
+  minimize: "Minimize",
+  zoom: "Zoom",
+  close: "Close",
+  bringAllToFront: "Bring All To Front",
+  cycleThroughWindows: "Cycle Through Windows",
+  enterFullScreen: "Enter Full Screen",
+  exitFullScreen: "Exit Full Screen",
+  toggleFullScreen: "Toggle Full Screen",
+  undo: "Undo",
+  redo: "Redo",
+  cut: "Cut",
+  copy: "Copy",
+  paste: "Paste",
+  pasteAndMatchStyle: "Paste and Match Style",
+  delete: "Delete",
+  selectAll: "Select All",
+  startSpeaking: "Start Speaking",
+  stopSpeaking: "Stop Speaking",
+  showHelp: "Show Help",
+  moveForward: "Move Forward",
+  moveBackward: "Move Backward",
+  moveLeft: "Move Left",
+  moveRight: "Move Right",
+  moveUp: "Move Up",
+  moveDown: "Move Down",
+  moveWordForward: "Move Word Forward",
+  moveWordBackward: "Move Word Backward",
+  moveWordLeft: "Move Word Left",
+  moveWordRight: "Move Word Right",
+  moveToBeginningOfLine: "Move to Beginning of Line",
+  moveToEndOfLine: "Move to End of Line",
+  moveToLeftEndOfLine: "Move to Left End of Line",
+  moveToRightEndOfLine: "Move to Right End of Line",
+  moveToBeginningOfParagraph: "Move to Beginning of Paragraph",
+  moveToEndOfParagraph: "Move to End of Paragraph",
+  moveParagraphForward: "Move Paragraph Forward",
+  moveParagraphBackward: "Move Paragraph Backward",
+  moveToBeginningOfDocument: "Move to Beginning of Document",
+  moveToEndOfDocument: "Move to End of Document",
+  moveForwardAndModifySelection: "Move Forward and Modify Selection",
+  moveBackwardAndModifySelection: "Move Backward and Modify Selection",
+  moveLeftAndModifySelection: "Move Left and Modify Selection",
+  moveRightAndModifySelection: "Move Right and Modify Selection",
+  moveUpAndModifySelection: "Move Up and Modify Selection",
+  moveDownAndModifySelection: "Move Down and Modify Selection",
+  moveWordForwardAndModifySelection: "Move Word Forward and Modify Selection",
+  moveWordBackwardAndModifySelection: "Move Word Backward and Modify Selection",
+  moveWordLeftAndModifySelection: "Move Word Left and Modify Selection",
+  moveWordRightAndModifySelection: "Move Word Right and Modify Selection",
+  moveToBeginningOfLineAndModifySelection: "Move to Beginning of Line and Modify Selection",
+  moveToEndOfLineAndModifySelection: "Move to End of Line and Modify Selection",
+  moveToLeftEndOfLineAndModifySelection: "Move to Left End of Line and Modify Selection",
+  moveToRightEndOfLineAndModifySelection: "Move to Right End of Line and Modify Selection",
+  moveToBeginningOfParagraphAndModifySelection: "Move to Beginning of Paragraph and Modify Selection",
+  moveToEndOfParagraphAndModifySelection: "Move to End of Paragraph and Modify Selection",
+  moveParagraphForwardAndModifySelection: "Move Paragraph Forward and Modify Selection",
+  moveParagraphBackwardAndModifySelection: "Move Paragraph Backward and Modify Selection",
+  moveToBeginningOfDocumentAndModifySelection: "Move to Beginning of Document and Modify Selection",
+  moveToEndOfDocumentAndModifySelection: "Move to End of Document and Modify Selection",
+  pageUp: "Page Up",
+  pageDown: "Page Down",
+  pageUpAndModifySelection: "Page Up and Modify Selection",
+  pageDownAndModifySelection: "Page Down and Modify Selection",
+  scrollLineUp: "Scroll Line Up",
+  scrollLineDown: "Scroll Line Down",
+  scrollPageUp: "Scroll Page Up",
+  scrollPageDown: "Scroll Page Down",
+  scrollToBeginningOfDocument: "Scroll to Beginning of Document",
+  scrollToEndOfDocument: "Scroll to End of Document",
+  centerSelectionInVisibleArea: "Center Selection in Visible Area",
+  deleteBackward: "Delete Backward",
+  deleteForward: "Delete Forward",
+  deleteBackwardByDecomposingPreviousCharacter: "Delete Backward by Decomposing Previous Character",
+  deleteWordBackward: "Delete Word Backward",
+  deleteWordForward: "Delete Word Forward",
+  deleteToBeginningOfLine: "Delete to Beginning of Line",
+  deleteToEndOfLine: "Delete to End of Line",
+  deleteToBeginningOfParagraph: "Delete to Beginning of Paragraph",
+  deleteToEndOfParagraph: "Delete to End of Paragraph",
+  selectWord: "Select Word",
+  selectLine: "Select Line",
+  selectParagraph: "Select Paragraph",
+  selectToMark: "Select to Mark",
+  setMark: "Set Mark",
+  swapWithMark: "Swap with Mark",
+  deleteToMark: "Delete to Mark",
+  capitalizeWord: "Capitalize Word",
+  uppercaseWord: "Uppercase Word",
+  lowercaseWord: "Lowercase Word",
+  transpose: "Transpose",
+  transposeWords: "Transpose Words",
+  insertNewline: "Insert Newline",
+  insertLineBreak: "Insert Line Break",
+  insertParagraphSeparator: "Insert Paragraph Separator",
+  insertTab: "Insert Tab",
+  insertBacktab: "Insert Backtab",
+  insertTabIgnoringFieldEditor: "Insert Tab Ignoring Field Editor",
+  insertNewlineIgnoringFieldEditor: "Insert Newline Ignoring Field Editor",
+  yank: "Yank",
+  yankAndSelect: "Yank and Select",
+  complete: "Complete",
+  cancelOperation: "Cancel Operation",
+  indent: "Indent"
+};
+
+// node_modules/electrobun/dist/api/bun/core/ApplicationMenu.ts
+var setApplicationMenu = (menu) => {
+  const menuWithDefaults = menuConfigWithDefaults2(menu);
+  ffi.request.setApplicationMenu({
+    menuConfig: JSON.stringify(menuWithDefaults)
+  });
+};
+var on = (name, handler) => {
+  const specificName = `${name}`;
+  eventEmitter_default.on(specificName, handler);
+};
+var menuConfigWithDefaults2 = (menu) => {
+  return menu.map((item) => {
+    if (item.type === "divider" || item.type === "separator") {
+      return { type: "divider" };
+    } else {
+      const menuItem = item;
+      const actionWithDataId = ffi.internal.serializeMenuAction(menuItem.action || "", menuItem.data);
+      return {
+        label: menuItem.label || roleLabelMap[menuItem.role] || "",
+        type: menuItem.type || "normal",
+        ...menuItem.role ? { role: menuItem.role } : { action: actionWithDataId },
+        enabled: menuItem.enabled === false ? false : true,
+        checked: Boolean(menuItem.checked),
+        hidden: Boolean(menuItem.hidden),
+        tooltip: menuItem.tooltip || undefined,
+        accelerator: menuItem.accelerator || undefined,
+        ...menuItem.submenu ? { submenu: menuConfigWithDefaults2(menuItem.submenu) } : {}
+      };
+    }
+  });
+};
 
 // node_modules/electrobun/dist/api/bun/core/ContextMenu.ts
 init_eventEmitter();
 await init_native();
+var exports_ContextMenu = {};
+__export(exports_ContextMenu, {
+  showContextMenu: () => showContextMenu,
+  on: () => on2
+});
+var showContextMenu = (menu) => {
+  const menuWithDefaults = menuConfigWithDefaults3(menu);
+  ffi.request.showContextMenu({
+    menuConfig: JSON.stringify(menuWithDefaults)
+  });
+};
+var on2 = (name, handler) => {
+  const specificName = `${name}`;
+  eventEmitter_default.on(specificName, handler);
+};
+var menuConfigWithDefaults3 = (menu) => {
+  return menu.map((item) => {
+    if (item.type === "divider" || item.type === "separator") {
+      return { type: "divider" };
+    } else {
+      const menuItem = item;
+      const actionWithDataId = ffi.internal.serializeMenuAction(menuItem.action || "", menuItem.data);
+      return {
+        label: menuItem.label || roleLabelMap[menuItem.role] || "",
+        type: menuItem.type || "normal",
+        ...menuItem.role ? { role: menuItem.role } : { action: actionWithDataId },
+        enabled: menuItem.enabled === false ? false : true,
+        checked: Boolean(menuItem.checked),
+        hidden: Boolean(menuItem.hidden),
+        tooltip: menuItem.tooltip || undefined,
+        ...menuItem.accelerator ? { accelerator: menuItem.accelerator } : {},
+        ...menuItem.submenu ? { submenu: menuConfigWithDefaults3(menuItem.submenu) } : {}
+      };
+    }
+  });
+};
 
 // node_modules/electrobun/dist/api/bun/index.ts
 init_Paths();
@@ -4190,9 +4514,27 @@ await __promiseAll([
   init_Socket(),
   init_native()
 ]);
+var Electrobun = {
+  BrowserWindow,
+  BrowserView,
+  Tray,
+  Updater,
+  Utils: exports_Utils,
+  ApplicationMenu: exports_ApplicationMenu,
+  ContextMenu: exports_ContextMenu,
+  GlobalShortcut,
+  Screen,
+  Session,
+  BuildConfig,
+  events: eventEmitter_default,
+  PATHS: exports_Paths,
+  Socket: exports_Socket
+};
+var bun_default = Electrobun;
 
 // src/bun/index.ts
-import os from "os";
+import path4 from "path";
+import os2 from "os";
 
 // src/bun/services/config.ts
 import path from "path";
@@ -4493,7 +4835,345 @@ function launchGhostty(worktreePath) {
   });
 }
 
+// node_modules/bun-pty/src/terminal.ts
+import { dlopen as dlopen2, FFIType as FFIType2, ptr as ptr2 } from "bun:ffi";
+import { Buffer as Buffer2 } from "buffer";
+
+// node_modules/bun-pty/src/interfaces.ts
+class EventEmitter2 {
+  listeners = [];
+  event = (listener) => {
+    this.listeners.push(listener);
+    return {
+      dispose: () => {
+        const i = this.listeners.indexOf(listener);
+        if (i !== -1) {
+          this.listeners.splice(i, 1);
+        }
+      }
+    };
+  };
+  fire(data) {
+    for (const listener of this.listeners) {
+      listener(data);
+    }
+  }
+}
+
+// node_modules/bun-pty/src/terminal.ts
+import { join as join5, dirname as dirname2, basename } from "path";
+import { existsSync } from "fs";
+var DEFAULT_COLS = 80;
+var DEFAULT_ROWS = 24;
+var DEFAULT_FILE = "sh";
+var DEFAULT_NAME = "xterm";
+function shQuote(s) {
+  if (s.length === 0)
+    return "''";
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+function resolveLibPath() {
+  const env = process.env.BUN_PTY_LIB;
+  if (env && existsSync(env))
+    return env;
+  try {
+    const embeddedPath = __require(`../rust-pty/target/release/${process.platform === "win32" ? "rust_pty.dll" : process.platform === "darwin" ? process.arch === "arm64" ? "librust_pty_arm64.dylib" : "librust_pty.dylib" : process.arch === "arm64" ? "librust_pty_arm64.so" : "librust_pty.so"}`);
+    if (embeddedPath)
+      return embeddedPath;
+  } catch {}
+  const platform2 = process.platform;
+  const arch2 = process.arch;
+  const filenames = platform2 === "darwin" ? arch2 === "arm64" ? ["librust_pty_arm64.dylib", "librust_pty.dylib"] : ["librust_pty.dylib"] : platform2 === "win32" ? ["rust_pty.dll"] : arch2 === "arm64" ? ["librust_pty_arm64.so", "librust_pty.so"] : ["librust_pty.so"];
+  const base = Bun.fileURLToPath(import.meta.url);
+  const fileDir = dirname2(base);
+  const dirName = basename(fileDir);
+  const here = dirName === "src" || dirName === "dist" ? dirname2(fileDir) : fileDir;
+  const basePaths = [
+    join5(here, "rust-pty", "target", "release"),
+    join5(here, "..", "bun-pty", "rust-pty", "target", "release"),
+    join5(process.cwd(), "node_modules", "bun-pty", "rust-pty", "target", "release")
+  ];
+  const fallbackPaths = [];
+  for (const basePath of basePaths) {
+    for (const filename of filenames) {
+      fallbackPaths.push(join5(basePath, filename));
+    }
+  }
+  for (const path3 of fallbackPaths) {
+    if (existsSync(path3))
+      return path3;
+  }
+  throw new Error(`librust_pty shared library not found.
+Checked:
+  - BUN_PTY_LIB=${env ?? "<unset>"}
+  - ${fallbackPaths.join(`
+  - `)}
+
+Set BUN_PTY_LIB or ensure one of these paths contains the file.`);
+}
+var libPath = resolveLibPath();
+var lib;
+try {
+  lib = dlopen2(libPath, {
+    bun_pty_spawn: {
+      args: [FFIType2.cstring, FFIType2.cstring, FFIType2.cstring, FFIType2.i32, FFIType2.i32],
+      returns: FFIType2.i32
+    },
+    bun_pty_write: {
+      args: [FFIType2.i32, FFIType2.pointer, FFIType2.i32],
+      returns: FFIType2.i32
+    },
+    bun_pty_read: {
+      args: [FFIType2.i32, FFIType2.pointer, FFIType2.i32],
+      returns: FFIType2.i32
+    },
+    bun_pty_resize: {
+      args: [FFIType2.i32, FFIType2.i32, FFIType2.i32],
+      returns: FFIType2.i32
+    },
+    bun_pty_kill: { args: [FFIType2.i32], returns: FFIType2.i32 },
+    bun_pty_get_pid: { args: [FFIType2.i32], returns: FFIType2.i32 },
+    bun_pty_get_exit_code: { args: [FFIType2.i32], returns: FFIType2.i32 },
+    bun_pty_close: { args: [FFIType2.i32], returns: FFIType2.void }
+  });
+} catch (error) {
+  console.error("Failed to load lib", error);
+}
+
+class Terminal {
+  handle = -1;
+  _pid = -1;
+  _cols = DEFAULT_COLS;
+  _rows = DEFAULT_ROWS;
+  _name = DEFAULT_NAME;
+  _readLoop = false;
+  _closing = false;
+  _decoder = new TextDecoder("utf-8");
+  _onData = new EventEmitter2;
+  _onExit = new EventEmitter2;
+  constructor(file = DEFAULT_FILE, args = [], opts = { name: DEFAULT_NAME }) {
+    this._cols = opts.cols ?? DEFAULT_COLS;
+    this._rows = opts.rows ?? DEFAULT_ROWS;
+    const cwd = opts.cwd ?? process.cwd();
+    const cmdline = [shQuote(file), ...args.map(shQuote)].join(" ");
+    let envStr = "";
+    if (opts.env) {
+      const envPairs = Object.entries(opts.env).map(([k, v]) => `${k}=${v}`);
+      envStr = envPairs.join("\x00") + "\x00";
+    }
+    this.handle = lib.symbols.bun_pty_spawn(Buffer2.from(`${cmdline}\x00`, "utf8"), Buffer2.from(`${cwd}\x00`, "utf8"), Buffer2.from(`${envStr}\x00`, "utf8"), this._cols, this._rows);
+    if (this.handle < 0)
+      throw new Error("PTY spawn failed");
+    this._pid = lib.symbols.bun_pty_get_pid(this.handle);
+    this._startReadLoop();
+  }
+  get pid() {
+    return this._pid;
+  }
+  get cols() {
+    return this._cols;
+  }
+  get rows() {
+    return this._rows;
+  }
+  get process() {
+    return "shell";
+  }
+  get onData() {
+    return this._onData.event;
+  }
+  get onExit() {
+    return this._onExit.event;
+  }
+  write(data) {
+    if (this._closing)
+      return;
+    const buf = Buffer2.from(data, "utf8");
+    lib.symbols.bun_pty_write(this.handle, ptr2(buf), buf.length);
+  }
+  resize(cols, rows) {
+    if (this._closing)
+      return;
+    this._cols = cols;
+    this._rows = rows;
+    lib.symbols.bun_pty_resize(this.handle, cols, rows);
+  }
+  kill(signal = "SIGTERM") {
+    if (this._closing)
+      return;
+    this._closing = true;
+    lib.symbols.bun_pty_kill(this.handle);
+    lib.symbols.bun_pty_close(this.handle);
+    this._onExit.fire({ exitCode: 0, signal });
+  }
+  async _startReadLoop() {
+    if (this._readLoop)
+      return;
+    this._readLoop = true;
+    const buf = Buffer2.allocUnsafe(4096);
+    while (this._readLoop && !this._closing) {
+      const n = lib.symbols.bun_pty_read(this.handle, ptr2(buf), buf.length);
+      if (n > 0) {
+        const decoded = this._decoder.decode(buf.subarray(0, n), { stream: true });
+        if (decoded) {
+          this._onData.fire(decoded);
+        }
+      } else if (n === -2) {
+        const remaining = this._decoder.decode();
+        if (remaining) {
+          this._onData.fire(remaining);
+        }
+        const exitCode = lib.symbols.bun_pty_get_exit_code(this.handle);
+        this._onExit.fire({ exitCode });
+        break;
+      } else if (n < 0) {
+        const remaining = this._decoder.decode();
+        if (remaining) {
+          this._onData.fire(remaining);
+        }
+        break;
+      } else {
+        await new Promise((r) => setTimeout(r, 8));
+      }
+    }
+  }
+}
+
+// node_modules/bun-pty/src/index.ts
+function spawn(file, args, options) {
+  return new Terminal(file, args, options);
+}
+
+// src/bun/services/pty.ts
+import os from "os";
+import path3 from "path";
+var sessions = new Map;
+function hasPtySession(id) {
+  return sessions.has(id);
+}
+function enrichedPath() {
+  const home2 = os.homedir();
+  const extraDirs = [
+    path3.join(home2, ".opencode", "bin"),
+    path3.join(home2, ".local", "bin"),
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    "/usr/local/bin"
+  ];
+  const existing = process.env.PATH ?? "";
+  return [...extraDirs, existing].join(":");
+}
+function createPtySession(id, worktreePath, cols, rows, onData, onExit) {
+  const pty = spawn("/bin/zsh", ["-l", "-c", "opencode --continue"], {
+    name: "xterm-256color",
+    cols,
+    rows,
+    cwd: worktreePath,
+    env: {
+      ...process.env,
+      PATH: enrichedPath(),
+      HOME: os.homedir(),
+      TERM: "xterm-256color"
+    }
+  });
+  const disposables = [];
+  disposables.push(pty.onData((data) => {
+    onData(data);
+  }));
+  disposables.push(pty.onExit(({ exitCode }) => {
+    onExit(exitCode);
+    sessions.delete(id);
+  }));
+  sessions.set(id, { pty, disposables });
+}
+function writePty(id, data) {
+  const session = sessions.get(id);
+  if (!session)
+    return;
+  session.pty.write(data);
+}
+function resizePty(id, cols, rows) {
+  const session = sessions.get(id);
+  if (!session)
+    return;
+  session.pty.resize(cols, rows);
+}
+function closePty(id) {
+  const session = sessions.get(id);
+  if (!session)
+    return;
+  for (const d of session.disposables) {
+    d.dispose();
+  }
+  session.pty.kill();
+  sessions.delete(id);
+}
+function closeAllPty() {
+  for (const [id] of sessions) {
+    closePty(id);
+  }
+}
+
 // src/bun/index.ts
+var terminalWindows = new Map;
+var sessionCounter = 0;
+function openTerminalWindow(worktreePath) {
+  const existing = terminalWindows.get(worktreePath);
+  if (existing) {
+    const win = BrowserWindow.getById(existing.windowId);
+    if (win) {
+      win.focus();
+      return;
+    }
+    terminalWindows.delete(worktreePath);
+  }
+  const sessionId = `pty-${++sessionCounter}`;
+  const worktreeName = path4.basename(worktreePath);
+  const terminalRPC = BrowserView.defineRPC({
+    maxRequestTime: 1e4,
+    handlers: {
+      requests: {
+        "pty:write": ({ data }) => {
+          writePty(sessionId, data);
+        },
+        "pty:resize": ({ cols, rows }) => {
+          if (!hasPtySession(sessionId)) {
+            createPtySession(sessionId, worktreePath, cols, rows, (data) => {
+              terminalRPC.sendProxy["pty:data"]({ payload: { data } });
+            }, (exitCode) => {
+              terminalRPC.sendProxy["pty:exit"]({ payload: { exitCode } });
+              termWin.close();
+            });
+            terminalRPC.sendProxy["pty:ready"]({ payload: { worktreeName } });
+            return;
+          }
+          resizePty(sessionId, cols, rows);
+        },
+        "pty:close": () => {
+          closePty(sessionId);
+        }
+      },
+      messages: {}
+    }
+  });
+  const termWin = new BrowserWindow({
+    title: `Terminal \u2014 ${worktreeName}`,
+    url: "views://terminal/index.html",
+    titleBarStyle: "hiddenInset",
+    frame: {
+      width: 900,
+      height: 600,
+      x: 300,
+      y: 250
+    },
+    rpc: terminalRPC
+  });
+  terminalWindows.set(worktreePath, { windowId: termWin.id, sessionId });
+  termWin.on("close", () => {
+    closePty(sessionId);
+    terminalWindows.delete(worktreePath);
+  });
+}
 var mainviewRPC = BrowserView.defineRPC({
   maxRequestTime: 30000,
   handlers: {
@@ -4546,14 +5226,14 @@ var mainviewRPC = BrowserView.defineRPC({
         launchGhostty(worktreePath);
       },
       "launch:opencode": ({ worktreePath }) => {
-        launchGhostty(worktreePath);
+        openTerminalWindow(worktreePath);
       },
       "system:homedir": () => {
-        return os.homedir();
+        return os2.homedir();
       },
       "dialog:openDirectory": async () => {
         const paths2 = await exports_Utils.openFileDialog({
-          startingFolder: os.homedir(),
+          startingFolder: os2.homedir(),
           allowedFileTypes: "*",
           canChooseFiles: false,
           canChooseDirectory: true,
@@ -4566,6 +5246,9 @@ var mainviewRPC = BrowserView.defineRPC({
     },
     messages: {}
   }
+});
+bun_default.events.on("before-quit", () => {
+  closeAllPty();
 });
 var win = new BrowserWindow({
   title: "Treebeard",
