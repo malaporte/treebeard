@@ -4,7 +4,7 @@ import type { AppConfig } from '../../shared/types'
 
 const CONFIG_FILENAME = 'treebeard-config.json'
 
-// Match the directory electron-store used so existing configs carry over
+// ~/Library/Application Support/Treebeard — standard macOS app data location
 const CONFIG_DIR = path.join(Utils.paths.appData, 'Treebeard')
 
 const DEFAULTS: AppConfig = {
