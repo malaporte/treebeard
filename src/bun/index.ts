@@ -1,6 +1,5 @@
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from 'electrobun/bun'
 import Electrobun from 'electrobun/bun'
-import path from 'node:path'
 import os from 'node:os'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
 import {
@@ -16,89 +15,8 @@ import {
 import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
 import { launchVSCode, launchGhostty } from './services/launcher'
-import { createPtySession, writePty, resizePty, closePty, closeAllPty, hasPtySession } from './services/pty'
 import type { TreebeardRPC } from '../shared/rpc-types'
-import type { TerminalRPC } from '../shared/terminal-rpc-types'
 import type { AppConfig } from '../shared/types'
-
-// --- Terminal Window Management ---
-
-// Keyed by worktree path to prevent duplicate terminal windows
-const terminalWindows = new Map<string, { windowId: number; sessionId: string }>()
-
-let sessionCounter = 0
-
-function openTerminalWindow(worktreePath: string): void {
-  const existing = terminalWindows.get(worktreePath)
-  if (existing) {
-    const win = BrowserWindow.getById(existing.windowId)
-    if (win) {
-      win.focus()
-      return
-    }
-    // Window was closed externally, clean up stale entry
-    terminalWindows.delete(worktreePath)
-  }
-
-  const sessionId = `pty-${++sessionCounter}`
-  const worktreeName = path.basename(worktreePath)
-
-  const terminalRPC = BrowserView.defineRPC<TerminalRPC>({
-    maxRequestTime: 10000,
-    handlers: {
-      requests: {
-        'pty:write': ({ data }) => {
-          writePty(sessionId, data)
-        },
-        'pty:resize': ({ cols, rows }) => {
-          // First resize triggers PTY spawn with the actual terminal dimensions
-          if (!hasPtySession(sessionId)) {
-            createPtySession(
-              sessionId,
-              worktreePath,
-              cols,
-              rows,
-              (data) => {
-                terminalRPC.sendProxy['pty:data']({ payload: { data } })
-              },
-              (exitCode) => {
-                terminalRPC.sendProxy['pty:exit']({ payload: { exitCode } })
-                termWin.close()
-              }
-            )
-            terminalRPC.sendProxy['pty:ready']({ payload: { worktreeName } })
-            return
-          }
-          resizePty(sessionId, cols, rows)
-        },
-        'pty:close': () => {
-          closePty(sessionId)
-        }
-      },
-      messages: {}
-    }
-  })
-
-  const termWin = new BrowserWindow({
-    title: `Terminal — ${worktreeName}`,
-    url: 'views://terminal/index.html',
-    titleBarStyle: 'hiddenInset',
-    frame: {
-      width: 900,
-      height: 600,
-      x: 300,
-      y: 250
-    },
-    rpc: terminalRPC
-  })
-
-  terminalWindows.set(worktreePath, { windowId: termWin.id, sessionId })
-
-  termWin.on('close', () => {
-    closePty(sessionId)
-    terminalWindows.delete(worktreePath)
-  })
-}
 
 // --- Main RPC Handlers ---
 
@@ -152,11 +70,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
-      'launch:opencode': ({ worktreePath }) => {
-        openTerminalWindow(worktreePath)
-      },
-
-
       'system:homedir': () => {
         return os.homedir()
       },
@@ -180,12 +93,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
     },
     messages: {}
   }
-})
-
-// --- Cleanup ---
-
-Electrobun.events.on('before-quit', () => {
-  closeAllPty()
 })
 
 // --- Application Menu ---

@@ -1,5 +1,5 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
-import { IconBrandVscode, IconGhost, IconRobot } from '@tabler/icons-react'
+import { IconBrandVscode, IconGhost } from '@tabler/icons-react'
 import { rpc } from '../rpc'
 
 interface LaunchButtonsProps {
@@ -15,10 +15,6 @@ export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
     await rpc().request['launch:ghostty']({ worktreePath })
   }
 
-  const handleOpenCode = async () => {
-    await rpc().request['launch:opencode']({ worktreePath })
-  }
-
   return (
     <Group gap={4}>
       <Tooltip label="Open in VS Code">
@@ -29,11 +25,6 @@ export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
       <Tooltip label="Open Ghostty terminal">
         <ActionIcon variant="subtle" color="violet" size="sm" onClick={handleGhostty}>
           <IconGhost size={16} />
-        </ActionIcon>
-      </Tooltip>
-      <Tooltip label="Open in OpenCode">
-        <ActionIcon variant="subtle" color="cyan" size="sm" onClick={handleOpenCode}>
-          <IconRobot size={16} />
         </ActionIcon>
       </Tooltip>
     </Group>

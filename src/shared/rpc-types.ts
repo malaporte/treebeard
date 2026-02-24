@@ -71,11 +71,6 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
-      'launch:opencode': {
-        params: { worktreePath: string }
-        response: void
-      }
-
       'system:homedir': {
         params: Record<string, never>
         response: string
