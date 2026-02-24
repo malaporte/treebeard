@@ -13,7 +13,8 @@ import {
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
-import type { AppConfig, RepoConfig } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { AppConfig, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -54,7 +55,7 @@ export function SettingsModal({
   }
 
   const handleBrowse = async () => {
-    const selected = await window.treebeard.dialog.openDirectory()
+    const selected = await rpc().request['dialog:openDirectory']({})
     if (!selected) return
     setPath(selected)
     // Auto-fill name from directory basename if empty

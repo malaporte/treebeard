@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { Worktree } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { Worktree } from '../shared/types'
 
 export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
   const [worktrees, setWorktrees] = useState<Worktree[]>([])
@@ -12,7 +13,7 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
     setLoading(true)
     setError(null)
     try {
-      const wts = await window.treebeard.git.worktrees(repoPath)
+      const wts = await rpc().request['git:worktrees']({ repoPath })
       setWorktrees(wts)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to list worktrees')

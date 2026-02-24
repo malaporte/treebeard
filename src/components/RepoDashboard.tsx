@@ -21,7 +21,7 @@ import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { RepoConfig } from '../../electron/types'
+import type { RepoConfig } from '../shared/types'
 
 interface RepoSectionProps {
   repo: RepoConfig

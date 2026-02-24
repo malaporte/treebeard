@@ -1,5 +1,6 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconBrandVscode, IconGhost, IconRobot } from '@tabler/icons-react'
+import { rpc } from '../rpc'
 
 interface LaunchButtonsProps {
   worktreePath: string
@@ -7,15 +8,15 @@ interface LaunchButtonsProps {
 
 export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
   const handleVSCode = async () => {
-    await window.treebeard.launch.vscode(worktreePath)
+    await rpc().request['launch:vscode']({ worktreePath })
   }
 
   const handleGhostty = async () => {
-    await window.treebeard.launch.ghostty(worktreePath)
+    await rpc().request['launch:ghostty']({ worktreePath })
   }
 
   const handleOpenCode = async () => {
-    await window.treebeard.launch.opencode(worktreePath)
+    await rpc().request['launch:opencode']({ worktreePath })
   }
 
   return (

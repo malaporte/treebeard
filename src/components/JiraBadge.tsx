@@ -1,5 +1,5 @@
 import { Badge, Loader, Tooltip } from '@mantine/core'
-import type { JiraIssue } from '../../electron/types'
+import type { JiraIssue } from '../shared/types'
 
 const STATUS_COLORS: Record<string, string> = {
   'To Do': 'gray',

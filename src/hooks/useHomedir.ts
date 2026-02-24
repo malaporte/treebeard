@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
+import { rpc } from '../rpc'
 
 export function useHomedir() {
   const [homedir, setHomedir] = useState<string | null>(null)
 
   useEffect(() => {
-    window.treebeard.system.homedir().then(setHomedir)
+    rpc().request['system:homedir']({}).then(setHomedir)
   }, [])
 
   const shortenPath = useCallback(

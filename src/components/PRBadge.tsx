@@ -5,7 +5,7 @@ import {
   IconClock,
   IconGitPullRequest
 } from '@tabler/icons-react'
-import type { PRInfo } from '../../electron/types'
+import type { PRInfo } from '../shared/types'
 
 interface PRBadgeProps {
   pr: PRInfo | null

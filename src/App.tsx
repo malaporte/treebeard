@@ -10,7 +10,6 @@ import {
   Group,
   createTheme
 } from '@mantine/core'
-import '@mantine/core/styles.css'
 import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
 import { RepoDashboard } from './components/RepoDashboard'
 import { SettingsModal } from './components/SettingsModal'
@@ -72,11 +71,11 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            WebkitAppRegion: 'drag' as never,
             borderBottom: '1px solid rgba(0, 136, 255, 0.15)'
           }}
+          className="electrobun-webkit-app-region-drag"
         >
-          <Group gap="xs" style={{ WebkitAppRegion: 'no-drag' as never }}>
+          <Group gap="xs" className="electrobun-webkit-app-region-no-drag">
             <TextInput
               placeholder="Filter worktrees..."
               size="xs"
