@@ -10,24 +10,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: oven-sh/setup-bun@v2
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install
 
       - name: Build and package
-        run: pnpm dist
+        run: pnpm build
 
-      - name: Upload DMG artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Treebeard-mac
-          path: dist/*.dmg
+          path: artifacts/*.dmg
           retention-days: 30
