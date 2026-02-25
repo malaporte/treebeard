@@ -3,6 +3,7 @@ import type {
   AppConfig,
   DependencyStatus,
   JiraIssue,
+  MobileBridgeStatus,
   OpencodeServerStatus,
   PRInfo,
   Worktree,
@@ -80,6 +81,18 @@ export type TreebeardRPC = {
       'opencode:setEnabled': {
         params: { worktreePath: string; enabled: boolean }
         response: OpencodeServerStatus
+      }
+      'mobile:getStatus': {
+        params: Record<string, never>
+        response: MobileBridgeStatus
+      }
+      'mobile:setEnabled': {
+        params: { enabled: boolean }
+        response: MobileBridgeStatus
+      }
+      'mobile:rotatePairingCode': {
+        params: Record<string, never>
+        response: MobileBridgeStatus
       }
       'system:homedir': {
         params: Record<string, never>

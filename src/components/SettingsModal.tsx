@@ -13,10 +13,10 @@ import {
   Switch,
   Alert
 } from '@mantine/core'
-import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
+import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX, IconRefresh } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { AppConfig, DependencyStatus, RepoConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus, MobileBridgeStatus, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -48,6 +48,8 @@ export function SettingsModal({
   const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null)
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [checkingDependencies, setCheckingDependencies] = useState(false)
+  const [mobileBridgeStatus, setMobileBridgeStatus] = useState<MobileBridgeStatus | null>(null)
+  const [mobileBridgeBusy, setMobileBridgeBusy] = useState(false)
   const { shortenPath } = useHomedir()
 
   const loadDependencies = async (refresh: boolean) => {
@@ -64,10 +66,47 @@ export function SettingsModal({
     }
   }
 
+  const loadMobileBridgeStatus = async () => {
+    setMobileBridgeBusy(true)
+    try {
+      const status = await rpc().request['mobile:getStatus']({})
+      setMobileBridgeStatus(status)
+    } catch {
+      setMobileBridgeStatus(null)
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
+
   useEffect(() => {
     if (!opened) return
     loadDependencies(false)
+    loadMobileBridgeStatus()
   }, [opened])
+
+  const handleMobileBridgeEnabledChange = async (enabled: boolean) => {
+    setMobileBridgeBusy(true)
+    try {
+      const status = await rpc().request['mobile:setEnabled']({ enabled })
+      setMobileBridgeStatus(status)
+    } catch {
+      // Keep existing status if RPC fails
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
+
+  const handleRotatePairingCode = async () => {
+    setMobileBridgeBusy(true)
+    try {
+      const status = await rpc().request['mobile:rotatePairingCode']({})
+      setMobileBridgeStatus(status)
+    } catch {
+      // Keep existing status if RPC fails
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return
@@ -243,6 +282,61 @@ export function SettingsModal({
               Add
             </Button>
           </Group>
+        </div>
+
+        <Divider />
+
+        <div>
+          <Text fw={600} size="sm" mb="xs">
+            Mobile Bridge
+          </Text>
+          <Stack gap="sm">
+            <Switch
+              label="Enable LAN bridge for mobile app"
+              checked={mobileBridgeStatus?.enabled ?? config.mobileBridge.enabled}
+              onChange={(e) => {
+                handleMobileBridgeEnabledChange(e.currentTarget.checked)
+              }}
+              disabled={mobileBridgeBusy}
+              size="sm"
+            />
+            <Group gap="sm" align="center">
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconRefresh size={12} />}
+                onClick={handleRotatePairingCode}
+                loading={mobileBridgeBusy}
+              >
+                Rotate pairing code
+              </Button>
+              <Button
+                size="xs"
+                variant="subtle"
+                onClick={loadMobileBridgeStatus}
+                loading={mobileBridgeBusy}
+              >
+                Refresh bridge status
+              </Button>
+            </Group>
+            <Text size="xs" c="dimmed">
+              Pairing code: <Text span c="white" style={{ fontFamily: 'monospace' }}>{mobileBridgeStatus?.pairingCode || 'Unavailable'}</Text>
+            </Text>
+            <Text size="xs" c="dimmed">
+              Status: {mobileBridgeStatus?.running ? 'Running' : 'Stopped'}
+              {mobileBridgeStatus ? ` on ${mobileBridgeStatus.host}:${mobileBridgeStatus.port}` : ''}
+            </Text>
+            {(mobileBridgeStatus?.urls.length ?? 0) > 0 && (
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed">Connect from mobile:</Text>
+                {mobileBridgeStatus?.urls.map((url) => (
+                  <Text key={url} size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                    {url}
+                  </Text>
+                ))}
+              </Stack>
+            )}
+          </Stack>
         </div>
 
         <Divider />

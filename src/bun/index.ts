@@ -21,6 +21,13 @@ import {
   stopAllServers,
   restoreEnabledServers
 } from './services/opencode'
+import {
+  getMobileBridgeStatus,
+  rotateMobileBridgePairingCodeStatus,
+  setMobileBridgeEnabledState,
+  stopMobileBridge,
+  syncMobileBridgeFromConfig
+} from './services/mobile-api'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -157,6 +164,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'config:set': ({ config }) => {
         setConfig(config)
         configureAutoUpdateSchedule(getConfig())
+        void syncMobileBridgeFromConfig()
       },
       'config:getCollapsed': () => {
         return getCollapsedRepos()
@@ -203,6 +211,15 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'opencode:setEnabled': async ({ worktreePath, enabled }) => {
         return setServerEnabled(worktreePath, enabled)
+      },
+      'mobile:getStatus': () => {
+        return getMobileBridgeStatus()
+      },
+      'mobile:setEnabled': async ({ enabled }) => {
+        return setMobileBridgeEnabledState(enabled)
+      },
+      'mobile:rotatePairingCode': () => {
+        return rotateMobileBridgePairingCodeStatus()
       },
       'system:homedir': () => {
         return os.homedir()
@@ -278,11 +295,13 @@ const win = new BrowserWindow({
 startAutoUpdateScheduler()
 void getDependencyStatus()
 void restoreEnabledServers()
+void syncMobileBridgeFromConfig()
 
 // --- Shutdown Cleanup ---
 
 function handleShutdown() {
   void stopAllServers()
+  stopMobileBridge()
 }
 
 process.on('SIGINT', handleShutdown)

@@ -13,6 +13,14 @@ export interface AppConfig {
   updateCheckIntervalMin: number
   collapsedRepos: string[]
   opencodeServers: Record<string, boolean>
+  mobileBridge: MobileBridgeConfig
+}
+
+export interface MobileBridgeConfig {
+  enabled: boolean
+  host: string
+  port: number
+  pairingCode: string
 }
 
 export interface Worktree {
@@ -56,6 +64,21 @@ export interface OpencodeServerStatus {
   url: string | null
   pid: number | null
   error: string | null
+}
+
+export interface MobileWorktree {
+  repo: RepoConfig
+  worktree: Worktree
+  opencode: OpencodeServerStatus
+}
+
+export interface MobileBridgeStatus {
+  enabled: boolean
+  running: boolean
+  host: string
+  port: number
+  pairingCode: string
+  urls: string[]
 }
 
 export interface DependencyCheck {

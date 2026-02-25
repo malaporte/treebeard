@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getCollapsedRepos,
   getConfig,
+  getMobileBridgeConfig,
   getOpencodeEnabled,
   getOpencodeEnabledPaths,
+  rotateMobileBridgePairingCode,
+  setMobileBridgeEnabled,
   setCollapsedRepos,
   setConfig,
   setOpencodeEnabled
@@ -55,7 +58,13 @@ describe('config service', () => {
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      opencodeServers: {}
+      opencodeServers: {},
+      mobileBridge: {
+        enabled: false,
+        host: '0.0.0.0',
+        port: 8787,
+        pairingCode: ''
+      }
     })
   })
 
@@ -66,7 +75,13 @@ describe('config service', () => {
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
-      opencodeServers: {}
+      opencodeServers: {},
+      mobileBridge: {
+        enabled: true,
+        host: '10.0.0.5',
+        port: 99999,
+        pairingCode: '123456'
+      }
     })
 
     expect(getConfig()).toEqual({
@@ -75,7 +90,13 @@ describe('config service', () => {
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
-      opencodeServers: {}
+      opencodeServers: {},
+      mobileBridge: {
+        enabled: true,
+        host: '10.0.0.5',
+        port: 65535,
+        pairingCode: '123456'
+      }
     })
   })
 
@@ -129,7 +150,13 @@ describe('opencode server config helpers', () => {
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 45,
       collapsedRepos: ['repo-1'],
-      opencodeServers: {}
+      opencodeServers: {},
+      mobileBridge: {
+        enabled: false,
+        host: '0.0.0.0',
+        port: 8787,
+        pairingCode: ''
+      }
     })
 
     setOpencodeEnabled('/repo/worktree', true)
@@ -154,5 +181,36 @@ describe('opencode server config helpers', () => {
 
     const config = getConfig()
     expect(config.opencodeServers).toEqual({})
+  })
+})
+
+describe('mobile bridge config helpers', () => {
+  beforeEach(() => {
+    setupStore()
+  })
+
+  it('returns default mobile bridge config', () => {
+    expect(getMobileBridgeConfig()).toEqual({
+      enabled: false,
+      host: '0.0.0.0',
+      port: 8787,
+      pairingCode: ''
+    })
+  })
+
+  it('enables and disables mobile bridge', () => {
+    expect(setMobileBridgeEnabled(true).enabled).toBe(true)
+    expect(getMobileBridgeConfig().enabled).toBe(true)
+
+    expect(setMobileBridgeEnabled(false).enabled).toBe(false)
+    expect(getMobileBridgeConfig().enabled).toBe(false)
+  })
+
+  it('rotates pairing code', () => {
+    const first = rotateMobileBridgePairingCode()
+    const second = rotateMobileBridgePairingCode()
+    expect(first).toHaveLength(6)
+    expect(second).toHaveLength(6)
+    expect(first).not.toBe(second)
   })
 })

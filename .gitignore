@@ -5,3 +5,4 @@ artifacts/
 AppIcon.iconset/
 .DS_Store
 src/mainview/styles.css
+apps/mobile/.expo/

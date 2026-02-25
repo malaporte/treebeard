@@ -45,7 +45,13 @@ const config: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServers: {}
+  opencodeServers: {},
+  mobileBridge: {
+    enabled: false,
+    host: '0.0.0.0',
+    port: 8787,
+    pairingCode: '123456'
+  }
 }
 
 describe('App', () => {

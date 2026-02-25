@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Treebeard Mobile",
+    "slug": "treebeard-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1115"
+      }
+    }
+  }
+}

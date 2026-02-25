@@ -7,13 +7,19 @@ import type { AppConfig, DependencyStatus } from '../shared/types'
 const systemDependenciesRequest = vi.fn()
 const openDirectoryRequest = vi.fn()
 const checkForUpdatesRequest = vi.fn()
+const mobileGetStatusRequest = vi.fn()
+const mobileSetEnabledRequest = vi.fn()
+const mobileRotatePairingCodeRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
       'system:dependencies': systemDependenciesRequest,
       'dialog:openDirectory': openDirectoryRequest,
-      'app:checkForUpdates': checkForUpdatesRequest
+      'app:checkForUpdates': checkForUpdatesRequest,
+      'mobile:getStatus': mobileGetStatusRequest,
+      'mobile:setEnabled': mobileSetEnabledRequest,
+      'mobile:rotatePairingCode': mobileRotatePairingCodeRequest
     }
   })
 }))
@@ -30,7 +36,13 @@ const config: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServers: {}
+  opencodeServers: {},
+  mobileBridge: {
+    enabled: false,
+    host: '0.0.0.0',
+    port: 8787,
+    pairingCode: '123456'
+  }
 }
 
 describe('SettingsModal', () => {
@@ -38,6 +50,34 @@ describe('SettingsModal', () => {
     systemDependenciesRequest.mockReset()
     openDirectoryRequest.mockReset()
     checkForUpdatesRequest.mockReset()
+    mobileGetStatusRequest.mockReset()
+    mobileSetEnabledRequest.mockReset()
+    mobileRotatePairingCodeRequest.mockReset()
+
+    mobileGetStatusRequest.mockResolvedValue({
+      enabled: false,
+      running: false,
+      host: '0.0.0.0',
+      port: 8787,
+      pairingCode: '123456',
+      urls: ['http://localhost:8787']
+    })
+    mobileSetEnabledRequest.mockResolvedValue({
+      enabled: true,
+      running: true,
+      host: '0.0.0.0',
+      port: 8787,
+      pairingCode: '123456',
+      urls: ['http://localhost:8787']
+    })
+    mobileRotatePairingCodeRequest.mockResolvedValue({
+      enabled: false,
+      running: false,
+      host: '0.0.0.0',
+      port: 8787,
+      pairingCode: '654321',
+      urls: ['http://localhost:8787']
+    })
   })
 
   it('loads dependency status and notifies parent', async () => {
@@ -127,6 +167,40 @@ describe('SettingsModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('You are on the latest version.')).toBeTruthy()
+    })
+  })
+
+  it('shows and updates mobile bridge controls', async () => {
+    renderWithMantine(
+      <SettingsModal
+        opened={true}
+        onClose={() => {}}
+        config={config}
+        onDependencyStatusChange={() => {}}
+        onAddRepo={async () => {}}
+        onRemoveRepo={async () => {}}
+        onSetPollInterval={async () => {}}
+        onSetAutoUpdateEnabled={async () => {}}
+        onSetUpdateCheckInterval={async () => {}}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Pairing code:/)).toBeTruthy()
+      expect(screen.getByText('123456')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByLabelText('Enable LAN bridge for mobile app'))
+
+    await waitFor(() => {
+      expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate pairing code' }))
+
+    await waitFor(() => {
+      expect(mobileRotatePairingCodeRequest).toHaveBeenCalledWith({})
+      expect(screen.getByText('654321')).toBeTruthy()
     })
   })
 })
