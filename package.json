@@ -5,6 +5,7 @@
     "dev": "electrobun dev",
     "build": "electrobun build --env=stable",
     "start:packaged": "open build/stable-macos-arm64/Treebeard.app",
+    "screenshot": "bun run scripts/screenshot.ts",
     "typecheck": "bun run scripts/typecheck.ts",
     "postcss": "bun run scripts/build-css.ts"
   },

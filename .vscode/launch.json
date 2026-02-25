@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Treebeard: Dev",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "${env:PATH}:/Users/martin/.nvm/versions/node/v22.14.0/bin"
+      }
+    },
+    {
+      "name": "Treebeard: Packaged",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm start:packaged",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "${env:PATH}:/Users/martin/.nvm/versions/node/v22.14.0/bin"
+      }
+    }
+  ]
+}

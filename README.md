@@ -1,0 +1,90 @@
+# Treebeard
+
+Treebeard is a macOS desktop app for managing Git worktrees across repositories.
+
+![Treebeard screenshot](treebeard-current.png)
+
+## Features
+
+- Manage worktrees across multiple repositories from one dashboard
+- Search and filter worktrees by branch or path
+- Drag and drop repository sections to reorder them
+- Show Jira issue badges parsed from branch names
+- Show GitHub PR status and CI check status per branch
+- Show dirty status (`+/-` lines, unpushed, unpulled commits)
+- Open worktrees in VS Code or Ghostty with one click
+- Create and delete worktrees directly from the app
+- Built-in auto-update support for packaged releases
+
+## Prerequisites
+
+### Required
+
+- macOS
+- [Bun](https://bun.sh/)
+- [pnpm](https://pnpm.io/)
+- Git
+
+### Optional (feature-dependent)
+
+- [GitHub CLI (`gh`)](https://cli.github.com/) for PR and CI badges
+- [Jira CLI (`jira`)](https://github.com/ankitpokhrel/jira-cli) for Jira badges
+- VS Code (`code` command available in PATH) for the VS Code launch button
+- [Ghostty](https://ghostty.org/) for the terminal launch button
+
+Treebeard works without optional CLIs, but related badges/actions are unavailable.
+
+## Getting Started
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Scripts
+
+| Command               | Description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`            | Run Treebeard in development mode                                   |
+| `pnpm build`          | Build a packaged app via Electrobun                                 |
+| `pnpm typecheck`      | Run TypeScript type-checking (`tsc --noEmit`)                       |
+| `pnpm start:packaged` | Open the packaged app from `build/stable-macos-arm64/Treebeard.app` |
+| `pnpm screenshot`     | Launch packaged app and capture `treebeard-current.png`             |
+
+`pnpm screenshot` auto-captures the Treebeard window when Accessibility permissions are available, and falls back to manual window selection when they are not.
+
+## Architecture
+
+Treebeard is built with [Electrobun](https://github.com/blackboardsh/electrobun):
+
+- Bun-powered main process (`src/bun/`)
+- React renderer in the main view (`src/mainview/`, `src/components/`, `src/hooks/`)
+- Typed RPC between renderer and main process (`src/shared/rpc-types.ts`)
+- Shared app/domain types in `src/shared/types.ts`
+
+High-level structure:
+
+```text
+src/
+  bun/         # main process + services (git, github, jira, launcher, config)
+  mainview/    # renderer entrypoint and view shell
+  components/  # UI components
+  hooks/       # renderer data hooks
+  shared/      # shared types and RPC schema
+```
+
+## Configuration
+
+App settings are persisted at:
+
+`~/Library/Application Support/Treebeard/treebeard-config.json`
+
+This file stores repository paths, polling interval, update settings, and collapsed repo state.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding guidelines, and pull request expectations.
+
+## License
+
+[MIT](LICENSE)
