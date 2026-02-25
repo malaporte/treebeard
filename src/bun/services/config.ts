@@ -1,6 +1,6 @@
+import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
-import { Utils } from 'electrobun/bun'
 import type { AppConfig } from '../../shared/types'
 
 const CONFIG_FILENAME = 'treebeard-config.json'
@@ -9,8 +9,7 @@ const MAX_POLL_INTERVAL_SEC = 600
 const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
 const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
 
-// ~/Library/Application Support/Treebeard — standard macOS app data location
-const CONFIG_DIR = path.join(Utils.paths.appData, 'Treebeard')
+const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard')
 
 const DEFAULTS: AppConfig = {
   repositories: [],
@@ -43,21 +42,25 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
 }
 
 function configPath(): string {
-  return path.join(CONFIG_DIR, CONFIG_FILENAME)
+  return CONFIG_PATH
 }
 
-function readConfig(): AppConfig {
+function readConfigFile(filePath: string): AppConfig | null {
   try {
-    const text = fs.readFileSync(configPath(), 'utf-8')
+    const text = fs.readFileSync(filePath, 'utf-8')
     const parsed = JSON.parse(text) as Partial<AppConfig>
     return sanitizeConfig({ ...DEFAULTS, ...parsed })
   } catch {
-    return { ...DEFAULTS }
+    return null
   }
 }
 
+function readConfig(): AppConfig {
+  return readConfigFile(configPath()) ?? { ...DEFAULTS }
+}
+
 function writeConfig(config: AppConfig): void {
-  fs.mkdirSync(CONFIG_DIR, { recursive: true })
+  fs.mkdirSync(path.dirname(configPath()), { recursive: true })
   fs.writeFileSync(configPath(), JSON.stringify(config, null, 2))
 }
 

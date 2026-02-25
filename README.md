@@ -18,11 +18,9 @@ Treebeard is a macOS desktop app for managing Git worktrees across repositories.
 
 ## Prerequisites
 
-### Required
+### To use the packaged app
 
 - macOS
-- [Bun](https://bun.sh/)
-- [pnpm](https://pnpm.io/)
 - Git
 
 ### Optional (feature-dependent)
@@ -33,6 +31,11 @@ Treebeard is a macOS desktop app for managing Git worktrees across repositories.
 - [Ghostty](https://ghostty.org/) for the terminal launch button
 
 Treebeard works without optional CLIs, but related badges/actions are unavailable.
+
+### To develop Treebeard
+
+- [Bun](https://bun.sh/)
+- [pnpm](https://pnpm.io/)
 
 ## Getting Started
 
@@ -77,7 +80,7 @@ src/
 
 App settings are persisted at:
 
-`~/Library/Application Support/Treebeard/treebeard-config.json`
+`~/.config/treebeard`
 
 This file stores repository paths, polling interval, update settings, and collapsed repo state.
 
