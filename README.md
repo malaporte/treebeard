@@ -1,5 +1,8 @@
 # Treebeard
 
+[![CI](https://github.com/malaporte/treebeard/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/malaporte/treebeard/actions/workflows/build.yml)
+[![Release Build](https://github.com/malaporte/treebeard/actions/workflows/build.yml/badge.svg)](https://github.com/malaporte/treebeard/actions/workflows/build.yml)
+
 Treebeard is a macOS desktop app for managing Git worktrees across repositories.
 
 ![Treebeard screenshot](treebeard-current.png)
