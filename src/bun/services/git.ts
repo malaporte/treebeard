@@ -1,11 +1,13 @@
 import path from 'node:path'
+import { getShellEnv } from './shell-env'
 import type { Worktree, WorktreeStatus } from '../../shared/types'
 
 const MAIN_BRANCH_NAMES = new Set(['main', 'master', 'develop', 'trunk'])
 
 /** Run a git command and return stdout. */
 async function git(args: string[], cwd: string): Promise<string> {
-  const proc = Bun.spawn(['git', ...args], { cwd, stdout: 'pipe', stderr: 'pipe' })
+  const env = await getShellEnv()
+  const proc = Bun.spawn(['git', ...args], { cwd, stdout: 'pipe', stderr: 'pipe', env })
   const stdout = await new Response(proc.stdout).text()
   const exitCode = await proc.exited
   if (exitCode !== 0) {

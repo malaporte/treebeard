@@ -1,10 +1,13 @@
+import { getShellEnv } from './shell-env'
 import type { JiraIssue } from '../../shared/types'
 
 export async function getJiraIssue(issueKey: string): Promise<JiraIssue | null> {
   try {
+    const env = await getShellEnv()
     const proc = Bun.spawn(['jira', 'issue', 'view', issueKey, '--raw'], {
       stdout: 'pipe',
-      stderr: 'pipe'
+      stderr: 'pipe',
+      env
     })
 
     const timer = setTimeout(() => proc.kill(), 15000)

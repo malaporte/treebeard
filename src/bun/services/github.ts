@@ -1,8 +1,10 @@
+import { getShellEnv } from './shell-env'
 import type { PRInfo } from '../../shared/types'
 
 /** Run the gh CLI and return stdout. */
 async function gh(args: string[], cwd: string, timeout = 15000): Promise<string> {
-  const proc = Bun.spawn(['gh', ...args], { cwd, stdout: 'pipe', stderr: 'pipe' })
+  const env = await getShellEnv()
+  const proc = Bun.spawn(['gh', ...args], { cwd, stdout: 'pipe', stderr: 'pipe', env })
 
   const timer = setTimeout(() => proc.kill(), timeout)
   const stdout = await new Response(proc.stdout).text()
