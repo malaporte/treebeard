@@ -4,7 +4,7 @@ export default {
   app: {
     name: 'Treebeard',
     identifier: 'com.treebeard.app',
-    version: '1.0.0'
+    version: '1.0.2'
   },
   runtime: {
     exitOnLastWindowClosed: true
@@ -22,12 +22,11 @@ export default {
       }
     },
     copy: {
-      'src/mainview/index.html': 'views/mainview/index.html',
-      'src/mainview/styles.css': 'views/mainview/styles.css'
+      'src/mainview/index.html': 'views/mainview/index.html'
     }
   },
   scripts: {
-    postBuild: './scripts/build-css.ts'
+    preBuild: './scripts/build-css.ts'
   },
   release: {
     baseUrl: 'https://github.com/malaporte/treebeard/releases/latest/download'

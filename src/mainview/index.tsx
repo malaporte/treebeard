@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { Electroview } from 'electrobun/view'
+import './styles.css'
 import App from '../App'
 import type { TreebeardRPC } from '../shared/rpc-types'
 
