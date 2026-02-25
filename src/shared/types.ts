@@ -9,6 +9,8 @@ export interface RepoConfig {
 export interface AppConfig {
   repositories: RepoConfig[]
   pollIntervalSec: number
+  autoUpdateEnabled: boolean
+  updateCheckIntervalMin: number
   collapsedRepos: string[]
 }
 
@@ -46,4 +48,3 @@ export interface WorktreeStatus {
   linesAdded: number
   linesDeleted: number
 }
-

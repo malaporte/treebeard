@@ -59,6 +59,24 @@ export function useConfig() {
     [config, save]
   )
 
+  const setAutoUpdateEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!config) return
+      const updated = { ...config, autoUpdateEnabled: enabled }
+      await save(updated)
+    },
+    [config, save]
+  )
+
+  const setUpdateCheckInterval = useCallback(
+    async (minutes: number) => {
+      if (!config) return
+      const updated = { ...config, updateCheckIntervalMin: minutes }
+      await save(updated)
+    },
+    [config, save]
+  )
+
   const reorderRepos = useCallback(
     async (repositories: RepoConfig[]) => {
       if (!config) return
@@ -67,5 +85,14 @@ export function useConfig() {
     [config, save]
   )
 
-  return { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos }
+  return {
+    config,
+    loading,
+    addRepo,
+    removeRepo,
+    setPollInterval,
+    setAutoUpdateEnabled,
+    setUpdateCheckInterval,
+    reorderRepos
+  }
 }

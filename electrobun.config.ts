@@ -28,5 +28,8 @@ export default {
   },
   scripts: {
     postBuild: './scripts/build-css.ts'
+  },
+  release: {
+    baseUrl: 'https://github.com/malaporte/treebeard/releases/latest/download'
   }
 } satisfies ElectrobunConfig

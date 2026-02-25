@@ -3,9 +3,12 @@ name: Build
 on:
   push:
     branches: [main]
+    tags: [v*]
 
 jobs:
   build-mac:
+    permissions:
+      contents: write
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,5 +29,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Treebeard-mac
-          path: artifacts/*.dmg
+          path: |
+            artifacts/*.dmg
+            artifacts/*.tar.zst
+            artifacts/*-update.json
           retention-days: 30
+
+      - name: Create GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.dmg
+            artifacts/*.tar.zst
+            artifacts/*-update.json

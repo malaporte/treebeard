@@ -9,7 +9,8 @@ import {
   ActionIcon,
   Table,
   NumberInput,
-  Divider
+  Divider,
+  Switch
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
@@ -23,6 +24,8 @@ interface SettingsModalProps {
   onAddRepo: (name: string, path: string) => Promise<void>
   onRemoveRepo: (id: string) => Promise<void>
   onSetPollInterval: (sec: number) => Promise<void>
+  onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
+  onSetUpdateCheckInterval: (minutes: number) => Promise<void>
 }
 
 export function SettingsModal({
@@ -31,11 +34,15 @@ export function SettingsModal({
   config,
   onAddRepo,
   onRemoveRepo,
-  onSetPollInterval
+  onSetPollInterval,
+  onSetAutoUpdateEnabled,
+  onSetUpdateCheckInterval
 }: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
   const [pendingDelete, setPendingDelete] = useState<RepoConfig | null>(null)
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false)
+  const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null)
   const { shortenPath } = useHomedir()
 
   const handleConfirmDelete = async () => {
@@ -66,6 +73,25 @@ export function SettingsModal({
       }
     } catch {
       // Native dialog was cancelled or RPC failed
+    }
+  }
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdates(true)
+    setUpdateCheckMessage(null)
+    try {
+      const result = await rpc().request['app:checkForUpdates']({})
+      if (!result.success) {
+        setUpdateCheckMessage(result.error || 'Unable to check for updates right now.')
+      } else if (result.updateAvailable) {
+        setUpdateCheckMessage('Update ready. You can restart now or later when prompted.')
+      } else {
+        setUpdateCheckMessage('You are on the latest version.')
+      }
+    } catch {
+      setUpdateCheckMessage('Unable to check for updates right now.')
+    } finally {
+      setCheckingForUpdates(false)
     }
   }
 
@@ -186,6 +212,49 @@ export function SettingsModal({
             style={{ maxWidth: 200 }}
             size="sm"
           />
+        </div>
+
+        <Divider />
+
+        <div>
+          <Text fw={600} size="sm" mb="xs">
+            Updates
+          </Text>
+          <Stack gap="sm">
+            <Switch
+              label="Automatically check for updates"
+              checked={config.autoUpdateEnabled}
+              onChange={(e) => {
+                onSetAutoUpdateEnabled(e.currentTarget.checked)
+              }}
+              size="sm"
+            />
+            <NumberInput
+              label="Check interval (minutes)"
+              value={config.updateCheckIntervalMin}
+              onChange={(val) => {
+                if (typeof val === 'number' && val >= 5) {
+                  onSetUpdateCheckInterval(val)
+                }
+              }}
+              min={5}
+              max={1440}
+              step={5}
+              style={{ maxWidth: 220 }}
+              size="sm"
+              disabled={!config.autoUpdateEnabled}
+            />
+            <Group gap="sm">
+              <Button size="xs" variant="light" onClick={handleCheckForUpdates} loading={checkingForUpdates}>
+                Check for updates now
+              </Button>
+              {updateCheckMessage && (
+                <Text size="xs" c="dimmed">
+                  {updateCheckMessage}
+                </Text>
+              )}
+            </Group>
+          </Stack>
         </div>
       </Stack>
     </Modal>

@@ -46,7 +46,16 @@ const theme = createTheme({
 })
 
 export default function App() {
-  const { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos } = useConfig()
+  const {
+    config,
+    loading,
+    addRepo,
+    removeRepo,
+    setPollInterval,
+    setAutoUpdateEnabled,
+    setUpdateCheckInterval,
+    reorderRepos
+  } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -134,6 +143,8 @@ export default function App() {
         onAddRepo={addRepo}
         onRemoveRepo={removeRepo}
         onSetPollInterval={setPollInterval}
+        onSetAutoUpdateEnabled={setAutoUpdateEnabled}
+        onSetUpdateCheckInterval={setUpdateCheckInterval}
       />
     </MantineProvider>
   )

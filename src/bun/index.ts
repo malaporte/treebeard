@@ -1,5 +1,4 @@
-import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from 'electrobun/bun'
-import Electrobun from 'electrobun/bun'
+import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import os from 'node:os'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
 import {
@@ -18,6 +17,108 @@ import { launchVSCode, launchGhostty } from './services/launcher'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig } from '../shared/types'
 
+const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
+const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
+const STARTUP_UPDATE_CHECK_DELAY_MS = 15000
+
+let autoUpdateInterval: ReturnType<typeof setInterval> | null = null
+let isUpdateCheckInFlight = false
+let isUpdatePromptOpen = false
+
+interface UpdateCheckResult {
+  success: boolean
+  updateAvailable: boolean
+  error?: string
+}
+
+function normalizeUpdateIntervalMin(intervalMin: number): number {
+  return Math.min(Math.max(Math.round(intervalMin), MIN_UPDATE_CHECK_INTERVAL_MIN), MAX_UPDATE_CHECK_INTERVAL_MIN)
+}
+
+function autoUpdateEnabled(config: AppConfig): boolean {
+  return config.autoUpdateEnabled
+}
+
+function configureAutoUpdateSchedule(config: AppConfig): void {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval)
+    autoUpdateInterval = null
+  }
+
+  if (!autoUpdateEnabled(config)) return
+
+  const intervalMin = normalizeUpdateIntervalMin(config.updateCheckIntervalMin)
+  autoUpdateInterval = setInterval(() => {
+    void checkForAppUpdate()
+  }, intervalMin * 60_000)
+}
+
+async function promptToRestartForUpdate(): Promise<void> {
+  if (isUpdatePromptOpen) return
+
+  isUpdatePromptOpen = true
+  try {
+    const { response } = await Utils.showMessageBox({
+      type: 'info',
+      title: 'Update ready',
+      message: 'A new version of Treebeard is ready to install.',
+      detail: 'Restart now to apply the update.',
+      buttons: ['Restart now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    })
+
+    if (response === 0) {
+      await Updater.applyUpdate()
+    }
+  } finally {
+    isUpdatePromptOpen = false
+  }
+}
+
+async function checkForAppUpdate(): Promise<UpdateCheckResult> {
+  if (isUpdateCheckInFlight) {
+    return { success: true, updateAvailable: false }
+  }
+
+  isUpdateCheckInFlight = true
+  try {
+    const info = await Updater.checkForUpdate()
+
+    if (!info.updateAvailable) {
+      return { success: true, updateAvailable: false }
+    }
+
+    await Updater.downloadUpdate()
+    const postDownloadInfo = Updater.updateInfo()
+
+    if (!postDownloadInfo?.updateReady) {
+      return {
+        success: false,
+        updateAvailable: true,
+        error: postDownloadInfo?.error || 'Update download failed'
+      }
+    }
+
+    await promptToRestartForUpdate()
+    return { success: true, updateAvailable: true }
+  } catch {
+    return { success: false, updateAvailable: false, error: 'Failed to check for updates' }
+  } finally {
+    isUpdateCheckInFlight = false
+  }
+}
+
+function startAutoUpdateScheduler(): void {
+  const config = getConfig()
+  configureAutoUpdateSchedule(config)
+
+  setTimeout(() => {
+    if (!autoUpdateEnabled(getConfig())) return
+    void checkForAppUpdate()
+  }, STARTUP_UPDATE_CHECK_DELAY_MS)
+}
+
 // --- Main RPC Handlers ---
 
 const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
@@ -29,6 +130,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'config:set': ({ config }) => {
         setConfig(config)
+        configureAutoUpdateSchedule(getConfig())
       },
       'config:getCollapsed': () => {
         return getCollapsedRepos()
@@ -89,6 +191,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'app:closeWindow': () => {
         win.close()
+      },
+      'app:checkForUpdates': async () => {
+        return checkForAppUpdate()
       }
     },
     messages: {}
@@ -134,3 +239,5 @@ const win = new BrowserWindow({
   },
   rpc: mainviewRPC
 })
+
+startAutoUpdateScheduler()

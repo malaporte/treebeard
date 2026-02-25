@@ -87,6 +87,10 @@ export type TreebeardRPC = {
         params: Record<string, never>
         response: void
       }
+      'app:checkForUpdates': {
+        params: Record<string, never>
+        response: { success: boolean; updateAvailable: boolean; error?: string }
+      }
     }
     messages: Record<string, never>
   }>
