@@ -50,6 +50,9 @@ pnpm dev
 | --------------------- | ------------------------------------------------------------------- |
 | `pnpm dev`            | Run Treebeard in development mode                                   |
 | `pnpm build`          | Build a packaged app via Electrobun                                 |
+| `pnpm test`           | Run the Vitest suite once                                           |
+| `pnpm test:watch`     | Run Vitest in watch mode                                             |
+| `pnpm test:coverage`  | Run Vitest with V8 coverage output                                  |
 | `pnpm typecheck`      | Run TypeScript type-checking (`tsc --noEmit`)                       |
 | `pnpm start:packaged` | Open the packaged app from `build/stable-macos-arm64/Treebeard.app` |
 | `pnpm screenshot`     | Launch packaged app and capture `treebeard-current.png`             |

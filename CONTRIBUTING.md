@@ -26,6 +26,7 @@ pnpm dev
 Run these checks locally:
 
 ```bash
+pnpm test
 pnpm typecheck
 pnpm build
 ```

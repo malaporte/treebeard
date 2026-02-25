@@ -4,6 +4,9 @@
   "scripts": {
     "dev": "electrobun dev",
     "build": "electrobun build --env=stable",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "start:packaged": "open build/stable-macos-arm64/Treebeard.app",
     "screenshot": "bun run scripts/screenshot.ts",
     "typecheck": "bun run scripts/typecheck.ts",
@@ -21,13 +24,19 @@
   },
   "devDependencies": {
     "@tabler/icons-react": "^3.31.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "bun-types": "^1.2.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.4.0",
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
 }
