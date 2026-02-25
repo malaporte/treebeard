@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { PRInfo } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { PRInfo } from '../shared/types'
 
 export function usePR(repoPath: string | null, branch: string | null) {
   const [pr, setPR] = useState<PRInfo | null>(null)
@@ -12,7 +13,7 @@ export function usePR(repoPath: string | null, branch: string | null) {
     }
     setLoading(true)
     try {
-      const result = await window.treebeard.gh.pr(repoPath, branch)
+      const result = await rpc().request['gh:pr']({ repoPath, branch })
       setPR(result)
     } catch {
       setPR(null)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   MantineProvider,
   AppShell,
@@ -10,11 +10,11 @@ import {
   Group,
   createTheme
 } from '@mantine/core'
-import '@mantine/core/styles.css'
 import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
 import { RepoDashboard } from './components/RepoDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
+import { rpc } from './rpc'
 
 // Neon-blue palette tuned for dark backgrounds
 const neon: [string, string, string, string, string, string, string, string, string, string] = [
@@ -50,6 +50,21 @@ export default function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.metaKey) return
+      if (e.key === 'q') {
+        e.preventDefault()
+        rpc().request['app:quit']({})
+      } else if (e.key === 'w') {
+        e.preventDefault()
+        rpc().request['app:closeWindow']({})
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   if (loading || !config) {
     return (
       <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -65,18 +80,18 @@ export default function App() {
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-        <AppShell header={{ height: 44 }} padding="md">
+        <AppShell header={{ height: 38 }} padding="md">
         <AppShell.Header
           px="md"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            WebkitAppRegion: 'drag' as never,
             borderBottom: '1px solid rgba(0, 136, 255, 0.15)'
           }}
+          className="electrobun-webkit-app-region-drag"
         >
-          <Group gap="xs" style={{ WebkitAppRegion: 'no-drag' as never }}>
+          <Group gap="xs" className="electrobun-webkit-app-region-no-drag">
             <TextInput
               placeholder="Filter worktrees..."
               size="xs"

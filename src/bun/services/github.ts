@@ -1,8 +1,19 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import type { PRInfo } from '../types'
+import type { PRInfo } from '../../shared/types'
 
-const execFileAsync = promisify(execFile)
+/** Run the gh CLI and return stdout. */
+async function gh(args: string[], cwd: string, timeout = 15000): Promise<string> {
+  const proc = Bun.spawn(['gh', ...args], { cwd, stdout: 'pipe', stderr: 'pipe' })
+
+  const timer = setTimeout(() => proc.kill(), timeout)
+  const stdout = await new Response(proc.stdout).text()
+  const exitCode = await proc.exited
+  clearTimeout(timer)
+
+  if (exitCode !== 0) {
+    throw new Error(`gh exited with code ${exitCode}`)
+  }
+  return stdout
+}
 
 export async function getPRForBranch(
   repoPath: string,
@@ -10,18 +21,13 @@ export async function getPRForBranch(
   ghRepo: string
 ): Promise<PRInfo | null> {
   try {
-    const { stdout } = await execFileAsync(
-      'gh',
+    const stdout = await gh(
       [
-        'pr',
-        'view',
-        branch,
-        '--json',
-        'number,url,title,state,isDraft,statusCheckRollup',
-        '-R',
-        ghRepo
+        'pr', 'view', branch,
+        '--json', 'number,url,title,state,isDraft,statusCheckRollup',
+        '-R', ghRepo
       ],
-      { cwd: repoPath, timeout: 15000 }
+      repoPath
     )
 
     const data = JSON.parse(stdout)

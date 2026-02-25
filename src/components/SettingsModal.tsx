@@ -13,7 +13,8 @@ import {
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
-import type { AppConfig, RepoConfig } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { AppConfig, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -54,13 +55,17 @@ export function SettingsModal({
   }
 
   const handleBrowse = async () => {
-    const selected = await window.treebeard.dialog.openDirectory()
-    if (!selected) return
-    setPath(selected)
-    // Auto-fill name from directory basename if empty
-    if (!name.trim()) {
-      const basename = selected.split('/').filter(Boolean).pop() ?? ''
-      setName(basename)
+    try {
+      const selected = await rpc().request['dialog:openDirectory']({})
+      if (!selected) return
+      setPath(selected)
+      // Auto-fill name from directory basename if empty
+      if (!name.trim()) {
+        const basename = selected.split('/').filter(Boolean).pop() ?? ''
+        setName(basename)
+      }
+    } catch {
+      // Native dialog was cancelled or RPC failed
     }
   }
 

@@ -13,7 +13,8 @@ import {
   Loader
 } from '@mantine/core'
 import { IconAlertCircle, IconInfoCircle } from '@tabler/icons-react'
-import type { RepoConfig } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { RepoConfig } from '../shared/types'
 
 interface AddWorktreeModalProps {
   repo: RepoConfig
@@ -39,7 +40,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
       setSubmitting(false)
       setBranchExists(false)
       setRemoteBranches([])
-      window.treebeard.git.defaultBranch(repo.path).then(setDefaultBranch).catch(() => {
+      rpc().request['git:defaultBranch']({ repoPath: repo.path }).then(setDefaultBranch).catch(() => {
         setDefaultBranch('main')
       })
     }
@@ -50,8 +51,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     if (opened && mode === 'existing') {
       setLoadingBranches(true)
       setBranch('')
-      window.treebeard.git
-        .remoteBranches(repo.path)
+      rpc().request['git:remoteBranches']({ repoPath: repo.path })
         .then(setRemoteBranches)
         .catch(() => setRemoteBranches([]))
         .finally(() => setLoadingBranches(false))
@@ -73,12 +73,12 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     // If branchExists is set, the user confirmed — use existing branch (isNewBranch: false)
     const isNewBranch = mode === 'new' && !branchExists
 
-    const result = await window.treebeard.git.addWorktree(
-      repo.path,
-      repo.name,
-      branch.trim(),
+    const result = await rpc().request['git:addWorktree']({
+      repoPath: repo.path,
+      repoName: repo.name,
+      branch: branch.trim(),
       isNewBranch
-    )
+    })
 
     setSubmitting(false)
 

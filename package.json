@@ -1,44 +1,11 @@
 {
   "name": "Treebeard",
   "version": "1.0.0",
-  "main": "./out/main/main.js",
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "electron-vite build",
-    "preview": "electron-vite preview",
-    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
-    "dist": "electron-vite build && electron-builder --mac",
-    "postinstall": "electron-rebuild -f -w node-pty"
-  },
-  "build": {
-    "appId": "com.treebeard.app",
-    "productName": "Treebeard",
-    "icon": "AppIcon.icns",
-    "files": [
-      "out/**/*",
-      "!out/**/*.map"
-    ],
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/node-pty/**",
-      "node_modules/.pnpm/node-pty*/**"
-    ],
-    "extraResources": [
-      {
-        "from": "icon.png",
-        "to": "icon.png"
-      }
-    ],
-    "mac": {
-      "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
-      ],
-      "category": "public.app-category.developer-tools"
-    },
-    "dmg": {
-      "title": "Treebeard"
-    },
-    "nativeRebuilder": "sequential"
+    "dev": "electrobun dev",
+    "build": "electrobun build --env=stable",
+    "typecheck": "bun run scripts/typecheck.ts",
+    "postcss": "bun run scripts/build-css.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -46,27 +13,18 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/core": "^7.17.0",
     "@mantine/hooks": "^7.17.0",
-    "@vitejs/plugin-react": "^5.1.4",
-    "@xterm/addon-fit": "^0.11.0",
-    "@xterm/xterm": "^6.0.0",
-    "electron-store": "^10.0.0",
-    "node-pty": "^1.1.0",
-    "uuid": "^11.1.0"
+    "electrobun": "^1.14.4",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.3",
     "@tabler/icons-react": "^3.31.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@types/uuid": "^10.0.0",
-    "electron": "^33.0.0",
-    "electron-builder": "^26.8.1",
-    "electron-vite": "^2.3.0",
+    "bun-types": "^1.2.0",
     "postcss": "^8.4.0",
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
     "typescript": "^5.7.0"
   },
   "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"

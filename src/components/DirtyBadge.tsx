@@ -1,5 +1,5 @@
 import { Group, Loader, Text, Tooltip } from '@mantine/core'
-import type { WorktreeStatus } from '../../electron/types'
+import type { WorktreeStatus } from '../shared/types'
 
 interface DirtyBadgeProps {
   status: WorktreeStatus | null

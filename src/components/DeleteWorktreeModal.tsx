@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Modal, Button, Stack, Text, Alert, Code, Group, Loader } from '@mantine/core'
 import { IconAlertCircle, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
-import type { Worktree, WorktreeStatus } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { Worktree, WorktreeStatus } from '../shared/types'
 
 interface DeleteWorktreeModalProps {
   worktree: Worktree
@@ -25,8 +26,7 @@ export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuc
       setError(null)
       setDeleting(false)
       setLoadingStatus(true)
-      window.treebeard.git
-        .worktreeStatus(worktree.path)
+      rpc().request['git:worktreeStatus']({ worktreePath: worktree.path })
         .then(setStatus)
         .catch(() => setStatus(null))
         .finally(() => setLoadingStatus(false))
@@ -39,7 +39,11 @@ export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuc
     setDeleting(true)
     setError(null)
 
-    const result = await window.treebeard.git.removeWorktree(repoPath, worktree.path, hasWarnings || undefined)
+    const result = await rpc().request['git:removeWorktree']({
+      repoPath,
+      worktreePath: worktree.path,
+      force: hasWarnings || undefined
+    })
 
     if (result.success) {
       onSuccess()

@@ -2,15 +2,16 @@
 
 ## Project Overview
 
-Treebeard is an **Electron** desktop app for managing Git worktrees across repositories,
+Treebeard is an **Electrobun** desktop app for managing Git worktrees across repositories,
 with Jira issue badges, GitHub PR/CI status, and quick-launch buttons for VS Code,
 Ghostty, and OpenCode.
 
-**Stack:** TypeScript (strict), React 18, Mantine v7, electron-vite, pnpm
+**Stack:** TypeScript (strict), React 18, Mantine v7, Electrobun, Bun
 
 **Structure:**
-- `electron/` — Main process entry (`main.ts`), preload bridge (`preload.ts`), shared types (`types.ts`)
-- `electron/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`
+- `src/bun/` — Main process entry (`index.ts`), shared types (`../shared/types.ts`)
+- `src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`
+- `src/shared/` — Shared types and RPC schema (`types.ts`, `rpc-types.ts`)
 - `src/` — Renderer process (React app)
 - `src/components/` — Flat directory of single-purpose React components
 - `src/hooks/` — Custom hooks (`useWorktrees`, `usePR`, `useJiraIssue`, `useConfig`)
@@ -20,14 +21,13 @@ Ghostty, and OpenCode.
 | Command            | Description                                      |
 | ------------------ | ------------------------------------------------ |
 | `pnpm dev`         | Start in development mode with hot-reload        |
-| `pnpm build`       | Production build via electron-vite               |
-| `pnpm preview`     | Preview the production build                     |
+| `pnpm build`       | Production build via Electrobun                  |
 | `pnpm typecheck`   | Type-check only (`tsc --noEmit`)                 |
 
 **No test framework, linter, or formatter is configured.** If vitest is added later:
 ```bash
-pnpm vitest run path/to/file.test.ts          # single test file
-pnpm vitest run -t "test name pattern"         # single test by name
+bun vitest run path/to/file.test.ts          # single test file
+bun vitest run -t "test name pattern"         # single test by name
 ```
 
 ## Code Style
@@ -44,7 +44,7 @@ Type-only imports use `import type` on a separate line, placed last in the impor
 import { execFile } from 'node:child_process'
 import { Card, Text, Group } from '@mantine/core'
 import { JiraBadge } from './JiraBadge'
-import type { Worktree } from '../../electron/types'
+import type { Worktree } from '../../shared/types'
 ```
 
 ### Naming Conventions
@@ -67,7 +67,6 @@ import type { Worktree } from '../../electron/types'
 - Use `interface` for all object shapes. Reserve `type` for aliases and unions only.
 - Explicit return type annotations on **exported service functions** (`Promise<Worktree[]>`).
 - Inferred return types on React components and hooks.
-- Use `as const` for literal lookup objects (e.g., the `IPC` channel map).
 - Use `import type` consistently for type-only imports — never mix into value imports.
 - Prefer inline union literals over enums: `'OPEN' | 'CLOSED' | 'MERGED'`.
 
@@ -90,7 +89,7 @@ import type { Worktree } from '../../electron/types'
 
 ### Error Handling
 
-- **Services (electron side):** Catch errors silently and return `null` for non-critical failures.
+- **Services (bun side):** Catch errors silently and return `null` for non-critical failures.
   Use empty `catch` blocks (no error variable) when the error is not inspected:
   ```ts
   catch {
@@ -103,7 +102,7 @@ import type { Worktree } from '../../electron/types'
   always include a `finally` block to clear loading state:
   ```ts
   try {
-    const result = await window.treebeard.gh.pr(repoPath, branch)
+    const result = await rpc().request['gh:pr']({ repoPath, branch })
     setPR(result)
   } catch {
     setPR(null)
@@ -118,7 +117,7 @@ import type { Worktree } from '../../electron/types'
 - Comments explain **why**, never **what**. Do not restate code in comments.
 - `/** */` JSDoc on exported service functions — short purpose description, no `@param`/`@returns` tags.
 - `//` inline comments only for non-obvious logic, workarounds, or edge cases.
-- `// --- Section Name ---` dividers in large files (e.g., `main.ts`).
+- `// --- Section Name ---` dividers in large files (e.g., `index.ts`).
 - No `TODO`/`FIXME` comments. No commented-out code.
 
 ### Components
@@ -140,7 +139,7 @@ export function useThing(arg: string | null) {
     if (!arg) return
     setLoading(true)
     try {
-      const result = await window.treebeard.thing.get(arg)
+      const result = await rpc().request['thing:get']({ arg })
       setData(result)
     } catch {
       setData(null)
@@ -161,11 +160,13 @@ Zero logging in the codebase. No `console.log`, `console.error`, or logging libr
 
 ## Architecture Notes
 
-- **IPC:** Uses Electron's invoke/handle pattern (`ipcMain.handle` / `ipcRenderer.invoke`).
-  Channel names are defined in `electron/types.ts` as an `IPC` const object.
-- **Preload bridge:** `preload.ts` exposes a typed API via `contextBridge.exposeInMainWorld('treebeard', api)`.
-  Renderer code accesses it through `window.treebeard.*`. Type safety via `global.d.ts`.
-- **Persistence:** App config stored via `electron-store` with typed `Store<AppConfig>`.
+- **RPC:** Uses Electrobun's `BrowserView.defineRPC` / `Electroview.defineRPC` pattern.
+  The schema is defined in `src/shared/rpc-types.ts` as `TreebeardRPC`. Bun-side handlers
+  live in `src/bun/index.ts`; the renderer calls them via `rpc().request['channel']({})`.
+- **RPC accessor:** `src/rpc.ts` exposes a typed `rpc()` helper that reads the Electroview
+  instance from `window.__electrobun`. All hooks import `rpc` from this module.
+- **Persistence:** App config stored as JSON via `src/bun/services/config.ts` in
+  `~/Library/Application Support/Treebeard/treebeard-config.json`.
 - **State management:** Local `useState` + custom hooks only. No external state library.
-- **External CLIs:** GitHub data via `gh` CLI, Jira data via `jira` CLI, both called from main process
-  via `child_process.execFile`. Failures return `null` silently.
+- **External CLIs:** GitHub data via `gh` CLI, Jira data via `jira` CLI, both called from
+  the bun process via `child_process.execFile`. Failures return `null` silently.

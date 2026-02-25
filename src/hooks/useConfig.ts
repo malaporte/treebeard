@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { AppConfig, RepoConfig } from '../../electron/types'
+import { useState, useEffect, useCallback } from 'react'
+import { rpc } from '../rpc'
+import type { AppConfig, RepoConfig } from '../shared/types'
 
 export function useConfig() {
   const [config, setConfigState] = useState<AppConfig | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const cfg = await window.treebeard.config.get()
+    const cfg = await rpc().request['config:get']({})
     setConfigState(cfg)
     setLoading(false)
   }, [])
@@ -16,7 +17,7 @@ export function useConfig() {
   }, [load])
 
   const save = useCallback(async (cfg: AppConfig) => {
-    await window.treebeard.config.set(cfg)
+    await rpc().request['config:set']({ config: cfg })
     setConfigState(cfg)
   }, [])
 
@@ -66,5 +67,5 @@ export function useConfig() {
     [config, save]
   )
 
-  return { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos, reload: load }
+  return { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos }
 }

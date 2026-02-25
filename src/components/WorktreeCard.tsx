@@ -10,7 +10,8 @@ import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
 import { useHomedir } from '../hooks/useHomedir'
-import type { Worktree } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { Worktree } from '../shared/types'
 
 interface WorktreeCardProps {
   worktree: Worktree
@@ -35,7 +36,7 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
   const { shortenPath } = useHomedir()
 
   const handleDoubleClick = () => {
-    window.treebeard.launch.vscode(worktree.path)
+    rpc().request['launch:vscode']({ worktreePath: worktree.path })
   }
 
   return (

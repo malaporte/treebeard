@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { WorktreeStatus } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { WorktreeStatus } from '../shared/types'
 
 export function useWorktreeStatus(worktreePath: string) {
   const [status, setStatus] = useState<WorktreeStatus | null>(null)
@@ -8,7 +9,7 @@ export function useWorktreeStatus(worktreePath: string) {
   const fetch = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await window.treebeard.git.worktreeStatus(worktreePath)
+      const result = await rpc().request['git:worktreeStatus']({ worktreePath })
       setStatus(result)
     } catch {
       setStatus(null)

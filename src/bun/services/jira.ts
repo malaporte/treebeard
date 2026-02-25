@@ -1,14 +1,18 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import type { JiraIssue } from '../types'
-
-const execFileAsync = promisify(execFile)
+import type { JiraIssue } from '../../shared/types'
 
 export async function getJiraIssue(issueKey: string): Promise<JiraIssue | null> {
   try {
-    const { stdout } = await execFileAsync('jira', ['issue', 'view', issueKey, '--raw'], {
-      timeout: 15000
+    const proc = Bun.spawn(['jira', 'issue', 'view', issueKey, '--raw'], {
+      stdout: 'pipe',
+      stderr: 'pipe'
     })
+
+    const timer = setTimeout(() => proc.kill(), 15000)
+    const stdout = await new Response(proc.stdout).text()
+    const exitCode = await proc.exited
+    clearTimeout(timer)
+
+    if (exitCode !== 0) return null
 
     const data = JSON.parse(stdout)
     const fields = data.fields

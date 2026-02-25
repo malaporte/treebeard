@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
+import { rpc } from '../rpc'
 
 export function useCollapsed() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    window.treebeard.config.getCollapsed().then((ids) => {
+    rpc().request['config:getCollapsed']({}).then((ids: string[]) => {
       setCollapsed(new Set(ids))
     })
   }, [])
@@ -17,7 +18,7 @@ export function useCollapsed() {
       } else {
         next.add(id)
       }
-      window.treebeard.config.setCollapsed([...next])
+      rpc().request['config:setCollapsed']({ ids: [...next] })
       return next
     })
   }, [])

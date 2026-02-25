@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { JiraIssue } from '../../electron/types'
+import { rpc } from '../rpc'
+import type { JiraIssue } from '../shared/types'
 
 export function useJiraIssue(issueKey: string | null) {
   const [issue, setIssue] = useState<JiraIssue | null>(null)
@@ -12,7 +13,7 @@ export function useJiraIssue(issueKey: string | null) {
     }
     setLoading(true)
     try {
-      const result = await window.treebeard.jira.issue(issueKey)
+      const result = await rpc().request['jira:issue']({ issueKey })
       setIssue(result)
     } catch {
       setIssue(null)
