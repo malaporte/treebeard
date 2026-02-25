@@ -15,14 +15,12 @@
     "@mantine/hooks": "^7.17.0",
     "electrobun": "^1.14.4",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "uuid": "^11.1.0"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@tabler/icons-react": "^3.31.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@types/uuid": "^10.0.0",
     "bun-types": "^1.2.0",
     "postcss": "^8.4.0",
     "postcss-preset-mantine": "^1.17.0",

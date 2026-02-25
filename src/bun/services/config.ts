@@ -1,4 +1,5 @@
 import path from 'node:path'
+import fs from 'node:fs'
 import { Utils } from 'electrobun/bun'
 import type { AppConfig } from '../../shared/types'
 
@@ -19,9 +20,6 @@ function configPath(): string {
 
 function readConfig(): AppConfig {
   try {
-    const raw = Bun.file(configPath())
-    // Bun.file().text() is async, use node:fs for sync read
-    const fs = require('node:fs')
     const text = fs.readFileSync(configPath(), 'utf-8')
     return { ...DEFAULTS, ...JSON.parse(text) }
   } catch {
@@ -30,9 +28,7 @@ function readConfig(): AppConfig {
 }
 
 function writeConfig(config: AppConfig): void {
-  const fs = require('node:fs')
-  const dir = CONFIG_DIR
-  fs.mkdirSync(dir, { recursive: true })
+  fs.mkdirSync(CONFIG_DIR, { recursive: true })
   fs.writeFileSync(configPath(), JSON.stringify(config, null, 2))
 }
 

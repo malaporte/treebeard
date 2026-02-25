@@ -47,8 +47,3 @@ export interface WorktreeStatus {
   linesDeleted: number
 }
 
-export interface WorktreeInfo extends Worktree {
-  jiraKey: string | null
-  jira: JiraIssue | null
-  pr: PRInfo | null
-}

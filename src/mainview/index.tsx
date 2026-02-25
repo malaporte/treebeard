@@ -1,4 +1,4 @@
-import React from 'react'
+import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { Electroview } from 'electrobun/view'
 import App from '../App'
@@ -21,7 +21,7 @@ const electroview = new Electroview({ rpc })
 // --- React mount ---
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>
 )

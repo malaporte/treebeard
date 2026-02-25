@@ -67,5 +67,5 @@ export function useConfig() {
     [config, save]
   )
 
-  return { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos, reload: load }
+  return { config, loading, addRepo, removeRepo, setPollInterval, reorderRepos }
 }

@@ -69,15 +69,6 @@ export async function getWorktrees(repoPath: string): Promise<Worktree[]> {
   return parseWorktreeOutput(stdout)
 }
 
-/**
- * Extract a JIRA issue key from a branch name.
- * Case-insensitive to handle branches like emdash/nodec-83-bundle.
- */
-export function extractJiraKey(branch: string): string | null {
-  const match = branch.match(/([a-zA-Z][a-zA-Z0-9]+-\d+)/i)
-  return match ? match[1].toUpperCase() : null
-}
-
 /** Get the GitHub remote owner/repo for a git repository. */
 export async function getGitHubRepo(repoPath: string): Promise<string | null> {
   const stdout = await gitSilent(['remote', 'get-url', 'origin'], repoPath)
