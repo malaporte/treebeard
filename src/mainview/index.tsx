@@ -7,6 +7,7 @@ import type { TreebeardRPC } from '../shared/rpc-types'
 // --- Electroview RPC setup ---
 
 const rpc = Electroview.defineRPC<TreebeardRPC>({
+  maxRequestTime: 30000,
   handlers: {
     requests: {},
     messages: {}
