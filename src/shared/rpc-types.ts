@@ -1,6 +1,7 @@
 import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
+  DependencyStatus,
   JiraIssue,
   PRInfo,
   Worktree,
@@ -78,6 +79,10 @@ export type TreebeardRPC = {
       'dialog:openDirectory': {
         params: Record<string, never>
         response: string | null
+      }
+      'system:dependencies': {
+        params: { refresh?: boolean }
+        response: DependencyStatus
       }
       'app:quit': {
         params: Record<string, never>

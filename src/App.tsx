@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   MantineProvider,
   AppShell,
@@ -6,6 +6,7 @@ import {
   Loader,
   Text,
   TextInput,
+  Alert,
   Stack,
   Group,
   createTheme
@@ -15,6 +16,7 @@ import { RepoDashboard } from './components/RepoDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
 import { rpc } from './rpc'
+import type { DependencyStatus } from './shared/types'
 
 // Neon-blue palette tuned for dark backgrounds
 const neon: [string, string, string, string, string, string, string, string, string, string] = [
@@ -58,6 +60,16 @@ export default function App() {
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
+  const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
+
+  const loadDependencies = useCallback(async () => {
+    try {
+      const status = await rpc().request['system:dependencies']({})
+      setDependencyStatus(status)
+    } catch {
+      setDependencyStatus(null)
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,6 +85,34 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  useEffect(() => {
+    loadDependencies()
+  }, [loadDependencies])
+
+  const missingDependencies = dependencyStatus
+    ? dependencyStatus.checks.filter((check) => check.required && !check.installed)
+    : []
+
+  const unauthenticatedDependencies = dependencyStatus
+    ? dependencyStatus.checks.filter((check) => check.required && check.installed && check.authenticated === false)
+    : []
+
+  const missingDependencyMessage = missingDependencies
+    .map((check) => {
+      if (check.name === 'gh') return 'gh CLI missing (PR badges unavailable)'
+      if (check.name === 'jira') return 'jira CLI missing (Jira badges unavailable)'
+      return `${check.name} missing`
+    })
+    .join(' | ')
+
+  const authDependencyMessage = unauthenticatedDependencies
+    .map((check) => {
+      if (check.name === 'gh') return 'gh CLI not authenticated (PR badges unavailable)'
+      if (check.name === 'jira') return 'jira CLI not authenticated (Jira badges unavailable)'
+      return `${check.name} not authenticated`
+    })
+    .join(' | ')
 
   if (loading || !config) {
     return (
@@ -127,12 +167,24 @@ export default function App() {
         </AppShell.Header>
 
         <AppShell.Main>
-          <RepoDashboard
-            repos={config.repositories}
-            pollIntervalSec={config.pollIntervalSec}
-            search={search}
-            onReorder={reorderRepos}
-          />
+          <Stack gap="md">
+            {missingDependencies.length > 0 && (
+              <Alert color="yellow" variant="light" title="Missing CLI dependencies">
+                {missingDependencyMessage}
+              </Alert>
+            )}
+            {unauthenticatedDependencies.length > 0 && (
+              <Alert color="orange" variant="light" title="CLI authentication required">
+                {authDependencyMessage}
+              </Alert>
+            )}
+            <RepoDashboard
+              repos={config.repositories}
+              pollIntervalSec={config.pollIntervalSec}
+              search={search}
+              onReorder={reorderRepos}
+            />
+          </Stack>
         </AppShell.Main>
       </AppShell>
 
@@ -140,6 +192,7 @@ export default function App() {
         opened={settingsOpened}
         onClose={() => setSettingsOpened(false)}
         config={config}
+        onDependencyStatusChange={setDependencyStatus}
         onAddRepo={addRepo}
         onRemoveRepo={removeRepo}
         onSetPollInterval={setPollInterval}

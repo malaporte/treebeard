@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Modal,
   TextInput,
@@ -10,17 +10,19 @@ import {
   Table,
   NumberInput,
   Divider,
-  Switch
+  Switch,
+  Alert
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { AppConfig, RepoConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
   onClose: () => void
   config: AppConfig
+  onDependencyStatusChange: (status: DependencyStatus | null) => void
   onAddRepo: (name: string, path: string) => Promise<void>
   onRemoveRepo: (id: string) => Promise<void>
   onSetPollInterval: (sec: number) => Promise<void>
@@ -32,6 +34,7 @@ export function SettingsModal({
   opened,
   onClose,
   config,
+  onDependencyStatusChange,
   onAddRepo,
   onRemoveRepo,
   onSetPollInterval,
@@ -43,7 +46,28 @@ export function SettingsModal({
   const [pendingDelete, setPendingDelete] = useState<RepoConfig | null>(null)
   const [checkingForUpdates, setCheckingForUpdates] = useState(false)
   const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null)
+  const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
+  const [checkingDependencies, setCheckingDependencies] = useState(false)
   const { shortenPath } = useHomedir()
+
+  const loadDependencies = async (refresh: boolean) => {
+    setCheckingDependencies(true)
+    try {
+      const status = await rpc().request['system:dependencies']({ refresh })
+      setDependencyStatus(status)
+      onDependencyStatusChange(status)
+    } catch {
+      setDependencyStatus(null)
+      onDependencyStatusChange(null)
+    } finally {
+      setCheckingDependencies(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!opened) return
+    loadDependencies(false)
+  }, [opened])
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return
@@ -94,6 +118,35 @@ export function SettingsModal({
       setCheckingForUpdates(false)
     }
   }
+
+  const missingDependencies = dependencyStatus
+    ? dependencyStatus.checks.filter((check) => check.required && !check.installed)
+    : []
+
+  const unauthenticatedDependencies = dependencyStatus
+    ? dependencyStatus.checks.filter((check) => check.required && check.installed && check.authenticated === false)
+    : []
+
+  const unknownAuthDependencies = dependencyStatus
+    ? dependencyStatus.checks.filter((check) => check.required && check.installed && check.authenticated === null)
+    : []
+
+  const dependencySummary = dependencyStatus
+    ? dependencyStatus.checks
+        .map((check) => {
+          if (check.installed) {
+            if (check.authenticated === false) {
+              return `${check.name}: auth required`
+            }
+            if (check.authenticated === null) {
+              return `${check.name}: ok (auth unknown)`
+            }
+            return `${check.name}: ready${check.version ? ` (${check.version})` : ''}`
+          }
+          return `${check.name}: missing`
+        })
+        .join(' | ')
+    : 'Unable to read dependency status.'
 
   return (
     <Modal opened={opened} onClose={() => { setPendingDelete(null); onClose() }} title="Settings" size="lg">
@@ -253,6 +306,48 @@ export function SettingsModal({
                   {updateCheckMessage}
                 </Text>
               )}
+            </Group>
+          </Stack>
+        </div>
+
+        <Divider />
+
+        <div>
+          <Text fw={600} size="sm" mb="xs">
+            Dependencies
+          </Text>
+          <Stack gap="sm">
+            {missingDependencies.length > 0 ? (
+              <Alert color="yellow" variant="light" title="Missing required CLIs">
+                {missingDependencies.map((check) => check.name).join(', ')}
+              </Alert>
+            ) : unauthenticatedDependencies.length > 0 ? (
+              <Alert color="orange" variant="light" title="CLI authentication required">
+                {unauthenticatedDependencies.map((check) => check.name).join(', ')}
+              </Alert>
+            ) : unknownAuthDependencies.length > 0 ? (
+              <Alert color="blue" variant="light" title="Auth check unavailable for some CLIs">
+                {unknownAuthDependencies.map((check) => check.name).join(', ')}
+              </Alert>
+            ) : (
+              <Alert color="teal" variant="light" title="All required CLIs are available">
+                Treebeard can reach required CLIs and auth checks are passing.
+              </Alert>
+            )}
+            <Group gap="sm">
+              <Button
+                size="xs"
+                variant="light"
+                onClick={() => {
+                  loadDependencies(true)
+                }}
+                loading={checkingDependencies}
+              >
+                Re-check dependencies
+              </Button>
+              <Text size="xs" c="dimmed">
+                {dependencySummary}
+              </Text>
             </Group>
           </Stack>
         </div>

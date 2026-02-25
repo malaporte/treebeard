@@ -48,3 +48,18 @@ export interface WorktreeStatus {
   linesAdded: number
   linesDeleted: number
 }
+
+export interface DependencyCheck {
+  name: 'gh' | 'jira'
+  required: boolean
+  installed: boolean
+  authenticated: boolean | null
+  version: string | null
+  error: string | null
+  authError: string | null
+}
+
+export interface DependencyStatus {
+  checkedAt: string
+  checks: DependencyCheck[]
+}

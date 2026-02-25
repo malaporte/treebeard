@@ -1,6 +1,7 @@
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import os from 'node:os'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
+import { checkDependencies } from './services/dependencies'
 import {
   getWorktrees,
   getGitHubRepo,
@@ -15,7 +16,7 @@ import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
 import { launchVSCode, launchGhostty } from './services/launcher'
 import type { TreebeardRPC } from '../shared/rpc-types'
-import type { AppConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus } from '../shared/types'
 
 const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
 const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
@@ -24,6 +25,8 @@ const STARTUP_UPDATE_CHECK_DELAY_MS = 15000
 let autoUpdateInterval: ReturnType<typeof setInterval> | null = null
 let isUpdateCheckInFlight = false
 let isUpdatePromptOpen = false
+let dependencyStatus: DependencyStatus | null = null
+let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
 
 interface UpdateCheckResult {
   success: boolean
@@ -119,6 +122,23 @@ function startAutoUpdateScheduler(): void {
   }, STARTUP_UPDATE_CHECK_DELAY_MS)
 }
 
+async function getDependencyStatus(forceRefresh = false): Promise<DependencyStatus> {
+  if (!forceRefresh && dependencyStatus) return dependencyStatus
+
+  if (!dependencyCheckInFlight) {
+    dependencyCheckInFlight = checkDependencies()
+      .then((status) => {
+        dependencyStatus = status
+        return status
+      })
+      .finally(() => {
+        dependencyCheckInFlight = null
+      })
+  }
+
+  return dependencyCheckInFlight
+}
+
 // --- Main RPC Handlers ---
 
 const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
@@ -186,6 +206,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         if (!paths || paths.length === 0) return null
         return paths[0]
       },
+      'system:dependencies': async ({ refresh }) => {
+        return getDependencyStatus(Boolean(refresh))
+      },
       'app:quit': () => {
         Utils.quit()
       },
@@ -241,3 +264,4 @@ const win = new BrowserWindow({
 })
 
 startAutoUpdateScheduler()
+void getDependencyStatus()
