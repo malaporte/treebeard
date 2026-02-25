@@ -7,6 +7,7 @@ const launchVSCodeRequest = vi.fn()
 const useJiraIssueMock = vi.fn()
 const usePRMock = vi.fn()
 const useWorktreeStatusMock = vi.fn()
+const useOpencodeServerMock = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
@@ -26,6 +27,10 @@ vi.mock('../hooks/usePR', () => ({
 
 vi.mock('../hooks/useWorktreeStatus', () => ({
   useWorktreeStatus: (worktreePath: string) => useWorktreeStatusMock(worktreePath)
+}))
+
+vi.mock('../hooks/useOpencodeServer', () => ({
+  useOpencodeServer: (worktreePath: string) => useOpencodeServerMock(worktreePath)
 }))
 
 vi.mock('../hooks/useHomedir', () => ({
@@ -80,10 +85,18 @@ describe('WorktreeCard', () => {
     useJiraIssueMock.mockReset()
     usePRMock.mockReset()
     useWorktreeStatusMock.mockReset()
+    useOpencodeServerMock.mockReset()
 
     useJiraIssueMock.mockReturnValue({ issue: null, loading: false })
     usePRMock.mockReturnValue({ pr: null, loading: false })
     useWorktreeStatusMock.mockReturnValue({ status: null, loading: false })
+    useOpencodeServerMock.mockReturnValue({
+      status: { enabled: false, running: false, url: null, pid: null, error: null },
+      loading: false,
+      toggling: false,
+      toggle: vi.fn(),
+      refresh: vi.fn()
+    })
   })
 
   it('extracts and normalizes jira key from branch name', () => {
@@ -119,7 +132,8 @@ describe('WorktreeCard', () => {
 
     fireEvent.doubleClick(screen.getAllByText('main')[0])
     expect(launchVSCodeRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/main' })
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    // Only the opencode server toggle should be present (no delete button for main)
+    expect(screen.queryAllByRole('button')).toHaveLength(1)
 
     rerender(
       <WorktreeCard
@@ -135,5 +149,59 @@ describe('WorktreeCard', () => {
     )
 
     expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
+  })
+
+  it('calls opencode toggle when server button is clicked', () => {
+    const toggle = vi.fn()
+    useOpencodeServerMock.mockReturnValue({
+      status: { enabled: false, running: false, url: null, pid: null, error: null },
+      loading: false,
+      toggling: false,
+      toggle,
+      refresh: vi.fn()
+    })
+
+    renderWithMantine(
+      <WorktreeCard
+        worktree={{
+          path: '/repo/worktrees/main',
+          branch: 'main',
+          head: 'abc',
+          isMain: true
+        }}
+        repoPath={'/repo'}
+        onDelete={() => {}}
+      />
+    )
+
+    const serverButton = screen.getByRole('button')
+    fireEvent.click(serverButton)
+    expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables opencode toggle button while toggling', () => {
+    useOpencodeServerMock.mockReturnValue({
+      status: { enabled: true, running: false, url: null, pid: 123, error: null },
+      loading: false,
+      toggling: true,
+      toggle: vi.fn(),
+      refresh: vi.fn()
+    })
+
+    renderWithMantine(
+      <WorktreeCard
+        worktree={{
+          path: '/repo/worktrees/main',
+          branch: 'main',
+          head: 'abc',
+          isMain: true
+        }}
+        repoPath={'/repo'}
+        onDelete={() => {}}
+      />
+    )
+
+    const serverButton = screen.getByRole('button')
+    expect(serverButton.getAttribute('disabled')).not.toBeNull()
   })
 })

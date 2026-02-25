@@ -12,6 +12,7 @@ export interface AppConfig {
   autoUpdateEnabled: boolean
   updateCheckIntervalMin: number
   collapsedRepos: string[]
+  opencodeServers: Record<string, boolean>
 }
 
 export interface Worktree {
@@ -49,8 +50,16 @@ export interface WorktreeStatus {
   linesDeleted: number
 }
 
+export interface OpencodeServerStatus {
+  enabled: boolean
+  running: boolean
+  url: string | null
+  pid: number | null
+  error: string | null
+}
+
 export interface DependencyCheck {
-  name: 'gh' | 'jira'
+  name: 'gh' | 'jira' | 'opencode'
   required: boolean
   installed: boolean
   authenticated: boolean | null

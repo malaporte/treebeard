@@ -28,7 +28,8 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      opencodeServers: {}
     }
     getConfigRequest.mockResolvedValue(initial)
 
@@ -46,7 +47,8 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      opencodeServers: {}
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -92,7 +94,8 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      opencodeServers: {}
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)

@@ -10,7 +10,7 @@ interface CommandResult {
 }
 
 async function runCommand(
-  name: 'gh' | 'jira',
+  name: 'gh' | 'jira' | 'opencode',
   args: string[],
   env: Record<string, string>
 ): Promise<CommandResult> {
@@ -45,7 +45,7 @@ async function runCommand(
 }
 
 async function checkCommand(
-  name: 'gh' | 'jira',
+  name: 'gh' | 'jira' | 'opencode',
   probes: string[][],
   env: Record<string, string>
 ): Promise<{ installed: boolean; version: string | null; error: string | null }> {
@@ -78,7 +78,7 @@ function isUnsupportedCommandError(error: string | null): boolean {
 }
 
 async function checkAuth(
-  name: 'gh' | 'jira',
+  name: 'gh' | 'jira' | 'opencode',
   probes: string[][],
   env: Record<string, string>
 ): Promise<{ authenticated: boolean | null; authError: string | null }> {
@@ -103,8 +103,12 @@ async function checkAuth(
   }
 }
 
-async function checkDependency(name: 'gh' | 'jira', env: Record<string, string>): Promise<DependencyCheck> {
-  const commandProbes = name === 'gh' ? [['--version']] : [['--version'], ['version']]
+async function checkDependency(name: 'gh' | 'jira' | 'opencode', env: Record<string, string>): Promise<DependencyCheck> {
+  const commandProbes = name === 'gh'
+    ? [['--version']]
+    : name === 'opencode'
+      ? [['--version']]
+      : [['--version'], ['version']]
   const commandStatus = await checkCommand(name, commandProbes, env)
 
   if (!commandStatus.installed) {
@@ -115,6 +119,19 @@ async function checkDependency(name: 'gh' | 'jira', env: Record<string, string>)
       authenticated: null,
       version: null,
       error: commandStatus.error,
+      authError: null
+    }
+  }
+
+  // opencode has no auth check
+  if (name === 'opencode') {
+    return {
+      name,
+      required: false,
+      installed: true,
+      authenticated: null,
+      version: commandStatus.version,
+      error: null,
       authError: null
     }
   }
@@ -140,7 +157,8 @@ export async function checkDependencies(): Promise<DependencyStatus> {
   const env = await getShellEnv()
   const checks = await Promise.all([
     checkDependency('gh', env),
-    checkDependency('jira', env)
+    checkDependency('jira', env),
+    checkDependency('opencode', env)
   ])
 
   return {

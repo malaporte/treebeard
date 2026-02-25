@@ -15,6 +15,12 @@ import {
 import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
 import { launchVSCode, launchGhostty } from './services/launcher'
+import {
+  getServerStatus,
+  setServerEnabled,
+  stopAllServers,
+  restoreEnabledServers
+} from './services/opencode'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -192,6 +198,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
+      'opencode:getStatus': ({ worktreePath }) => {
+        return getServerStatus(worktreePath)
+      },
+      'opencode:setEnabled': async ({ worktreePath, enabled }) => {
+        return setServerEnabled(worktreePath, enabled)
+      },
       'system:homedir': () => {
         return os.homedir()
       },
@@ -265,3 +277,14 @@ const win = new BrowserWindow({
 
 startAutoUpdateScheduler()
 void getDependencyStatus()
+void restoreEnabledServers()
+
+// --- Shutdown Cleanup ---
+
+function handleShutdown() {
+  void stopAllServers()
+}
+
+process.on('SIGINT', handleShutdown)
+process.on('SIGTERM', handleShutdown)
+process.on('exit', handleShutdown)

@@ -16,7 +16,8 @@ const DEFAULTS: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: []
+  collapsedRepos: [],
+  opencodeServers: {}
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -33,11 +34,14 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     : DEFAULTS.updateCheckIntervalMin
 
   return {
-    repositories: Array.isArray(config.repositories) ? config.repositories : DEFAULTS.repositories,
+    repositories: Array.isArray(config.repositories) ? [...config.repositories] : [],
     pollIntervalSec,
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
-    collapsedRepos: Array.isArray(config.collapsedRepos) ? config.collapsedRepos : DEFAULTS.collapsedRepos
+    collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
+    opencodeServers: config.opencodeServers && typeof config.opencodeServers === 'object' && !Array.isArray(config.opencodeServers)
+      ? { ...(config.opencodeServers as Record<string, boolean>) }
+      : {}
   }
 }
 
@@ -56,7 +60,7 @@ function readConfigFile(filePath: string): AppConfig | null {
 }
 
 function readConfig(): AppConfig {
-  return readConfigFile(configPath()) ?? { ...DEFAULTS }
+  return readConfigFile(configPath()) ?? sanitizeConfig({})
 }
 
 function writeConfig(config: AppConfig): void {
@@ -80,4 +84,23 @@ export function setCollapsedRepos(ids: string[]): void {
   const config = readConfig()
   config.collapsedRepos = ids
   writeConfig(config)
+}
+
+export function getOpencodeEnabled(worktreePath: string): boolean {
+  return readConfig().opencodeServers[worktreePath] === true
+}
+
+export function setOpencodeEnabled(worktreePath: string, enabled: boolean): void {
+  const config = readConfig()
+  if (enabled) {
+    config.opencodeServers[worktreePath] = true
+  } else {
+    delete config.opencodeServers[worktreePath]
+  }
+  writeConfig(config)
+}
+
+export function getOpencodeEnabledPaths(): string[] {
+  const servers = readConfig().opencodeServers
+  return Object.keys(servers).filter((key) => servers[key])
 }

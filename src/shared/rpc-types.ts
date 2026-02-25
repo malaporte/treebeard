@@ -3,6 +3,7 @@ import type {
   AppConfig,
   DependencyStatus,
   JiraIssue,
+  OpencodeServerStatus,
   PRInfo,
   Worktree,
   WorktreeStatus
@@ -71,6 +72,14 @@ export type TreebeardRPC = {
       'launch:ghostty': {
         params: { worktreePath: string }
         response: void
+      }
+      'opencode:getStatus': {
+        params: { worktreePath: string }
+        response: OpencodeServerStatus
+      }
+      'opencode:setEnabled': {
+        params: { worktreePath: string; enabled: boolean }
+        response: OpencodeServerStatus
       }
       'system:homedir': {
         params: Record<string, never>

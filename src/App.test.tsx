@@ -44,7 +44,8 @@ const config: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: []
+  collapsedRepos: [],
+  opencodeServers: {}
 }
 
 describe('App', () => {
