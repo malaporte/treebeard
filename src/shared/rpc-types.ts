@@ -128,6 +128,8 @@ export type TreebeardRPC = {
   }>
   webview: RPCSchema<{
     requests: Record<string, never>
-    messages: Record<string, never>
+    messages: {
+      'ui:openSettings': void
+    }
   }>
 }

@@ -3,6 +3,7 @@ import type { MobileBridgeConfig, OpencodeServerStatus, Worktree } from '../../s
 
 const mockGetConfig = vi.fn()
 const mockGetMobileBridgeConfig = vi.fn<() => MobileBridgeConfig>()
+const mockEnsureMobileBridgePairingCode = vi.fn<() => string>()
 const mockRotateMobileBridgePairingCode = vi.fn<() => string>()
 const mockSetMobileBridgeEnabled = vi.fn<(enabled: boolean) => MobileBridgeConfig>()
 
@@ -11,6 +12,7 @@ const mockGetServerStatus = vi.fn<(worktreePath: string) => OpencodeServerStatus
 const mockSetServerEnabled = vi.fn<(worktreePath: string, enabled: boolean) => Promise<OpencodeServerStatus>>()
 
 vi.mock('./config', () => ({
+  ensureMobileBridgePairingCode: () => mockEnsureMobileBridgePairingCode(),
   getConfig: () => mockGetConfig(),
   getMobileBridgeConfig: () => mockGetMobileBridgeConfig(),
   rotateMobileBridgePairingCode: () => mockRotateMobileBridgePairingCode(),
@@ -70,6 +72,7 @@ describe('mobile api service', () => {
     serveHandler = null
     serveRuntime = null
 
+    mockEnsureMobileBridgePairingCode.mockReturnValue('123456')
     mockRotateMobileBridgePairingCode.mockReturnValue('654321')
 
     const disabledConfig: MobileBridgeConfig = {

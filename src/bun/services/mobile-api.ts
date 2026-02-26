@@ -1,6 +1,7 @@
 import os from 'node:os'
 import { randomBytes } from 'node:crypto'
 import {
+  ensureMobileBridgePairingCode,
   getConfig,
   getMobileBridgeConfig,
   rotateMobileBridgePairingCode,
@@ -59,6 +60,7 @@ const PAIRING_DEEP_LINK_VERSION = 1
 /** Returns the current mobile bridge status and connection details. */
 export function getMobileBridgeStatus(): MobileBridgeStatus {
   const config = getMobileBridgeConfig()
+  const pairingCode = ensureMobileBridgePairingCode()
   const running = runtime !== null
   const port = runtime?.port ?? config.port
   const host = runtime?.host ?? config.host
@@ -68,7 +70,7 @@ export function getMobileBridgeStatus(): MobileBridgeStatus {
     running,
     host,
     port,
-    pairingCode: config.pairingCode,
+    pairingCode,
     urls: mobileUrls(host, port)
   }
 }
@@ -115,6 +117,7 @@ export function createMobilePairingToken(): MobilePairingInfo {
 /** Starts or stops the mobile bridge to match the persisted configuration. */
 export async function syncMobileBridgeFromConfig(): Promise<void> {
   const config = getMobileBridgeConfig()
+  ensureMobileBridgePairingCode()
 
   if (!config.enabled) {
     stopMobileBridge()

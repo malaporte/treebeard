@@ -74,17 +74,17 @@ describe('SettingsModal', () => {
       pairingCode: '123456',
       urls: ['http://localhost:8787']
     })
-    mobileSetEnabledRequest.mockResolvedValue({
-      enabled: true,
-      running: true,
+    mobileSetEnabledRequest.mockImplementation(async ({ enabled }: { enabled: boolean }) => ({
+      enabled,
+      running: enabled,
       host: '0.0.0.0',
       port: 8787,
       pairingCode: '123456',
-      urls: ['http://localhost:8787']
-    })
+      urls: enabled ? ['http://localhost:8787'] : []
+    }))
     mobileRotatePairingCodeRequest.mockResolvedValue({
-      enabled: false,
-      running: false,
+      enabled: true,
+      running: true,
       host: '0.0.0.0',
       port: 8787,
       pairingCode: '654321',
@@ -141,6 +141,8 @@ describe('SettingsModal', () => {
       />
     )
 
+    fireEvent.click(screen.getByRole('button', { name: 'Dependencies' }))
+
     await waitFor(() => {
       expect(screen.getByText('Missing required CLIs')).toBeTruthy()
       expect(screen.getByText('gh')).toBeTruthy()
@@ -182,6 +184,8 @@ describe('SettingsModal', () => {
       expect(onAddRepo).toHaveBeenCalledWith('new-repo', '/tmp/new-repo')
     })
 
+    fireEvent.click(screen.getByRole('button', { name: 'Updates' }))
+
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates now' }))
 
     await waitFor(() => {
@@ -204,15 +208,19 @@ describe('SettingsModal', () => {
       />
     )
 
-    await waitFor(() => {
-      expect(screen.getByText(/Pairing code:/)).toBeTruthy()
-      expect(screen.getByText('123456')).toBeTruthy()
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile' }))
+
+    expect(screen.queryByText(/Pairing code:/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Generate pairing QR' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rotate pairing code' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Refresh bridge status' })).toBeNull()
 
     fireEvent.click(screen.getByLabelText('Enable LAN bridge for mobile app'))
 
     await waitFor(() => {
       expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
+      expect(screen.getByText(/Pairing code:/)).toBeTruthy()
+      expect(screen.getByText('123456')).toBeTruthy()
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Rotate pairing code' }))
@@ -228,6 +236,15 @@ describe('SettingsModal', () => {
       expect(mobileCreatePairingTokenRequest).toHaveBeenCalledWith({})
       expect(qrcodeToDataUrl).toHaveBeenCalled()
       expect(screen.getByAltText('Mobile pairing QR')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByLabelText('Enable LAN bridge for mobile app'))
+
+    await waitFor(() => {
+      expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: false })
+      expect(screen.queryByText(/Pairing code:/)).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Generate pairing QR' })).toBeNull()
+      expect(screen.queryByAltText('Mobile pairing QR')).toBeNull()
     })
   })
 })

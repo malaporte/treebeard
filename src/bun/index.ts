@@ -256,6 +256,17 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
   }
 })
 
+function openSettingsFromMenu() {
+  try {
+    win.focus()
+    const webviewRpc = win.webview.rpc
+    if (!webviewRpc) return
+    webviewRpc.send['ui:openSettings']()
+  } catch {
+    // Window may not be fully ready yet
+  }
+}
+
 // --- Application Menu ---
 
 ApplicationMenu.setApplicationMenu([
@@ -263,6 +274,8 @@ ApplicationMenu.setApplicationMenu([
     label: 'Treebeard',
     submenu: [
       { role: 'about' },
+      { type: 'separator' },
+      { label: 'Settings...', action: 'open-settings', accelerator: 'CmdOrCtrl+,' },
       { type: 'separator' },
       { role: 'hide' },
       { role: 'hideOthers' },
@@ -280,6 +293,14 @@ ApplicationMenu.setApplicationMenu([
     ],
   },
 ])
+
+ApplicationMenu.on('application-menu-clicked', (event) => {
+  const payload = event as { action?: string; data?: { action?: string } }
+  const action = payload.data?.action ?? payload.action
+  if (action === 'open-settings') {
+    openSettingsFromMenu()
+  }
+})
 
 // --- Main Window ---
 

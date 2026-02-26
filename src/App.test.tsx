@@ -111,6 +111,12 @@ describe('App', () => {
       expect(screen.getByText('CLI authentication required')).toBeTruthy()
     })
 
+    expect(screen.getByTestId('settings-modal').textContent).toBe('false')
+    window.dispatchEvent(new CustomEvent('treebeard:open-settings'))
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-modal').textContent).toBe('true')
+    })
+
     fireEvent.keyDown(window, { key: 'q', metaKey: true })
     fireEvent.keyDown(window, { key: 'w', metaKey: true })
 

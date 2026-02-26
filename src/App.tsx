@@ -87,6 +87,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const handleOpenSettings = () => {
+      setSettingsOpened(true)
+    }
+    window.addEventListener('treebeard:open-settings', handleOpenSettings)
+    return () => window.removeEventListener('treebeard:open-settings', handleOpenSettings)
+  }, [])
+
+  useEffect(() => {
     loadDependencies()
   }, [loadDependencies])
 
