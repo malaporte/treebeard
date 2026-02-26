@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import QRCode from 'qrcode'
 import {
   Modal,
   TextInput,
@@ -16,7 +17,13 @@ import {
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX, IconRefresh } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { AppConfig, DependencyStatus, MobileBridgeStatus, RepoConfig } from '../shared/types'
+import type {
+  AppConfig,
+  DependencyStatus,
+  MobileBridgeStatus,
+  MobilePairingInfo,
+  RepoConfig
+} from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -50,6 +57,8 @@ export function SettingsModal({
   const [checkingDependencies, setCheckingDependencies] = useState(false)
   const [mobileBridgeStatus, setMobileBridgeStatus] = useState<MobileBridgeStatus | null>(null)
   const [mobileBridgeBusy, setMobileBridgeBusy] = useState(false)
+  const [mobilePairingInfo, setMobilePairingInfo] = useState<MobilePairingInfo | null>(null)
+  const [mobilePairingQr, setMobilePairingQr] = useState<string | null>(null)
   const { shortenPath } = useHomedir()
 
   const loadDependencies = async (refresh: boolean) => {
@@ -103,6 +112,28 @@ export function SettingsModal({
       setMobileBridgeStatus(status)
     } catch {
       // Keep existing status if RPC fails
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
+
+  const handleCreatePairingQr = async () => {
+    setMobileBridgeBusy(true)
+    try {
+      const pairingInfo = await rpc().request['mobile:createPairingToken']({})
+      setMobilePairingInfo(pairingInfo)
+      const qrDataUrl = await QRCode.toDataURL(pairingInfo.deepLink, {
+        margin: 1,
+        scale: 5,
+        color: {
+          dark: '#0f1115',
+          light: '#f8fafc'
+        }
+      })
+      setMobilePairingQr(qrDataUrl)
+    } catch {
+      setMobilePairingInfo(null)
+      setMobilePairingQr(null)
     } finally {
       setMobileBridgeBusy(false)
     }
@@ -303,6 +334,14 @@ export function SettingsModal({
             <Group gap="sm" align="center">
               <Button
                 size="xs"
+                variant="filled"
+                onClick={handleCreatePairingQr}
+                loading={mobileBridgeBusy}
+              >
+                Generate pairing QR
+              </Button>
+              <Button
+                size="xs"
                 variant="light"
                 leftSection={<IconRefresh size={12} />}
                 onClick={handleRotatePairingCode}
@@ -326,6 +365,18 @@ export function SettingsModal({
               Status: {mobileBridgeStatus?.running ? 'Running' : 'Stopped'}
               {mobileBridgeStatus ? ` on ${mobileBridgeStatus.host}:${mobileBridgeStatus.port}` : ''}
             </Text>
+            {mobilePairingInfo && (
+              <Text size="xs" c="dimmed">
+                Pairing token expires at {new Date(mobilePairingInfo.expiresAt).toLocaleTimeString()}
+              </Text>
+            )}
+            {mobilePairingQr && (
+              <img
+                src={mobilePairingQr}
+                alt="Mobile pairing QR"
+                style={{ width: 180, height: 180, borderRadius: 8 }}
+              />
+            )}
             {(mobileBridgeStatus?.urls.length ?? 0) > 0 && (
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">Connect from mobile:</Text>

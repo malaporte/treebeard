@@ -4,6 +4,7 @@ import type {
   DependencyStatus,
   JiraIssue,
   MobileBridgeStatus,
+  MobilePairingInfo,
   OpencodeServerStatus,
   PRInfo,
   Worktree,
@@ -93,6 +94,10 @@ export type TreebeardRPC = {
       'mobile:rotatePairingCode': {
         params: Record<string, never>
         response: MobileBridgeStatus
+      }
+      'mobile:createPairingToken': {
+        params: Record<string, never>
+        response: MobilePairingInfo
       }
       'system:homedir': {
         params: Record<string, never>

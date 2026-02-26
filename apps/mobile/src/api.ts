@@ -2,7 +2,13 @@ import type { MobileBridgeStatus, OpencodeServerStatus, WorktreesResponse } from
 
 export interface BridgeConnection {
   baseUrl: string
-  pairingCode: string
+  sessionToken: string
+}
+
+export interface PairExchangeResult {
+  sessionToken: string
+  expiresAt: string
+  bridgeUrl: string
 }
 
 async function request<T>(connection: BridgeConnection, path: string, init?: RequestInit): Promise<T> {
@@ -10,7 +16,7 @@ async function request<T>(connection: BridgeConnection, path: string, init?: Req
     ...init,
     headers: {
       'content-type': 'application/json',
-      authorization: `Bearer ${connection.pairingCode}`,
+      authorization: `Bearer ${connection.sessionToken}`,
       ...(init?.headers || {})
     }
   })
@@ -29,6 +35,21 @@ export async function getHealth(baseUrl: string): Promise<{ ok: boolean }> {
     throw new Error(`Health check failed with status ${response.status}`)
   }
   return await response.json() as { ok: boolean }
+}
+
+export async function exchangePairingToken(baseUrl: string, token: string): Promise<PairExchangeResult> {
+  const response = await fetch(`${baseUrl}/pair/exchange`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
+
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(body || `Pairing failed with status ${response.status}`)
+  }
+
+  return await response.json() as PairExchangeResult
 }
 
 export function getStatus(connection: BridgeConnection): Promise<MobileBridgeStatus> {

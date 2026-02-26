@@ -1,6 +1,6 @@
 import os from 'node:os'
+import { randomBytes } from 'node:crypto'
 import {
-  ensureMobileBridgePairingCode,
   getConfig,
   getMobileBridgeConfig,
   rotateMobileBridgePairingCode,
@@ -8,7 +8,12 @@ import {
 } from './config'
 import { getWorktrees } from './git'
 import { getServerStatus, setServerEnabled } from './opencode'
-import type { MobileBridgeConfig, MobileBridgeStatus, MobileWorktree } from '../../shared/types'
+import type {
+  MobileBridgeConfig,
+  MobileBridgeStatus,
+  MobilePairingInfo,
+  MobileWorktree
+} from '../../shared/types'
 
 interface MobileApiRequestBody {
   worktreePath?: string
@@ -21,19 +26,39 @@ interface MobileBridgeRuntime {
   port: number
 }
 
+interface PairExchangeBody {
+  token?: string
+}
+
+interface SessionRecord {
+  expiresAtMs: number
+}
+
+interface OneTimeTokenRecord {
+  expiresAtMs: number
+  bridgeUrl: string
+}
+
 const JSON_HEADERS: Record<string, string> = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,OPTIONS',
-  'access-control-allow-headers': 'content-type,authorization,x-treebeard-pairing-code'
+  'access-control-allow-headers': 'content-type,authorization'
 }
 
 let runtime: MobileBridgeRuntime | null = null
+const oneTimeTokens = new Map<string, OneTimeTokenRecord>()
+const sessionTokens = new Map<string, SessionRecord>()
+
+const ONE_TIME_TOKEN_TTL_MS = 5 * 60 * 1000
+const SESSION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const ONE_TIME_TOKEN_BYTES = 24
+const SESSION_TOKEN_BYTES = 32
+const PAIRING_DEEP_LINK_VERSION = 1
 
 /** Returns the current mobile bridge status and connection details. */
 export function getMobileBridgeStatus(): MobileBridgeStatus {
   const config = getMobileBridgeConfig()
-  const pairingCode = ensureMobileBridgePairingCode()
   const running = runtime !== null
   const port = runtime?.port ?? config.port
   const host = runtime?.host ?? config.host
@@ -43,7 +68,7 @@ export function getMobileBridgeStatus(): MobileBridgeStatus {
     running,
     host,
     port,
-    pairingCode,
+    pairingCode: config.pairingCode,
     urls: mobileUrls(host, port)
   }
 }
@@ -61,10 +86,35 @@ export function rotateMobileBridgePairingCodeStatus(): MobileBridgeStatus {
   return getMobileBridgeStatus()
 }
 
+/** Creates a one-time pairing token to be encoded as QR payload for mobile. */
+export function createMobilePairingToken(): MobilePairingInfo {
+  cleanupAuthState()
+  const status = getMobileBridgeStatus()
+  const bridgeUrl = status.urls[0] || `http://${status.host}:${status.port}`
+  const token = randomToken(ONE_TIME_TOKEN_BYTES)
+  const expiresAtMs = Date.now() + ONE_TIME_TOKEN_TTL_MS
+  oneTimeTokens.set(token, { expiresAtMs, bridgeUrl })
+
+  const expiresAt = new Date(expiresAtMs).toISOString()
+  const payload = {
+    v: PAIRING_DEEP_LINK_VERSION,
+    url: bridgeUrl,
+    token,
+    exp: expiresAt
+  }
+  const encoded = encodeURIComponent(JSON.stringify(payload))
+
+  return {
+    token,
+    expiresAt,
+    bridgeUrl,
+    deepLink: `treebeard://pair?data=${encoded}`
+  }
+}
+
 /** Starts or stops the mobile bridge to match the persisted configuration. */
 export async function syncMobileBridgeFromConfig(): Promise<void> {
   const config = getMobileBridgeConfig()
-  ensureMobileBridgePairingCode()
 
   if (!config.enabled) {
     stopMobileBridge()
@@ -112,6 +162,28 @@ async function handleRequest(request: Request): Promise<Response> {
       ok: true,
       service: 'treebeard-mobile-bridge',
       now: new Date().toISOString()
+    })
+  }
+
+  if (request.method === 'POST' && url.pathname === '/pair/exchange') {
+    const body = await readPairExchangeBody(request)
+    if (!body || typeof body.token !== 'string' || body.token.trim().length === 0) {
+      return json(400, { error: 'Invalid payload' })
+    }
+
+    const exchange = consumeOneTimeToken(body.token.trim())
+    if (!exchange) {
+      return json(401, { error: 'Invalid or expired pairing token' })
+    }
+
+    const sessionToken = randomToken(SESSION_TOKEN_BYTES)
+    const sessionExpiresAtMs = Date.now() + SESSION_TOKEN_TTL_MS
+    sessionTokens.set(sessionToken, { expiresAtMs: sessionExpiresAtMs })
+
+    return json(200, {
+      sessionToken,
+      expiresAt: new Date(sessionExpiresAtMs).toISOString(),
+      bridgeUrl: exchange.bridgeUrl
     })
   }
 
@@ -183,17 +255,55 @@ async function readJsonBody(request: Request): Promise<MobileApiRequestBody | nu
   }
 }
 
+async function readPairExchangeBody(request: Request): Promise<PairExchangeBody | null> {
+  try {
+    return await request.json() as PairExchangeBody
+  } catch {
+    return null
+  }
+}
+
 function isAuthorized(request: Request): boolean {
-  const pairingCode = ensureMobileBridgePairingCode()
-  if (!pairingCode) return false
+  cleanupAuthState()
 
   const authHeader = request.headers.get('authorization')
-  if (authHeader === `Bearer ${pairingCode}`) {
-    return true
-  }
+  if (!authHeader?.startsWith('Bearer ')) return false
 
-  const codeHeader = request.headers.get('x-treebeard-pairing-code')
-  return codeHeader === pairingCode
+  const token = authHeader.slice('Bearer '.length).trim()
+  const session = sessionTokens.get(token)
+  if (!session) return false
+  if (session.expiresAtMs <= Date.now()) {
+    sessionTokens.delete(token)
+    return false
+  }
+  return true
+}
+
+function consumeOneTimeToken(token: string): OneTimeTokenRecord | null {
+  cleanupAuthState()
+  const record = oneTimeTokens.get(token)
+  if (!record) return null
+  oneTimeTokens.delete(token)
+  if (record.expiresAtMs <= Date.now()) return null
+  return record
+}
+
+function cleanupAuthState(): void {
+  const now = Date.now()
+  for (const [token, record] of oneTimeTokens.entries()) {
+    if (record.expiresAtMs <= now) {
+      oneTimeTokens.delete(token)
+    }
+  }
+  for (const [token, record] of sessionTokens.entries()) {
+    if (record.expiresAtMs <= now) {
+      sessionTokens.delete(token)
+    }
+  }
+}
+
+function randomToken(bytes: number): string {
+  return randomBytes(bytes).toString('base64url')
 }
 
 function mobileUrls(host: string, port: number): string[] {

@@ -81,6 +81,13 @@ export interface MobileBridgeStatus {
   urls: string[]
 }
 
+export interface MobilePairingInfo {
+  token: string
+  expiresAt: string
+  bridgeUrl: string
+  deepLink: string
+}
+
 export interface DependencyCheck {
   name: 'gh' | 'jira' | 'opencode'
   required: boolean

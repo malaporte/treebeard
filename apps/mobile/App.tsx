@@ -10,19 +10,48 @@ import {
   TextInput,
   View
 } from 'react-native'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { WebView } from 'react-native-webview'
-import { getHealth, getStatus, getWorktrees, setOpencodeEnabled } from './src/api'
+import { exchangePairingToken, getHealth, getStatus, getWorktrees, setOpencodeEnabled } from './src/api'
 import type { BridgeConnection } from './src/api'
 import type { MobileWorktree } from './src/types'
 
+interface ParsedPairingInput {
+  url: string
+  token: string
+}
+
+function parsePairingInput(input: string): ParsedPairingInput | null {
+  if (!input.startsWith('treebeard://pair?')) return null
+  try {
+    const query = input.slice('treebeard://pair?'.length)
+    const params = new URLSearchParams(query)
+    const encodedData = params.get('data')
+    if (!encodedData) return null
+
+    const decoded = decodeURIComponent(encodedData)
+    const payload = JSON.parse(decoded) as { url?: string; token?: string }
+    if (typeof payload.url !== 'string' || typeof payload.token !== 'string') return null
+
+    return {
+      url: payload.url,
+      token: payload.token
+    }
+  } catch {
+    return null
+  }
+}
+
 export default function App() {
   const [baseUrlInput, setBaseUrlInput] = useState('http://192.168.1.10:8787')
-  const [pairingCodeInput, setPairingCodeInput] = useState('')
+  const [pairingTokenInput, setPairingTokenInput] = useState('')
   const [connection, setConnection] = useState<BridgeConnection | null>(null)
   const [worktrees, setWorktrees] = useState<MobileWorktree[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeWebUrl, setActiveWebUrl] = useState<string | null>(null)
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions()
+  const [scanning, setScanning] = useState(false)
 
   const grouped = useMemo(() => {
     const map = new Map<string, MobileWorktree[]>()
@@ -37,16 +66,22 @@ export default function App() {
 
   const connect = async () => {
     const baseUrl = baseUrlInput.trim().replace(/\/$/, '')
-    const pairingCode = pairingCodeInput.trim()
-    if (!baseUrl || !pairingCode) return
+    const rawTokenInput = pairingTokenInput.trim()
+    if (!baseUrl || !rawTokenInput) return
+
+    const pairing = parsePairingInput(rawTokenInput)
+    const resolvedBaseUrl = pairing?.url || baseUrl
+    const pairingToken = pairing?.token || rawTokenInput
 
     setLoading(true)
     setError(null)
     try {
-      await getHealth(baseUrl)
-      const next = { baseUrl, pairingCode }
+      await getHealth(resolvedBaseUrl)
+      const exchange = await exchangePairingToken(resolvedBaseUrl, pairingToken)
+      const next = { baseUrl: resolvedBaseUrl, sessionToken: exchange.sessionToken }
       await getStatus(next)
       setConnection(next)
+      setBaseUrlInput(resolvedBaseUrl)
       await refreshWorktrees(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
@@ -84,6 +119,53 @@ export default function App() {
     }
   }
 
+  const handleScanQrPress = async () => {
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission()
+      if (!result.granted) {
+        setError('Camera permission is required to scan QR codes')
+        return
+      }
+    }
+    setScanning(true)
+  }
+
+  const handleQrScanned = (value: string) => {
+    const pairing = parsePairingInput(value)
+    if (!pairing) {
+      setError('Scanned QR is not a valid Treebeard pairing code')
+      setScanning(false)
+      return
+    }
+
+    setBaseUrlInput(pairing.url)
+    setPairingTokenInput(pairing.token)
+    setScanning(false)
+  }
+
+  if (scanning) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.listHeader}>
+          <Text style={styles.title}>Scan Pairing QR</Text>
+          <Pressable style={styles.secondaryButton} onPress={() => setScanning(false)}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </Pressable>
+        </View>
+        <CameraView
+          style={styles.webview}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={(event: { data?: string }) => {
+            if (typeof event.data === 'string' && event.data.length > 0) {
+              handleQrScanned(event.data)
+            }
+          }}
+        />
+      </SafeAreaView>
+    )
+  }
+
   if (activeWebUrl) {
     return (
       <SafeAreaView style={styles.container}>
@@ -115,18 +197,20 @@ export default function App() {
             style={styles.input}
           />
           <TextInput
-            value={pairingCodeInput}
-            onChangeText={setPairingCodeInput}
+            value={pairingTokenInput}
+            onChangeText={setPairingTokenInput}
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType="number-pad"
-            placeholder="Pairing code"
+            placeholder="One-time pairing token or deep link"
             placeholderTextColor="#7d8590"
             style={styles.input}
           />
 
           <Pressable style={styles.primaryButton} onPress={connect} disabled={loading}>
             <Text style={styles.buttonText}>{loading ? 'Connecting...' : 'Connect'}</Text>
+          </Pressable>
+          <Pressable style={styles.secondaryButton} onPress={handleScanQrPress} disabled={loading}>
+            <Text style={styles.buttonText}>Scan QR</Text>
           </Pressable>
 
           {error && <Text style={styles.errorText}>{error}</Text>}

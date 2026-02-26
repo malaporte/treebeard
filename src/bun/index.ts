@@ -22,6 +22,7 @@ import {
   restoreEnabledServers
 } from './services/opencode'
 import {
+  createMobilePairingToken,
   getMobileBridgeStatus,
   rotateMobileBridgePairingCodeStatus,
   setMobileBridgeEnabledState,
@@ -220,6 +221,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'mobile:rotatePairingCode': () => {
         return rotateMobileBridgePairingCodeStatus()
+      },
+      'mobile:createPairingToken': () => {
+        return createMobilePairingToken()
       },
       'system:homedir': () => {
         return os.homedir()

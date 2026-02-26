@@ -10,6 +10,15 @@ const checkForUpdatesRequest = vi.fn()
 const mobileGetStatusRequest = vi.fn()
 const mobileSetEnabledRequest = vi.fn()
 const mobileRotatePairingCodeRequest = vi.fn()
+const mobileCreatePairingTokenRequest = vi.fn()
+
+const qrcodeToDataUrl = vi.fn()
+
+vi.mock('qrcode', () => ({
+  default: {
+    toDataURL: (...args: unknown[]) => qrcodeToDataUrl(...args)
+  }
+}))
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
@@ -19,7 +28,8 @@ vi.mock('../rpc', () => ({
       'app:checkForUpdates': checkForUpdatesRequest,
       'mobile:getStatus': mobileGetStatusRequest,
       'mobile:setEnabled': mobileSetEnabledRequest,
-      'mobile:rotatePairingCode': mobileRotatePairingCodeRequest
+      'mobile:rotatePairingCode': mobileRotatePairingCodeRequest,
+      'mobile:createPairingToken': mobileCreatePairingTokenRequest
     }
   })
 }))
@@ -53,6 +63,8 @@ describe('SettingsModal', () => {
     mobileGetStatusRequest.mockReset()
     mobileSetEnabledRequest.mockReset()
     mobileRotatePairingCodeRequest.mockReset()
+    mobileCreatePairingTokenRequest.mockReset()
+    qrcodeToDataUrl.mockReset()
 
     mobileGetStatusRequest.mockResolvedValue({
       enabled: false,
@@ -78,6 +90,13 @@ describe('SettingsModal', () => {
       pairingCode: '654321',
       urls: ['http://localhost:8787']
     })
+    mobileCreatePairingTokenRequest.mockResolvedValue({
+      token: 'token-1',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      bridgeUrl: 'http://localhost:8787',
+      deepLink: 'treebeard://pair?data=test'
+    })
+    qrcodeToDataUrl.mockResolvedValue('data:image/png;base64,abc123')
   })
 
   it('loads dependency status and notifies parent', async () => {
@@ -201,6 +220,14 @@ describe('SettingsModal', () => {
     await waitFor(() => {
       expect(mobileRotatePairingCodeRequest).toHaveBeenCalledWith({})
       expect(screen.getByText('654321')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate pairing QR' }))
+
+    await waitFor(() => {
+      expect(mobileCreatePairingTokenRequest).toHaveBeenCalledWith({})
+      expect(qrcodeToDataUrl).toHaveBeenCalled()
+      expect(screen.getByAltText('Mobile pairing QR')).toBeTruthy()
     })
   })
 })
