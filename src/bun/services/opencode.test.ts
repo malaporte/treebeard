@@ -191,7 +191,7 @@ describe('opencode service', () => {
 
       expect(mockSetOpencodeEnabled).toHaveBeenCalledWith('/repo/worktree', true)
       expect(spawnCalls[0].command).toEqual([
-        'opencode', 'serve', '--hostname', '127.0.0.1', '--port', '0', '--print-logs'
+        'opencode', 'serve', '--hostname', '0.0.0.0', '--port', '0', '--print-logs'
       ])
       expect(spawnCalls[0].options.cwd).toBe('/repo/worktree')
       expect(status.running).toBe(true)

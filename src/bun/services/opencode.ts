@@ -96,7 +96,7 @@ async function doStart(worktreePath: string): Promise<OpencodeServerStatus> {
   const env = await getShellEnv()
 
   const proc = Bun.spawn(
-    ['opencode', 'serve', '--hostname', '127.0.0.1', '--port', '0', '--print-logs'],
+    ['opencode', 'serve', '--hostname', '0.0.0.0', '--port', '0', '--print-logs'],
     {
       cwd: worktreePath,
       stdout: 'pipe',

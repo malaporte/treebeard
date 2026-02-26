@@ -42,6 +42,23 @@ function parsePairingInput(input: string): ParsedPairingInput | null {
   }
 }
 
+function resolveOpencodeUrlForMobile(rawUrl: string, bridgeBaseUrl: string): string {
+  try {
+    const bridgeUrl = new URL(bridgeBaseUrl)
+    const opencodeUrl = new URL(rawUrl)
+    if (
+      opencodeUrl.hostname === '127.0.0.1' ||
+      opencodeUrl.hostname === 'localhost' ||
+      opencodeUrl.hostname === '0.0.0.0'
+    ) {
+      opencodeUrl.hostname = bridgeUrl.hostname
+    }
+    return opencodeUrl.toString()
+  } catch {
+    return rawUrl
+  }
+}
+
 export default function App() {
   const [baseUrlInput, setBaseUrlInput] = useState('http://192.168.1.10:8787')
   const [pairingTokenInput, setPairingTokenInput] = useState('')
@@ -258,8 +275,8 @@ export default function App() {
                   <Pressable
                     style={entry.opencode.url ? styles.primaryButton : styles.disabledButton}
                     onPress={() => {
-                      if (entry.opencode.url) {
-                        setActiveWebUrl(entry.opencode.url)
+                      if (entry.opencode.url && connection) {
+                        setActiveWebUrl(resolveOpencodeUrlForMobile(entry.opencode.url, connection.baseUrl))
                       }
                     }}
                     disabled={!entry.opencode.url}
