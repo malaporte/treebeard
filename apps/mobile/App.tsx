@@ -12,9 +12,16 @@ import {
 } from 'react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import { WebView } from 'react-native-webview'
-import { exchangePairingToken, getHealth, getStatus, getWorktrees, setOpencodeEnabled } from './src/api'
+import {
+  createOpencodeWebSession,
+  exchangePairingToken,
+  getHealth,
+  getStatus,
+  getWorktrees,
+  setOpencodeEnabled
+} from './src/api'
 import type { BridgeConnection } from './src/api'
-import type { MobileWorktree } from './src/types'
+import type { MobileWorktree, OpencodeServerStatus } from './src/types'
 
 interface ParsedPairingInput {
   url: string
@@ -42,28 +49,12 @@ function parsePairingInput(input: string): ParsedPairingInput | null {
   }
 }
 
-function resolveOpencodeUrlForMobile(rawUrl: string, bridgeBaseUrl: string): string {
-  try {
-    const bridgeUrl = new URL(bridgeBaseUrl)
-    const opencodeUrl = new URL(rawUrl)
-    if (
-      opencodeUrl.hostname === '127.0.0.1' ||
-      opencodeUrl.hostname === 'localhost' ||
-      opencodeUrl.hostname === '0.0.0.0'
-    ) {
-      opencodeUrl.hostname = bridgeUrl.hostname
-    }
-    return opencodeUrl.toString()
-  } catch {
-    return rawUrl
-  }
-}
-
 export default function App() {
   const [baseUrlInput, setBaseUrlInput] = useState('http://192.168.1.10:8787')
   const [pairingTokenInput, setPairingTokenInput] = useState('')
   const [connection, setConnection] = useState<BridgeConnection | null>(null)
   const [worktrees, setWorktrees] = useState<MobileWorktree[]>([])
+  const [opencodeStatus, setOpencodeStatus] = useState<OpencodeServerStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeWebUrl, setActiveWebUrl] = useState<string | null>(null)
@@ -99,7 +90,7 @@ export default function App() {
       await getStatus(next)
       setConnection(next)
       setBaseUrlInput(resolvedBaseUrl)
-      await refreshWorktrees(next)
+      await refreshData(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
       setConnection(null)
@@ -108,29 +99,45 @@ export default function App() {
     }
   }
 
-  const refreshWorktrees = async (current = connection) => {
+  const refreshData = async (current = connection) => {
     if (!current) return
     setLoading(true)
     setError(null)
     try {
       const response = await getWorktrees(current)
       setWorktrees(response.worktrees)
+      setOpencodeStatus(response.opencode)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch worktrees')
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
       setLoading(false)
     }
   }
 
-  const toggleOpencode = async (item: MobileWorktree) => {
+  const toggleOpencode = async () => {
+    if (!connection) return
+    if (!opencodeStatus) return
+    setLoading(true)
+    setError(null)
+    try {
+      await setOpencodeEnabled(connection, !opencodeStatus.enabled)
+      await refreshData(connection)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle OpenCode server')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openOpencodeUi = async (item: MobileWorktree) => {
     if (!connection) return
     setLoading(true)
     setError(null)
     try {
-      await setOpencodeEnabled(connection, item.worktree.path, !item.opencode.enabled)
-      await refreshWorktrees(connection)
+      const session = await createOpencodeWebSession(connection, item.worktree.path)
+      setActiveWebUrl(session.webUrl)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle OpenCode server')
+      setError(err instanceof Error ? err.message : 'Failed to open OpenCode UI')
     } finally {
       setLoading(false)
     }
@@ -241,13 +248,24 @@ export default function App() {
       <View style={styles.listHeader}>
         <Text style={styles.title}>Worktrees</Text>
         <View style={styles.headerButtons}>
-          <Pressable style={styles.secondaryButton} onPress={() => { setConnection(null); setWorktrees([]) }}>
+          <Pressable style={styles.secondaryButton} onPress={() => { setConnection(null); setWorktrees([]); setOpencodeStatus(null) }}>
             <Text style={styles.buttonText}>Disconnect</Text>
           </Pressable>
-          <Pressable style={styles.primaryButton} onPress={() => refreshWorktrees()} disabled={loading}>
+          <Pressable style={styles.primaryButton} onPress={() => refreshData()} disabled={loading}>
             <Text style={styles.buttonText}>Refresh</Text>
           </Pressable>
         </View>
+      </View>
+
+      <View style={styles.serverRow}>
+        <Text style={styles.statusText}>
+          {opencodeStatus?.running
+            ? `OpenCode: running (${opencodeStatus.url || 'url unavailable'})`
+            : 'OpenCode: stopped'}
+        </Text>
+        <Pressable style={styles.secondaryButton} onPress={toggleOpencode} disabled={loading || !opencodeStatus}>
+          <Text style={styles.buttonText}>{opencodeStatus?.enabled ? 'Disable server' : 'Enable server'}</Text>
+        </Pressable>
       </View>
 
       {loading && <ActivityIndicator color="#58a6ff" style={styles.loader} />}
@@ -264,22 +282,11 @@ export default function App() {
               <View key={entry.worktree.path} style={styles.card}>
                 <Text style={styles.branch}>{entry.worktree.branch}</Text>
                 <Text style={styles.path}>{entry.worktree.path}</Text>
-                <Text style={styles.statusText}>
-                  {entry.opencode.running ? `OpenCode: running (${entry.opencode.url || 'url unavailable'})` : 'OpenCode: stopped'}
-                </Text>
-                {entry.opencode.error ? <Text style={styles.errorText}>{entry.opencode.error}</Text> : null}
                 <View style={styles.cardButtons}>
-                  <Pressable style={styles.secondaryButton} onPress={() => toggleOpencode(entry)}>
-                    <Text style={styles.buttonText}>{entry.opencode.enabled ? 'Disable server' : 'Enable server'}</Text>
-                  </Pressable>
                   <Pressable
-                    style={entry.opencode.url ? styles.primaryButton : styles.disabledButton}
-                    onPress={() => {
-                      if (entry.opencode.url && connection) {
-                        setActiveWebUrl(resolveOpencodeUrlForMobile(entry.opencode.url, connection.baseUrl))
-                      }
-                    }}
-                    disabled={!entry.opencode.url}
+                    style={opencodeStatus?.url ? styles.primaryButton : styles.disabledButton}
+                    onPress={() => openOpencodeUi(entry)}
+                    disabled={!opencodeStatus?.url}
                   >
                     <Text style={styles.buttonText}>Open UI</Text>
                   </Pressable>
@@ -356,6 +363,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
+  },
+  serverRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8
   },
   headerButtons: {
     flexDirection: 'row',

@@ -5,6 +5,8 @@ import type {
   JiraIssue,
   MobileBridgeStatus,
   MobilePairingInfo,
+  MobileProxyTraceEntry,
+  OpencodeSyncStatus,
   OpencodeServerStatus,
   PRInfo,
   Worktree,
@@ -76,12 +78,20 @@ export type TreebeardRPC = {
         response: void
       }
       'opencode:getStatus': {
-        params: { worktreePath: string }
+        params: Record<string, never>
         response: OpencodeServerStatus
       }
       'opencode:setEnabled': {
-        params: { worktreePath: string; enabled: boolean }
+        params: { enabled: boolean }
         response: OpencodeServerStatus
+      }
+      'opencode:openProxyUI': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string }
+      }
+      'opencode:getSync': {
+        params: Record<string, never>
+        response: OpencodeSyncStatus
       }
       'mobile:getStatus': {
         params: Record<string, never>
@@ -98,6 +108,14 @@ export type TreebeardRPC = {
       'mobile:createPairingToken': {
         params: Record<string, never>
         response: MobilePairingInfo
+      }
+      'mobile:getProxyTrace': {
+        params: Record<string, never>
+        response: MobileProxyTraceEntry[]
+      }
+      'mobile:clearProxyTrace': {
+        params: Record<string, never>
+        response: void
       }
       'system:homedir': {
         params: Record<string, never>

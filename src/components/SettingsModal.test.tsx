@@ -11,6 +11,8 @@ const mobileGetStatusRequest = vi.fn()
 const mobileSetEnabledRequest = vi.fn()
 const mobileRotatePairingCodeRequest = vi.fn()
 const mobileCreatePairingTokenRequest = vi.fn()
+const opencodeGetStatusRequest = vi.fn()
+const opencodeSetEnabledRequest = vi.fn()
 
 const qrcodeToDataUrl = vi.fn()
 
@@ -29,7 +31,9 @@ vi.mock('../rpc', () => ({
       'mobile:getStatus': mobileGetStatusRequest,
       'mobile:setEnabled': mobileSetEnabledRequest,
       'mobile:rotatePairingCode': mobileRotatePairingCodeRequest,
-      'mobile:createPairingToken': mobileCreatePairingTokenRequest
+      'mobile:createPairingToken': mobileCreatePairingTokenRequest,
+      'opencode:getStatus': opencodeGetStatusRequest,
+      'opencode:setEnabled': opencodeSetEnabledRequest
     }
   })
 }))
@@ -46,7 +50,7 @@ const config: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServers: {},
+  opencodeServerEnabled: false,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',
@@ -64,7 +68,24 @@ describe('SettingsModal', () => {
     mobileSetEnabledRequest.mockReset()
     mobileRotatePairingCodeRequest.mockReset()
     mobileCreatePairingTokenRequest.mockReset()
+    opencodeGetStatusRequest.mockReset()
+    opencodeSetEnabledRequest.mockReset()
     qrcodeToDataUrl.mockReset()
+
+    opencodeGetStatusRequest.mockResolvedValue({
+      enabled: false,
+      running: false,
+      url: null,
+      pid: null,
+      error: null
+    })
+    opencodeSetEnabledRequest.mockResolvedValue({
+      enabled: true,
+      running: true,
+      url: 'http://127.0.0.1:4096',
+      pid: 4096,
+      error: null
+    })
 
     mobileGetStatusRequest.mockResolvedValue({
       enabled: false,

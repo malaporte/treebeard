@@ -14,15 +14,20 @@ import {
 } from './services/git'
 import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
-import { launchVSCode, launchGhostty } from './services/launcher'
+import { launchVSCode, launchGhostty, launchURL } from './services/launcher'
 import {
+  forceStopAllServers,
+  getServerSync,
   getServerStatus,
   setServerEnabled,
   stopAllServers,
-  restoreEnabledServers
+  restoreEnabledServer
 } from './services/opencode'
 import {
+  clearMobileProxyTrace,
   createMobilePairingToken,
+  createLocalOpencodeWebUrl,
+  getMobileProxyTrace,
   getMobileBridgeStatus,
   rotateMobileBridgePairingCodeStatus,
   setMobileBridgeEnabledState,
@@ -41,6 +46,7 @@ let isUpdateCheckInFlight = false
 let isUpdatePromptOpen = false
 let dependencyStatus: DependencyStatus | null = null
 let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
+let shutdownInFlight: Promise<void> | null = null
 
 interface UpdateCheckResult {
   success: boolean
@@ -153,6 +159,23 @@ async function getDependencyStatus(forceRefresh = false): Promise<DependencyStat
   return dependencyCheckInFlight
 }
 
+async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
+  if (shutdownInFlight) {
+    await shutdownInFlight
+    return
+  }
+
+  shutdownInFlight = (async () => {
+    stopMobileBridge()
+    await stopAllServers()
+    if (quitAfterCleanup) {
+      Utils.quit()
+    }
+  })()
+
+  await shutdownInFlight
+}
+
 // --- Main RPC Handlers ---
 
 const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
@@ -207,11 +230,37 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
-      'opencode:getStatus': ({ worktreePath }) => {
-        return getServerStatus(worktreePath)
+      'opencode:getStatus': () => {
+        return getServerStatus()
       },
-      'opencode:setEnabled': async ({ worktreePath, enabled }) => {
-        return setServerEnabled(worktreePath, enabled)
+      'opencode:setEnabled': async ({ enabled }) => {
+        return setServerEnabled(enabled)
+      },
+      'opencode:openProxyUI': async ({ worktreePath }) => {
+        try {
+          const session = await createLocalOpencodeWebUrl(worktreePath)
+          await launchURL(session.webUrl)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'opencode:getSync': async () => {
+        const config = getConfig()
+        const paths = await Promise.all(
+          config.repositories.map(async (repo) => {
+            try {
+              const worktrees = await getWorktrees(repo.path)
+              return worktrees.map((worktree) => worktree.path)
+            } catch {
+              return []
+            }
+          })
+        )
+        return getServerSync(paths.flat())
       },
       'mobile:getStatus': () => {
         return getMobileBridgeStatus()
@@ -224,6 +273,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'mobile:createPairingToken': () => {
         return createMobilePairingToken()
+      },
+      'mobile:getProxyTrace': () => {
+        return getMobileProxyTrace()
+      },
+      'mobile:clearProxyTrace': () => {
+        clearMobileProxyTrace()
       },
       'system:homedir': () => {
         return os.homedir()
@@ -243,7 +298,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         return getDependencyStatus(Boolean(refresh))
       },
       'app:quit': () => {
-        Utils.quit()
+        return gracefulShutdown(true)
       },
       'app:closeWindow': () => {
         win.close()
@@ -281,7 +336,7 @@ ApplicationMenu.setApplicationMenu([
       { role: 'hideOthers' },
       { role: 'showAll' },
       { type: 'separator' },
-      { role: 'quit' },
+      { label: 'Quit Treebeard', action: 'quit-treebeard', accelerator: 'CmdOrCtrl+Q' },
     ],
   },
   {
@@ -299,6 +354,11 @@ ApplicationMenu.on('application-menu-clicked', (event) => {
   const action = payload.data?.action ?? payload.action
   if (action === 'open-settings') {
     openSettingsFromMenu()
+    return
+  }
+
+  if (action === 'quit-treebeard') {
+    void gracefulShutdown(true)
   }
 })
 
@@ -319,16 +379,18 @@ const win = new BrowserWindow({
 
 startAutoUpdateScheduler()
 void getDependencyStatus()
-void restoreEnabledServers()
+void restoreEnabledServer()
 void syncMobileBridgeFromConfig()
 
 // --- Shutdown Cleanup ---
 
 function handleShutdown() {
-  void stopAllServers()
-  stopMobileBridge()
+  void gracefulShutdown(false)
 }
 
 process.on('SIGINT', handleShutdown)
 process.on('SIGTERM', handleShutdown)
-process.on('exit', handleShutdown)
+process.on('exit', () => {
+  forceStopAllServers()
+  stopMobileBridge()
+})

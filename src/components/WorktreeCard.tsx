@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader } from '@mantine/core'
-import { IconGitBranch, IconTrash, IconServer } from '@tabler/icons-react'
+import { Card, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core'
+import { IconGitBranch, IconTrash, IconExternalLink } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
@@ -10,7 +10,6 @@ import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
 import { useHomedir } from '../hooks/useHomedir'
-import { useOpencodeServer } from '../hooks/useOpencodeServer'
 import { rpc } from '../rpc'
 import type { Worktree } from '../shared/types'
 
@@ -27,32 +26,6 @@ function extractJiraKey(branch: string): string | null {
   return match ? match[1].toUpperCase() : null
 }
 
-const SERVER_COLOR_MAP: Record<string, string> = {
-  off: 'dimmed',
-  starting: 'yellow',
-  running: 'teal',
-  error: 'pink'
-}
-
-function serverVisualState(
-  status: { enabled: boolean; running: boolean; url?: string | null; error: string | null } | null,
-  toggling: boolean
-): { state: string; label: string; color: string } {
-  if (!status || (!status.enabled && !toggling)) {
-    return { state: 'off', label: 'OpenCode server: off', color: SERVER_COLOR_MAP.off }
-  }
-  if (toggling) {
-    return { state: 'starting', label: 'OpenCode server: starting...', color: SERVER_COLOR_MAP.starting }
-  }
-  if (status.error) {
-    return { state: 'error', label: `OpenCode server: ${status.error}`, color: SERVER_COLOR_MAP.error }
-  }
-  if (status.running) {
-    return { state: 'running', label: `OpenCode server: ${status.url ?? 'running'}`, color: SERVER_COLOR_MAP.running }
-  }
-  return { state: 'off', label: 'OpenCode server: off', color: SERVER_COLOR_MAP.off }
-}
-
 export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -61,11 +34,13 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
   const { pr, loading: prLoading } = usePR(repoPath, worktree.isMain ? null : worktree.branch)
   const { status: wtStatus, loading: wtStatusLoading } = useWorktreeStatus(worktree.path)
   const { shortenPath } = useHomedir()
-  const { status: serverStatus, toggling: serverToggling, toggle: toggleServer } = useOpencodeServer(worktree.path)
-  const serverVis = serverVisualState(serverStatus, serverToggling)
 
   const handleDoubleClick = () => {
     rpc().request['launch:vscode']({ worktreePath: worktree.path })
+  }
+
+  const handleOpenProxyUi = async () => {
+    await rpc().request['opencode:openProxyUI']({ worktreePath: worktree.path })
   }
 
   return (
@@ -114,15 +89,14 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
 
         <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
           <LaunchButtons worktreePath={worktree.path} />
-          <Tooltip label={serverVis.label}>
+          <Tooltip label="Open OpenCode UI (via bridge proxy)">
             <ActionIcon
               variant="subtle"
-              color={serverVis.color}
+              color="blue"
               size="sm"
-              onClick={toggleServer}
-              disabled={serverToggling}
+              onClick={handleOpenProxyUi}
             >
-              {serverToggling ? <Loader size={14} /> : <IconServer size={16} />}
+              <IconExternalLink size={15} />
             </ActionIcon>
           </Tooltip>
           {!worktree.isMain && (

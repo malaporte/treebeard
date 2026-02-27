@@ -1,6 +1,6 @@
 import { getShellEnv } from './shell-env'
-import { getOpencodeEnabled, setOpencodeEnabled, getOpencodeEnabledPaths } from './config'
-import type { OpencodeServerStatus } from '../../shared/types'
+import { getOpencodeEnabled, setOpencodeEnabled } from './config'
+import type { OpencodeServerStatus, OpencodeSyncStatus } from '../../shared/types'
 
 const STARTUP_TIMEOUT_MS = 20000
 const STOP_TIMEOUT_MS = 5000
@@ -18,18 +18,21 @@ interface UrlWaitResult {
   output: string
 }
 
-// --- Runtime State ---
+interface ProjectLike {
+  worktree?: unknown
+  sandboxes?: unknown
+}
 
-const servers = new Map<string, ManagedServer>()
-const pending = new Map<string, Promise<OpencodeServerStatus>>()
+interface SessionLike {
+  directory?: unknown
+}
 
-// --- Public API ---
+let server: ManagedServer | null = null
+let pendingStart: Promise<OpencodeServerStatus> | null = null
 
-/** Get the current status for a worktree's opencode server. */
-export function getServerStatus(worktreePath: string): OpencodeServerStatus {
-  const enabled = getOpencodeEnabled(worktreePath)
-  const server = servers.get(worktreePath)
-
+/** Get the current status for the global OpenCode server. */
+export function getServerStatus(): OpencodeServerStatus {
+  const enabled = getOpencodeEnabled()
   if (!server) {
     return { enabled, running: false, url: null, pid: null, error: null }
   }
@@ -43,92 +46,175 @@ export function getServerStatus(worktreePath: string): OpencodeServerStatus {
   }
 }
 
-/** Enable or disable the opencode server for a worktree. Returns final status. */
-export async function setServerEnabled(worktreePath: string, enabled: boolean): Promise<OpencodeServerStatus> {
-  setOpencodeEnabled(worktreePath, enabled)
-
+/** Enable or disable the global OpenCode server. Returns final status. */
+export async function setServerEnabled(enabled: boolean): Promise<OpencodeServerStatus> {
+  setOpencodeEnabled(enabled)
   if (enabled) {
-    return startServer(worktreePath)
+    return startServer()
+  }
+  return stopServer()
+}
+
+/** Starts the global server on app launch when enabled. */
+export async function restoreEnabledServer(): Promise<void> {
+  if (!getOpencodeEnabled()) return
+  await startServer()
+}
+
+/** Compares Treebeard worktrees with OpenCode projects/sessions. */
+export async function getServerSync(worktreePaths: string[]): Promise<OpencodeSyncStatus> {
+  const status = getServerStatus()
+  const checkedAt = new Date().toISOString()
+  const treebeardSet = new Set(worktreePaths.map((path) => normalizePath(path)))
+
+  if (!status.running || !status.url) {
+    return {
+      checkedAt,
+      serverRunning: false,
+      treebeardWorktrees: treebeardSet.size,
+      opencodeProjects: 0,
+      opencodeSessionDirectories: 0,
+      missingProjects: [...treebeardSet].sort(),
+      staleProjects: [],
+      missingSessionDirectories: [...treebeardSet].sort(),
+      staleSessionDirectories: [],
+      error: status.error || 'OpenCode server is not running'
+    }
   }
 
-  return stopServer(worktreePath)
+  try {
+    const base = new URL(status.url)
+    const [projectsResp, sessionsResp] = await Promise.all([
+      fetch(new URL('/project', base)),
+      fetch(new URL('/session', base))
+    ])
+
+    if (!projectsResp.ok || !sessionsResp.ok) {
+      return {
+        checkedAt,
+        serverRunning: true,
+        treebeardWorktrees: treebeardSet.size,
+        opencodeProjects: 0,
+        opencodeSessionDirectories: 0,
+        missingProjects: [...treebeardSet].sort(),
+        staleProjects: [],
+        missingSessionDirectories: [...treebeardSet].sort(),
+        staleSessionDirectories: [],
+        error: `OpenCode sync failed (/project=${projectsResp.status}, /session=${sessionsResp.status})`
+      }
+    }
+
+    const projects = await projectsResp.json() as ProjectLike[]
+    const sessions = await sessionsResp.json() as SessionLike[]
+
+    const opencodeProjectSet = new Set<string>()
+    for (const project of projects) {
+      const worktree = typeof project.worktree === 'string' ? normalizePath(project.worktree) : null
+      if (worktree) opencodeProjectSet.add(worktree)
+
+      const sandboxes = Array.isArray(project.sandboxes) ? project.sandboxes : []
+      for (const sandbox of sandboxes) {
+        if (typeof sandbox !== 'string') continue
+        const normalized = normalizePath(sandbox)
+        if (normalized) opencodeProjectSet.add(normalized)
+      }
+    }
+
+    const opencodeSessionSet = new Set<string>()
+    for (const session of sessions) {
+      if (typeof session.directory !== 'string') continue
+      const normalized = normalizePath(session.directory)
+      if (normalized) opencodeSessionSet.add(normalized)
+    }
+
+    return {
+      checkedAt,
+      serverRunning: true,
+      treebeardWorktrees: treebeardSet.size,
+      opencodeProjects: opencodeProjectSet.size,
+      opencodeSessionDirectories: opencodeSessionSet.size,
+      missingProjects: [...difference(treebeardSet, opencodeProjectSet)].sort(),
+      staleProjects: [...difference(opencodeProjectSet, treebeardSet)].sort(),
+      missingSessionDirectories: [...difference(treebeardSet, opencodeSessionSet)].sort(),
+      staleSessionDirectories: [...difference(opencodeSessionSet, treebeardSet)].sort(),
+      error: null
+    }
+  } catch {
+    return {
+      checkedAt,
+      serverRunning: true,
+      treebeardWorktrees: treebeardSet.size,
+      opencodeProjects: 0,
+      opencodeSessionDirectories: 0,
+      missingProjects: [...treebeardSet].sort(),
+      staleProjects: [],
+      missingSessionDirectories: [...treebeardSet].sort(),
+      staleSessionDirectories: [],
+      error: 'Failed to query OpenCode projects/sessions'
+    }
+  }
 }
 
-/** Stop a server if the worktree has been removed. Cleans up config too. */
-export async function removeWorktreeServer(worktreePath: string): Promise<void> {
-  setOpencodeEnabled(worktreePath, false)
-  await stopServer(worktreePath)
-}
-
-/** Start servers for all worktrees that were previously enabled. */
-export async function restoreEnabledServers(): Promise<void> {
-  const paths = getOpencodeEnabledPaths()
-  await Promise.all(paths.map((p) => startServer(p)))
-}
-
-/** Stop every managed server. Called on app shutdown. */
+/** Stop the global managed server. Called on app shutdown. */
 export async function stopAllServers(): Promise<void> {
-  const paths = [...servers.keys()]
-  await Promise.all(paths.map((p) => stopServer(p)))
+  await stopServer()
 }
 
-// --- Internal Lifecycle ---
+/** Synchronously force-kills the managed server during final process exit. */
+export function forceStopAllServers(): void {
+  if (!server) return
+  try {
+    server.process.kill('SIGKILL')
+  } catch {
+    // Ignore kill errors during process teardown.
+  }
+  server = null
+  pendingStart = null
+}
 
-async function startServer(worktreePath: string): Promise<OpencodeServerStatus> {
-  // Serialize per-worktree to avoid duplicate spawns from rapid toggles
-  const inflight = pending.get(worktreePath)
-  if (inflight) return inflight
+async function startServer(): Promise<OpencodeServerStatus> {
+  if (pendingStart) return pendingStart
 
-  const promise = doStart(worktreePath)
-  pending.set(worktreePath, promise)
+  const promise = doStart()
+  pendingStart = promise
   try {
     return await promise
   } finally {
-    pending.delete(worktreePath)
+    pendingStart = null
   }
 }
 
-async function doStart(worktreePath: string): Promise<OpencodeServerStatus> {
-  // Already running — return current status
-  const existing = servers.get(worktreePath)
-  if (existing) return getServerStatus(worktreePath)
+async function doStart(): Promise<OpencodeServerStatus> {
+  if (server) return getServerStatus()
 
   const env = await getShellEnv()
-
   const proc = Bun.spawn(
-    ['opencode', 'serve', '--hostname', '0.0.0.0', '--port', '0', '--print-logs'],
+    ['opencode', 'serve', '--hostname', '127.0.0.1', '--port', '0', '--print-logs'],
     {
-      cwd: worktreePath,
+      cwd: process.cwd(),
       stdout: 'pipe',
       stderr: 'pipe',
       env
     }
   )
 
-  const server: ManagedServer = {
+  const next: ManagedServer = {
     process: proc,
     pid: proc.pid,
     url: null,
     error: null
   }
+  server = next
 
-  servers.set(worktreePath, server)
-
-  // Clean up runtime map if process exits unexpectedly
   proc.exited.then(() => {
-    const current = servers.get(worktreePath)
-    if (current?.pid === proc.pid) {
-      servers.delete(worktreePath)
+    if (server?.pid === proc.pid) {
+      server = null
     }
   })
 
-  // Parse startup logs for the listening URL (stream can vary by opencode version)
   const startup = await waitForUrl(proc, STARTUP_TIMEOUT_MS)
-
-  // Process may have exited during startup
-  const stillTracked = servers.get(worktreePath)
-  if (!stillTracked || stillTracked.pid !== proc.pid) {
-    return getServerStatus(worktreePath)
+  if (!server || server.pid !== proc.pid) {
+    return getServerStatus()
   }
 
   if (startup.url) {
@@ -137,28 +223,23 @@ async function doStart(worktreePath: string): Promise<OpencodeServerStatus> {
     server.error = formatStartupError(startup.output)
   }
 
-  return getServerStatus(worktreePath)
+  return getServerStatus()
 }
 
-async function stopServer(worktreePath: string): Promise<OpencodeServerStatus> {
-  // Wait for any pending start to finish before stopping
-  const inflight = pending.get(worktreePath)
-  if (inflight) await inflight
+async function stopServer(): Promise<OpencodeServerStatus> {
+  if (pendingStart) await pendingStart
+  if (!server) return getServerStatus()
 
-  const server = servers.get(worktreePath)
-  if (!server) return getServerStatus(worktreePath)
-
-  servers.delete(worktreePath)
-  await killProcess(server.process)
-
-  return getServerStatus(worktreePath)
+  const current = server
+  server = null
+  await killProcess(current.process)
+  return getServerStatus()
 }
 
 async function killProcess(proc: ReturnType<typeof Bun.spawn>): Promise<void> {
   try {
     proc.kill('SIGTERM')
   } catch {
-    // Already dead
     return
   }
 
@@ -177,12 +258,7 @@ async function killProcess(proc: ReturnType<typeof Bun.spawn>): Promise<void> {
   }
 }
 
-// --- Helpers ---
-
-async function waitForUrl(
-  proc: ReturnType<typeof Bun.spawn>,
-  timeoutMs: number
-): Promise<UrlWaitResult> {
+async function waitForUrl(proc: ReturnType<typeof Bun.spawn>, timeoutMs: number): Promise<UrlWaitResult> {
   return new Promise((resolve) => {
     let resolved = false
     let accumulated = ''
@@ -215,18 +291,19 @@ async function waitForUrl(
       const decoder = new TextDecoder()
 
       try {
-        while (!resolved) {
+        while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
           accumulated += decoder.decode(value, { stream: true })
-          if (tryResolveUrl(accumulated)) {
-            return
+          if (!resolved) {
+            tryResolveUrl(accumulated)
           }
         }
       } catch {
         // Stream error — process may have died
       } finally {
+        reader.releaseLock()
         activeReaders -= 1
         if (!resolved && activeReaders === 0) {
           finish({ url: null, output: accumulated })
@@ -236,8 +313,6 @@ async function waitForUrl(
 
     read(proc.stderr as ReadableStream | null)
     read(proc.stdout as ReadableStream | null)
-
-    // Also resolve null if the process exits before printing URL
     proc.exited.then(() => {
       finish({ url: null, output: accumulated })
     })
@@ -262,6 +337,18 @@ function compactOutput(output: string): string {
 
 function trimUrl(value: string): string {
   return value.replace(/[)\],.;]+$/, '')
+}
+
+function normalizePath(path: string): string {
+  return path.trim().replace(/\/$/, '')
+}
+
+function difference(left: Set<string>, right: Set<string>): Set<string> {
+  const values = new Set<string>()
+  for (const item of left) {
+    if (!right.has(item)) values.add(item)
+  }
+  return values
 }
 
 function sleep(ms: number): Promise<void> {

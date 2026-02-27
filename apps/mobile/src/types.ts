@@ -31,10 +31,10 @@ export interface OpencodeServerStatus {
 export interface MobileWorktree {
   repo: RepoConfig
   worktree: Worktree
-  opencode: OpencodeServerStatus
 }
 
 export interface WorktreesResponse {
   worktrees: MobileWorktree[]
+  opencode: OpencodeServerStatus
   generatedAt: string
 }

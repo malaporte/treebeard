@@ -19,7 +19,7 @@ const DEFAULTS: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServers: {},
+  opencodeServerEnabled: false,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',
@@ -59,9 +59,9 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
-    opencodeServers: config.opencodeServers && typeof config.opencodeServers === 'object' && !Array.isArray(config.opencodeServers)
-      ? { ...(config.opencodeServers as Record<string, boolean>) }
-      : {},
+    opencodeServerEnabled: typeof config.opencodeServerEnabled === 'boolean'
+      ? config.opencodeServerEnabled
+      : DEFAULTS.opencodeServerEnabled,
     mobileBridge
   }
 }
@@ -107,23 +107,14 @@ export function setCollapsedRepos(ids: string[]): void {
   writeConfig(config)
 }
 
-export function getOpencodeEnabled(worktreePath: string): boolean {
-  return readConfig().opencodeServers[worktreePath] === true
+export function getOpencodeEnabled(): boolean {
+  return readConfig().opencodeServerEnabled === true
 }
 
-export function setOpencodeEnabled(worktreePath: string, enabled: boolean): void {
+export function setOpencodeEnabled(enabled: boolean): void {
   const config = readConfig()
-  if (enabled) {
-    config.opencodeServers[worktreePath] = true
-  } else {
-    delete config.opencodeServers[worktreePath]
-  }
+  config.opencodeServerEnabled = enabled
   writeConfig(config)
-}
-
-export function getOpencodeEnabledPaths(): string[] {
-  const servers = readConfig().opencodeServers
-  return Object.keys(servers).filter((key) => servers[key])
 }
 
 export function getMobileBridgeConfig(): MobileBridgeConfig {

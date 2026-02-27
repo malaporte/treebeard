@@ -11,6 +11,11 @@ export interface PairExchangeResult {
   bridgeUrl: string
 }
 
+export interface OpencodeWebSessionResult {
+  webUrl: string
+  expiresAt: string
+}
+
 async function request<T>(connection: BridgeConnection, path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${connection.baseUrl}${path}`, {
     ...init,
@@ -30,7 +35,7 @@ async function request<T>(connection: BridgeConnection, path: string, init?: Req
 }
 
 export async function getHealth(baseUrl: string): Promise<{ ok: boolean }> {
-  const response = await fetch(`${baseUrl}/health`)
+  const response = await fetch(`${baseUrl}/bridge/health`)
   if (!response.ok) {
     throw new Error(`Health check failed with status ${response.status}`)
   }
@@ -38,7 +43,7 @@ export async function getHealth(baseUrl: string): Promise<{ ok: boolean }> {
 }
 
 export async function exchangePairingToken(baseUrl: string, token: string): Promise<PairExchangeResult> {
-  const response = await fetch(`${baseUrl}/pair/exchange`, {
+  const response = await fetch(`${baseUrl}/bridge/pair/exchange`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ token })
@@ -53,20 +58,36 @@ export async function exchangePairingToken(baseUrl: string, token: string): Prom
 }
 
 export function getStatus(connection: BridgeConnection): Promise<MobileBridgeStatus> {
-  return request(connection, '/status')
+  return request(connection, '/bridge/status')
 }
 
 export function getWorktrees(connection: BridgeConnection): Promise<WorktreesResponse> {
-  return request(connection, '/worktrees')
+  return request(connection, '/bridge/worktrees')
 }
 
 export function setOpencodeEnabled(
   connection: BridgeConnection,
-  worktreePath: string,
   enabled: boolean
 ): Promise<OpencodeServerStatus> {
-  return request(connection, '/opencode/set-enabled', {
+  return request(connection, '/bridge/opencode/set-enabled', {
     method: 'POST',
-    body: JSON.stringify({ worktreePath, enabled })
+    body: JSON.stringify({ enabled })
+  })
+}
+
+export function getOpencodeStatus(connection: BridgeConnection): Promise<OpencodeServerStatus> {
+  return request(connection, '/bridge/opencode/status', {
+    method: 'POST',
+    body: JSON.stringify({})
+  })
+}
+
+export function createOpencodeWebSession(
+  connection: BridgeConnection,
+  worktreePath: string
+): Promise<OpencodeWebSessionResult> {
+  return request(connection, '/bridge/opencode/web/session', {
+    method: 'POST',
+    body: JSON.stringify({ worktreePath })
   })
 }

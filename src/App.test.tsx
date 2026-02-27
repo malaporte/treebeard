@@ -45,7 +45,7 @@ const config: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServers: {},
+  opencodeServerEnabled: false,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',

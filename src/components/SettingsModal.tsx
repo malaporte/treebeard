@@ -21,7 +21,10 @@ import type {
   AppConfig,
   DependencyStatus,
   MobileBridgeStatus,
+  OpencodeSyncStatus,
+  MobileProxyTraceEntry,
   MobilePairingInfo,
+  OpencodeServerStatus,
   RepoConfig
 } from '../shared/types'
 
@@ -61,6 +64,10 @@ export function SettingsModal({
   const [mobileBridgeBusy, setMobileBridgeBusy] = useState(false)
   const [mobilePairingInfo, setMobilePairingInfo] = useState<MobilePairingInfo | null>(null)
   const [mobilePairingQr, setMobilePairingQr] = useState<string | null>(null)
+  const [mobileProxyTrace, setMobileProxyTrace] = useState<MobileProxyTraceEntry[]>([])
+  const [opencodeStatus, setOpencodeStatus] = useState<OpencodeServerStatus | null>(null)
+  const [opencodeSync, setOpencodeSync] = useState<OpencodeSyncStatus | null>(null)
+  const [opencodeBusy, setOpencodeBusy] = useState(false)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const { shortenPath } = useHomedir()
 
@@ -90,12 +97,49 @@ export function SettingsModal({
     }
   }
 
+  const loadOpencodeStatus = async () => {
+    setOpencodeBusy(true)
+    try {
+      const status = await rpc().request['opencode:getStatus']({})
+      setOpencodeStatus(status)
+    } catch {
+      setOpencodeStatus(null)
+    } finally {
+      setOpencodeBusy(false)
+    }
+  }
+
+  const loadOpencodeSync = async () => {
+    setOpencodeBusy(true)
+    try {
+      const status = await rpc().request['opencode:getSync']({})
+      setOpencodeSync(status)
+    } catch {
+      setOpencodeSync(null)
+    } finally {
+      setOpencodeBusy(false)
+    }
+  }
+
   useEffect(() => {
     if (!opened) return
     setActiveSection('general')
     loadDependencies(false)
     loadMobileBridgeStatus()
+    loadOpencodeStatus()
   }, [opened])
+
+  const handleOpencodeEnabledChange = async (enabled: boolean) => {
+    setOpencodeBusy(true)
+    try {
+      const status = await rpc().request['opencode:setEnabled']({ enabled })
+      setOpencodeStatus(status)
+    } catch {
+      // Keep existing status if RPC fails
+    } finally {
+      setOpencodeBusy(false)
+    }
+  }
 
   const handleMobileBridgeEnabledChange = async (enabled: boolean) => {
     setMobileBridgeBusy(true)
@@ -142,6 +186,30 @@ export function SettingsModal({
     } catch {
       setMobilePairingInfo(null)
       setMobilePairingQr(null)
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
+
+  const loadMobileProxyTrace = async () => {
+    setMobileBridgeBusy(true)
+    try {
+      const trace = await rpc().request['mobile:getProxyTrace']({})
+      setMobileProxyTrace(trace)
+    } catch {
+      setMobileProxyTrace([])
+    } finally {
+      setMobileBridgeBusy(false)
+    }
+  }
+
+  const clearMobileProxyTrace = async () => {
+    setMobileBridgeBusy(true)
+    try {
+      await rpc().request['mobile:clearProxyTrace']({})
+      setMobileProxyTrace([])
+    } catch {
+      // Ignore clear failures.
     } finally {
       setMobileBridgeBusy(false)
     }
@@ -354,6 +422,66 @@ export function SettingsModal({
 
               <div>
                 <Text fw={600} size="sm" mb="xs">
+                  OpenCode
+                </Text>
+                <Switch
+                  label="Auto-start OpenCode server on app launch"
+                  checked={opencodeStatus?.enabled ?? config.opencodeServerEnabled}
+                  onChange={(e) => {
+                    handleOpencodeEnabledChange(e.currentTarget.checked)
+                  }}
+                  disabled={opencodeBusy}
+                  size="sm"
+                />
+                <Group gap="sm" mt="xs">
+                  <Text size="xs" c="dimmed">
+                    Status: {opencodeStatus?.running ? 'Running' : 'Stopped'}
+                    {opencodeStatus?.url ? ` at ${opencodeStatus.url}` : ''}
+                  </Text>
+                  <Button
+                    size="xs"
+                    variant="subtle"
+                    onClick={loadOpencodeStatus}
+                    loading={opencodeBusy}
+                  >
+                    Refresh OpenCode status
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="subtle"
+                    onClick={loadOpencodeSync}
+                    loading={opencodeBusy}
+                  >
+                    Refresh OpenCode sync
+                  </Button>
+                </Group>
+                {opencodeSync && (
+                  <Stack gap={2} mt="xs">
+                    <Text size="xs" c="dimmed">
+                      Sync snapshot ({new Date(opencodeSync.checkedAt).toLocaleTimeString()}):
+                      {' '}Treebeard {opencodeSync.treebeardWorktrees} | Projects {opencodeSync.opencodeProjects} | Session dirs {opencodeSync.opencodeSessionDirectories}
+                    </Text>
+                    {opencodeSync.error && (
+                      <Text size="xs" c="yellow">
+                        {opencodeSync.error}
+                      </Text>
+                    )}
+                    <Text size="xs" c="dimmed">
+                      Missing projects: {opencodeSync.missingProjects.length}
+                      {' '}| Stale projects: {opencodeSync.staleProjects.length}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      Missing session dirs: {opencodeSync.missingSessionDirectories.length}
+                      {' '}| Stale session dirs: {opencodeSync.staleSessionDirectories.length}
+                    </Text>
+                  </Stack>
+                )}
+              </div>
+
+              <Divider />
+
+              <div>
+                <Text fw={600} size="sm" mb="xs">
                   Polling
                 </Text>
                 <NumberInput
@@ -414,6 +542,23 @@ export function SettingsModal({
                     >
                       Refresh bridge status
                     </Button>
+                    <Button
+                      size="xs"
+                      variant="subtle"
+                      onClick={loadMobileProxyTrace}
+                      loading={mobileBridgeBusy}
+                    >
+                      Refresh proxy trace
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="subtle"
+                      color="gray"
+                      onClick={clearMobileProxyTrace}
+                      loading={mobileBridgeBusy}
+                    >
+                      Clear proxy trace
+                    </Button>
                   </Group>
                   <Text size="xs" c="dimmed">
                     Pairing code: <Text span c="white" style={{ fontFamily: 'monospace' }}>{mobileBridgeStatus?.pairingCode || 'Unavailable'}</Text>
@@ -442,6 +587,31 @@ export function SettingsModal({
                           {url}
                         </Text>
                       ))}
+                    </Stack>
+                  )}
+                  {mobileProxyTrace.length > 0 && (
+                    <Stack gap={4}>
+                      <Text size="xs" c="dimmed">Proxy trace:</Text>
+                      <div
+                        style={{
+                          maxHeight: 180,
+                          overflow: 'auto',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 6,
+                          padding: '6px 8px'
+                        }}
+                      >
+                        {mobileProxyTrace.map((entry, index) => (
+                          <Text
+                            key={`${entry.at}-${index}`}
+                            size="xs"
+                            c="dimmed"
+                            style={{ fontFamily: 'monospace' }}
+                          >
+                            [{entry.source}] {entry.at} {entry.message}
+                          </Text>
+                        ))}
+                      </div>
                     </Stack>
                   )}
                 </>

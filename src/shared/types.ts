@@ -12,7 +12,7 @@ export interface AppConfig {
   autoUpdateEnabled: boolean
   updateCheckIntervalMin: number
   collapsedRepos: string[]
-  opencodeServers: Record<string, boolean>
+  opencodeServerEnabled: boolean
   mobileBridge: MobileBridgeConfig
 }
 
@@ -66,10 +66,22 @@ export interface OpencodeServerStatus {
   error: string | null
 }
 
+export interface OpencodeSyncStatus {
+  checkedAt: string
+  serverRunning: boolean
+  treebeardWorktrees: number
+  opencodeProjects: number
+  opencodeSessionDirectories: number
+  missingProjects: string[]
+  staleProjects: string[]
+  missingSessionDirectories: string[]
+  staleSessionDirectories: string[]
+  error: string | null
+}
+
 export interface MobileWorktree {
   repo: RepoConfig
   worktree: Worktree
-  opencode: OpencodeServerStatus
 }
 
 export interface MobileBridgeStatus {
@@ -86,6 +98,12 @@ export interface MobilePairingInfo {
   expiresAt: string
   bridgeUrl: string
   deepLink: string
+}
+
+export interface MobileProxyTraceEntry {
+  at: string
+  source: 'http' | 'proxy' | 'ws'
+  message: string
 }
 
 export interface DependencyCheck {

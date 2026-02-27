@@ -17,3 +17,12 @@ export async function launchGhostty(worktreePath: string): Promise<void> {
     env
   })
 }
+
+export async function launchURL(url: string): Promise<void> {
+  const env = await getShellEnv()
+  Bun.spawn(['open', url], {
+    stdout: 'ignore',
+    stderr: 'ignore',
+    env
+  })
+}

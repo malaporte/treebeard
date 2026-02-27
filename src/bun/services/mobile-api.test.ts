@@ -8,8 +8,8 @@ const mockRotateMobileBridgePairingCode = vi.fn<() => string>()
 const mockSetMobileBridgeEnabled = vi.fn<(enabled: boolean) => MobileBridgeConfig>()
 
 const mockGetWorktrees = vi.fn<(repoPath: string) => Promise<Worktree[]>>()
-const mockGetServerStatus = vi.fn<(worktreePath: string) => OpencodeServerStatus>()
-const mockSetServerEnabled = vi.fn<(worktreePath: string, enabled: boolean) => Promise<OpencodeServerStatus>>()
+const mockGetServerStatus = vi.fn<() => OpencodeServerStatus>()
+const mockSetServerEnabled = vi.fn<(enabled: boolean) => Promise<OpencodeServerStatus>>()
 
 vi.mock('./config', () => ({
   ensureMobileBridgePairingCode: () => mockEnsureMobileBridgePairingCode(),
@@ -24,8 +24,8 @@ vi.mock('./git', () => ({
 }))
 
 vi.mock('./opencode', () => ({
-  getServerStatus: (worktreePath: string) => mockGetServerStatus(worktreePath),
-  setServerEnabled: (worktreePath: string, enabled: boolean) => mockSetServerEnabled(worktreePath, enabled)
+  getServerStatus: () => mockGetServerStatus(),
+  setServerEnabled: (enabled: boolean) => mockSetServerEnabled(enabled)
 }))
 
 vi.mock('node:os', () => ({
@@ -45,6 +45,7 @@ interface ServeRuntime {
 
 let serveHandler: ((request: Request) => Promise<Response>) | null = null
 let serveRuntime: ServeRuntime | null = null
+const mockFetch = vi.fn()
 
 vi.stubGlobal('Bun', {
   serve: vi.fn((options: { hostname: string; port: number; fetch: (request: Request) => Promise<Response> }) => {
@@ -56,6 +57,8 @@ vi.stubGlobal('Bun', {
     return serveRuntime
   })
 })
+
+vi.stubGlobal('fetch', (...args: Parameters<typeof fetch>) => mockFetch(...args))
 
 const {
   createMobilePairingToken,
@@ -100,6 +103,11 @@ describe('mobile api service', () => {
       pid: 1234,
       error: null
     })
+    mockFetch.mockReset()
+    mockFetch.mockResolvedValue(new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    }))
 
     stopMobileBridge()
   })
@@ -176,7 +184,7 @@ describe('mobile api service', () => {
     const pairing = createMobilePairingToken()
 
     const firstExchange = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/pair/exchange', {
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: pairing.token })
@@ -185,7 +193,7 @@ describe('mobile api service', () => {
     expect(firstExchange?.status).toBe(200)
 
     const secondExchange = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/pair/exchange', {
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: pairing.token })
@@ -203,7 +211,7 @@ describe('mobile api service', () => {
     })
     await syncMobileBridgeFromConfig()
 
-    const response = await serveHandler?.(new Request('http://127.0.0.1:8787/health'))
+    const response = await serveHandler?.(new Request('http://127.0.0.1:8787/bridge/health'))
     expect(response?.status).toBe(200)
   })
 
@@ -230,12 +238,12 @@ describe('mobile api service', () => {
 
     await syncMobileBridgeFromConfig()
 
-    const unauthorized = await serveHandler?.(new Request('http://127.0.0.1:8787/worktrees'))
+    const unauthorized = await serveHandler?.(new Request('http://127.0.0.1:8787/bridge/worktrees'))
     expect(unauthorized?.status).toBe(401)
 
     const pairing = createMobilePairingToken()
     const exchangeResponse = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/pair/exchange', {
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: pairing.token })
@@ -247,7 +255,7 @@ describe('mobile api service', () => {
       : { sessionToken: '' }
 
     const authorized = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/worktrees', {
+      new Request('http://127.0.0.1:8787/bridge/worktrees', {
         headers: {
           authorization: `Bearer ${exchangeBody.sessionToken}`
         }
@@ -270,7 +278,7 @@ describe('mobile api service', () => {
 
     const pairing = createMobilePairingToken()
     const exchangeResponse = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/pair/exchange', {
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: pairing.token })
@@ -281,17 +289,166 @@ describe('mobile api service', () => {
       : { sessionToken: '' }
 
     const response = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/opencode/set-enabled', {
+      new Request('http://127.0.0.1:8787/bridge/opencode/set-enabled', {
         method: 'POST',
         headers: {
           authorization: `Bearer ${exchangeBody.sessionToken}`,
           'content-type': 'application/json'
         },
-        body: JSON.stringify({ worktreePath: '/repo/wt-1', enabled: true })
+        body: JSON.stringify({ enabled: true })
       })
     )
 
     expect(response?.status).toBe(200)
-    expect(mockSetServerEnabled).toHaveBeenCalledWith('/repo/wt-1', true)
+    expect(mockSetServerEnabled).toHaveBeenCalledWith(true)
+  })
+
+  it('creates web UI session URL only for authenticated requests', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    mockGetServerStatus.mockReturnValue({
+      enabled: true,
+      running: true,
+      url: 'http://127.0.0.1:5050',
+      pid: 5050,
+      error: null
+    })
+    await syncMobileBridgeFromConfig()
+
+    const unauthorized = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/opencode/web/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ worktreePath: '/repo/wt-1' })
+      })
+    )
+    expect(unauthorized?.status).toBe(401)
+
+    const pairing = createMobilePairingToken()
+    const exchangeResponse = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: pairing.token })
+      })
+    )
+    const exchangeBody = exchangeResponse
+      ? await exchangeResponse.json() as { sessionToken: string }
+      : { sessionToken: '' }
+
+    const authorized = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/opencode/web/session', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${exchangeBody.sessionToken}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ worktreePath: '/repo/wt-1' })
+      })
+    )
+    expect(authorized?.status).toBe(200)
+    const body = authorized
+      ? await authorized.json() as { webUrl: string }
+      : { webUrl: '' }
+    expect(body.webUrl).not.toContain('/opencode/web/')
+    expect(body.webUrl).toContain('/session')
+    expect(body.webUrl).toContain('ticket=')
+  })
+
+  it('proxies non-bridge paths to OpenCode root', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    mockGetServerStatus.mockReturnValue({
+      enabled: true,
+      running: true,
+      url: 'http://127.0.0.1:5050',
+      pid: 5050,
+      error: null
+    })
+    mockFetch.mockResolvedValue(new Response('<html>ok</html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' }
+    }))
+    await syncMobileBridgeFromConfig()
+
+    const pairing = createMobilePairingToken()
+    const exchange = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: pairing.token })
+      })
+    )
+    const token = exchange ? (await exchange.json() as { sessionToken: string }).sessionToken : ''
+
+    const webSession = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/opencode/web/session', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ worktreePath: '/repo/wt-1' })
+      })
+    )
+    const webUrl = webSession ? (await webSession.json() as { webUrl: string }).webUrl : ''
+    const ticketUrl = new URL(webUrl)
+
+    const exchanged = await serveHandler?.(new Request(ticketUrl.toString()))
+    const setCookie = exchanged?.headers.get('set-cookie') || ''
+    const cookie = setCookie.split(';')[0]
+
+    mockFetch.mockResolvedValueOnce(new Response('ok', {
+      status: 200,
+      headers: { 'content-type': 'text/plain' }
+    }))
+    const proxied = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/session/test-id', {
+        headers: { cookie }
+      })
+    )
+
+    expect(proxied?.status).toBe(200)
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:5050/session/test-id',
+      expect.objectContaining({ method: 'GET' })
+    )
+  })
+
+  it('keeps bridge API paths reserved', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    await syncMobileBridgeFromConfig()
+
+    const response = await serveHandler?.(new Request('http://127.0.0.1:8787/bridge/health'))
+    expect(response?.status).toBe(200)
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it('rejects proxied web requests without web ticket or cookie session', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    await syncMobileBridgeFromConfig()
+
+    const response = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/')
+    )
+    expect(response?.status).toBe(401)
   })
 })
