@@ -9,7 +9,6 @@ const mockSetMobileBridgeEnabled = vi.fn<(enabled: boolean) => MobileBridgeConfi
 
 const mockGetWorktrees = vi.fn<(repoPath: string) => Promise<Worktree[]>>()
 const mockGetServerStatus = vi.fn<() => OpencodeServerStatus>()
-const mockSetServerEnabled = vi.fn<(enabled: boolean) => Promise<OpencodeServerStatus>>()
 
 vi.mock('./config', () => ({
   ensureMobileBridgePairingCode: () => mockEnsureMobileBridgePairingCode(),
@@ -24,8 +23,7 @@ vi.mock('./git', () => ({
 }))
 
 vi.mock('./opencode', () => ({
-  getServerStatus: () => mockGetServerStatus(),
-  setServerEnabled: (enabled: boolean) => mockSetServerEnabled(enabled)
+  getServerStatus: () => mockGetServerStatus()
 }))
 
 vi.mock('node:os', () => ({
@@ -94,13 +92,6 @@ describe('mobile api service', () => {
       running: false,
       url: null,
       pid: null,
-      error: null
-    })
-    mockSetServerEnabled.mockResolvedValue({
-      enabled: true,
-      running: true,
-      url: 'http://127.0.0.1:1234',
-      pid: 1234,
       error: null
     })
     mockFetch.mockReset()
@@ -265,42 +256,6 @@ describe('mobile api service', () => {
 
     const body = authorized ? await authorized.json() as { worktrees: unknown[] } : { worktrees: [] }
     expect(body.worktrees).toHaveLength(1)
-  })
-
-  it('toggles opencode status through endpoint', async () => {
-    mockGetMobileBridgeConfig.mockReturnValue({
-      enabled: true,
-      host: '127.0.0.1',
-      port: 8787,
-      pairingCode: '123456'
-    })
-    await syncMobileBridgeFromConfig()
-
-    const pairing = createMobilePairingToken()
-    const exchangeResponse = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token: pairing.token })
-      })
-    )
-    const exchangeBody = exchangeResponse
-      ? await exchangeResponse.json() as { sessionToken: string }
-      : { sessionToken: '' }
-
-    const response = await serveHandler?.(
-      new Request('http://127.0.0.1:8787/bridge/opencode/set-enabled', {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${exchangeBody.sessionToken}`,
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({ enabled: true })
-      })
-    )
-
-    expect(response?.status).toBe(200)
-    expect(mockSetServerEnabled).toHaveBeenCalledWith(true)
   })
 
   it('creates web UI session URL only for authenticated requests', async () => {

@@ -65,16 +65,6 @@ export function getWorktrees(connection: BridgeConnection): Promise<WorktreesRes
   return request(connection, '/bridge/worktrees')
 }
 
-export function setOpencodeEnabled(
-  connection: BridgeConnection,
-  enabled: boolean
-): Promise<OpencodeServerStatus> {
-  return request(connection, '/bridge/opencode/set-enabled', {
-    method: 'POST',
-    body: JSON.stringify({ enabled })
-  })
-}
-
 export function getOpencodeStatus(connection: BridgeConnection): Promise<OpencodeServerStatus> {
   return request(connection, '/bridge/opencode/status', {
     method: 'POST',

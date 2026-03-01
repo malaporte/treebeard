@@ -8,7 +8,7 @@ import {
   setMobileBridgeEnabled
 } from './config'
 import { getWorktrees } from './git'
-import { getServerStatus, setServerEnabled } from './opencode'
+import { getServerStatus } from './opencode'
 import type {
   MobileBridgeConfig,
   MobileBridgeStatus,
@@ -16,11 +16,6 @@ import type {
   MobileProxyTraceEntry,
   MobileWorktree
 } from '../../shared/types'
-
-interface MobileApiRequestBody {
-  worktreePath?: string
-  enabled?: boolean
-}
 
 interface MobileBridgeRuntime {
   server: ReturnType<typeof Bun.serve>
@@ -390,18 +385,6 @@ async function handleRequest(
     })
   }
 
-  if (request.method === 'POST' && path === '/opencode/set-enabled') {
-    const body = await readJsonBody(request)
-    if (!body || typeof body.enabled !== 'boolean') {
-      addProxyTrace('http', 'set-enabled invalid payload')
-      return json(400, { error: 'Invalid payload' })
-    }
-
-    const status = await setServerEnabled(body.enabled)
-    addProxyTrace('http', `set-enabled -> ${body.enabled}`)
-    return json(200, status)
-  }
-
   if (request.method === 'POST' && path === '/opencode/status') {
     return json(200, getServerStatus())
   }
@@ -437,14 +420,6 @@ async function listMobileWorktrees(): Promise<MobileWorktree[]> {
   return byRepo
     .flat()
     .sort((a, b) => `${a.repo.name}:${a.worktree.branch}`.localeCompare(`${b.repo.name}:${b.worktree.branch}`))
-}
-
-async function readJsonBody(request: Request): Promise<MobileApiRequestBody | null> {
-  try {
-    return await request.json() as MobileApiRequestBody
-  } catch {
-    return null
-  }
 }
 
 async function readPairExchangeBody(request: Request): Promise<PairExchangeBody | null> {

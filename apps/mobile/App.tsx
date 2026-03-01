@@ -17,8 +17,7 @@ import {
   exchangePairingToken,
   getHealth,
   getStatus,
-  getWorktrees,
-  setOpencodeEnabled
+  getWorktrees
 } from './src/api'
 import type { BridgeConnection } from './src/api'
 import type { MobileWorktree, OpencodeServerStatus } from './src/types'
@@ -109,21 +108,6 @@ export default function App() {
       setOpencodeStatus(response.opencode)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const toggleOpencode = async () => {
-    if (!connection) return
-    if (!opencodeStatus) return
-    setLoading(true)
-    setError(null)
-    try {
-      await setOpencodeEnabled(connection, !opencodeStatus.enabled)
-      await refreshData(connection)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle OpenCode server')
     } finally {
       setLoading(false)
     }
@@ -263,9 +247,6 @@ export default function App() {
             ? `OpenCode: running (${opencodeStatus.url || 'url unavailable'})`
             : 'OpenCode: stopped'}
         </Text>
-        <Pressable style={styles.secondaryButton} onPress={toggleOpencode} disabled={loading || !opencodeStatus}>
-          <Text style={styles.buttonText}>{opencodeStatus?.enabled ? 'Disable server' : 'Enable server'}</Text>
-        </Pressable>
       </View>
 
       {loading && <ActivityIndicator color="#58a6ff" style={styles.loader} />}
@@ -368,9 +349,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8
+    alignItems: 'center'
   },
   headerButtons: {
     flexDirection: 'row',
