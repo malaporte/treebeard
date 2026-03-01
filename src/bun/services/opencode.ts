@@ -4,7 +4,11 @@ import type { OpencodeServerStatus, OpencodeSyncStatus } from '../../shared/type
 
 const STARTUP_TIMEOUT_MS = 20000
 const STOP_TIMEOUT_MS = 5000
+const MAX_STARTUP_CAPTURE_CHARS = 16000
+const RESTART_BASE_DELAY_MS = 1000
+const RESTART_MAX_DELAY_MS = 30000
 const URL_PATTERN = /https?:\/\/\S+/
+const REAPER_GRACE_MS = 250
 
 interface ManagedServer {
   process: ReturnType<typeof Bun.spawn>
@@ -29,6 +33,9 @@ interface SessionLike {
 
 let server: ManagedServer | null = null
 let pendingStart: Promise<OpencodeServerStatus> | null = null
+let stoppingPid: number | null = null
+let restartTimer: ReturnType<typeof setTimeout> | null = null
+let restartAttempts = 0
 
 /** Get the current status for the global OpenCode server. */
 export function getServerStatus(): OpencodeServerStatus {
@@ -164,10 +171,13 @@ export async function stopAllServers(): Promise<void> {
 export function forceStopAllServers(): void {
   if (!server) return
   try {
-    server.process.kill('SIGKILL')
+    stoppingPid = server.pid
+    server.process.kill('SIGTERM')
   } catch {
     // Ignore kill errors during process teardown.
   }
+  clearRestartTimer()
+  restartAttempts = 0
   server = null
   pendingStart = null
 }
@@ -186,6 +196,8 @@ async function startServer(): Promise<OpencodeServerStatus> {
 
 async function doStart(): Promise<OpencodeServerStatus> {
   if (server) return getServerStatus()
+
+  await reapStaleProcesses()
 
   const env = await getShellEnv()
   const proc = Bun.spawn(
@@ -207,8 +219,18 @@ async function doStart(): Promise<OpencodeServerStatus> {
   server = next
 
   proc.exited.then(() => {
-    if (server?.pid === proc.pid) {
+    const exitedPid = proc.pid
+    if (server?.pid === exitedPid) {
       server = null
+    }
+
+    if (stoppingPid === exitedPid) {
+      stoppingPid = null
+      return
+    }
+
+    if (getOpencodeEnabled()) {
+      scheduleRestart()
     }
   })
 
@@ -219,6 +241,7 @@ async function doStart(): Promise<OpencodeServerStatus> {
 
   if (startup.url) {
     server.url = startup.url
+    restartAttempts = 0
   } else {
     server.error = formatStartupError(startup.output)
   }
@@ -231,9 +254,31 @@ async function stopServer(): Promise<OpencodeServerStatus> {
   if (!server) return getServerStatus()
 
   const current = server
+  stoppingPid = current.pid
   server = null
+  clearRestartTimer()
+  restartAttempts = 0
   await killProcess(current.process)
   return getServerStatus()
+}
+
+function scheduleRestart(): void {
+  if (restartTimer || pendingStart || server) return
+
+  const delay = Math.min(RESTART_BASE_DELAY_MS * 2 ** restartAttempts, RESTART_MAX_DELAY_MS)
+  restartAttempts += 1
+  restartTimer = setTimeout(() => {
+    restartTimer = null
+    if (!getOpencodeEnabled()) return
+    if (server || pendingStart) return
+    void startServer()
+  }, delay)
+}
+
+function clearRestartTimer(): void {
+  if (!restartTimer) return
+  clearTimeout(restartTimer)
+  restartTimer = null
 }
 
 async function killProcess(proc: ReturnType<typeof Bun.spawn>): Promise<void> {
@@ -284,7 +329,10 @@ async function waitForUrl(proc: ReturnType<typeof Bun.spawn>, timeoutMs: number)
       return false
     }
 
-    const read = async (stream: ReadableStream | null | undefined) => {
+    // Drain a pipe stream for the lifetime of the process. After URL detection,
+    // keeps reading to prevent backpressure from filling Bun's in-process buffer
+    // (OpenCode with --print-logs writes continuously to stderr).
+    const drain = async (stream: ReadableStream | null | undefined) => {
       const reader = stream ? new Response(stream).body?.getReader() : null
       if (!reader) return
       activeReaders += 1
@@ -295,8 +343,9 @@ async function waitForUrl(proc: ReturnType<typeof Bun.spawn>, timeoutMs: number)
           const { done, value } = await reader.read()
           if (done) break
 
-          accumulated += decoder.decode(value, { stream: true })
           if (!resolved) {
+            const chunk = decoder.decode(value, { stream: true })
+            accumulated = appendCapturedOutput(accumulated, chunk)
             tryResolveUrl(accumulated)
           }
         }
@@ -311,12 +360,19 @@ async function waitForUrl(proc: ReturnType<typeof Bun.spawn>, timeoutMs: number)
       }
     }
 
-    read(proc.stderr as ReadableStream | null)
-    read(proc.stdout as ReadableStream | null)
+    drain(proc.stderr as ReadableStream | null)
+    drain(proc.stdout as ReadableStream | null)
     proc.exited.then(() => {
       finish({ url: null, output: accumulated })
     })
   })
+}
+
+function appendCapturedOutput(current: string, chunk: string): string {
+  if (!chunk) return current
+  const combined = `${current}${chunk}`
+  if (combined.length <= MAX_STARTUP_CAPTURE_CHARS) return combined
+  return combined.slice(combined.length - MAX_STARTUP_CAPTURE_CHARS)
 }
 
 function formatStartupError(output: string): string {
@@ -349,6 +405,34 @@ function difference(left: Set<string>, right: Set<string>): Set<string> {
     if (!right.has(item)) values.add(item)
   }
   return values
+}
+
+/** Kill leftover `opencode serve` processes from a previous app run. */
+async function reapStaleProcesses(): Promise<void> {
+  try {
+    const result = Bun.spawnSync(['pgrep', '-f', 'opencode serve'])
+    const stdout = result.stdout.toString().trim()
+    if (!stdout) return
+
+    const pids = stdout
+      .split('\n')
+      .map((line) => parseInt(line, 10))
+      .filter((pid) => !isNaN(pid) && pid !== process.pid)
+
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGTERM')
+      } catch {
+        // Process already gone
+      }
+    }
+
+    if (pids.length > 0) {
+      await sleep(REAPER_GRACE_MS)
+    }
+  } catch {
+    // pgrep not found or other error — safe to ignore
+  }
 }
 
 function sleep(ms: number): Promise<void> {

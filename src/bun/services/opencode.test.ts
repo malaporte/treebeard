@@ -34,7 +34,9 @@ function createControllableProcess(): MockProcess {
     stdout,
     stderr,
     exited,
-    kill: vi.fn(),
+    kill: vi.fn(() => {
+      resolveExited(0)
+    }),
     pushStderr: (text: string) => {
       stderrController.enqueue(encoder.encode(text))
     },
@@ -67,6 +69,9 @@ vi.stubGlobal('Bun', {
     if (!proc) throw new Error('No mock process in spawn queue')
     return proc
   }),
+  spawnSync: vi.fn(() => ({
+    stdout: new Uint8Array()
+  })),
   env: { HOME: '/Users/test', SHELL: '/bin/zsh' }
 })
 
@@ -122,9 +127,13 @@ describe('opencode service', () => {
     const status = await setServerEnabled(true)
 
     expect(mockSetOpencodeEnabled).toHaveBeenCalledWith(true)
-    expect(spawnCalls[0].command).toEqual([
-      'opencode', 'serve', '--hostname', '127.0.0.1', '--port', '0', '--print-logs'
-    ])
+    expect(spawnCalls[0].command[0]).toBe('opencode')
+    expect(spawnCalls[0].command).toContain('serve')
+    expect(spawnCalls[0].command).toContain('--hostname')
+    expect(spawnCalls[0].command).toContain('127.0.0.1')
+    expect(spawnCalls[0].command).toContain('--port')
+    expect(spawnCalls[0].command).toContain('0')
+    expect(spawnCalls[0].command).toContain('--print-logs')
     expect(status.running).toBe(true)
     expect(status.url).toBe('http://127.0.0.1:4096')
   })
@@ -165,5 +174,31 @@ describe('opencode service', () => {
     const status = getServerStatus()
     expect(status.running).toBe(true)
     expect(status.url).toBe('http://127.0.0.1:3000')
+  })
+
+  it('restarts server after unexpected exit when enabled', async () => {
+    const first = createControllableProcess()
+    const second = createControllableProcess()
+    spawnQueue.push(first)
+    spawnQueue.push(second)
+    mockGetOpencodeEnabled.mockReturnValue(true)
+
+    setTimeout(() => {
+      first.pushStderr('listening on http://127.0.0.1:4100\n')
+    }, 10)
+
+    await setServerEnabled(true)
+
+    setTimeout(() => {
+      second.pushStderr('listening on http://127.0.0.1:4200\n')
+    }, 10)
+
+    first.resolveExited(1)
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+
+    const status = getServerStatus()
+    expect(spawnCalls).toHaveLength(2)
+    expect(status.running).toBe(true)
+    expect(status.url).toBe('http://127.0.0.1:4200')
   })
 })

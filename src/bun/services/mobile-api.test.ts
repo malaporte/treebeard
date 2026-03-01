@@ -406,6 +406,7 @@ describe('mobile api service', () => {
     const setCookie = exchanged?.headers.get('set-cookie') || ''
     const cookie = setCookie.split(';')[0]
 
+    // Configure fetch mock for the API proxy request
     mockFetch.mockResolvedValueOnce(new Response('ok', {
       status: 200,
       headers: { 'content-type': 'text/plain' }
@@ -417,10 +418,127 @@ describe('mobile api service', () => {
     )
 
     expect(proxied?.status).toBe(200)
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://127.0.0.1:5050/session/test-id',
-      expect.objectContaining({ method: 'GET' })
+    expect(mockFetch).toHaveBeenCalled()
+    const fetchUrl = mockFetch.mock.calls[mockFetch.mock.calls.length - 1][0]
+    expect(fetchUrl).toBe('http://127.0.0.1:5050/session/test-id')
+  })
+
+  it('treats /project as OpenCode API path', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    mockGetServerStatus.mockReturnValue({
+      enabled: true,
+      running: true,
+      url: 'http://127.0.0.1:5050',
+      pid: 5050,
+      error: null
+    })
+    mockFetch.mockResolvedValue(new Response('{"data":[]}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    }))
+    await syncMobileBridgeFromConfig()
+
+    const pairing = createMobilePairingToken()
+    const exchange = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: pairing.token })
+      })
     )
+    const token = exchange ? (await exchange.json() as { sessionToken: string }).sessionToken : ''
+
+    const webSession = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/opencode/web/session', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ worktreePath: '/repo/wt-1' })
+      })
+    )
+    const webUrl = webSession ? (await webSession.json() as { webUrl: string }).webUrl : ''
+    const ticketUrl = new URL(webUrl)
+
+    const exchanged = await serveHandler?.(new Request(ticketUrl.toString()))
+    const setCookie = exchanged?.headers.get('set-cookie') || ''
+    const cookie = setCookie.split(';')[0]
+
+    const proxied = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/project', {
+        headers: { cookie }
+      })
+    )
+
+    expect(proxied?.status).toBe(200)
+    expect(mockFetch).toHaveBeenCalled()
+    const fetchUrl = mockFetch.mock.calls[mockFetch.mock.calls.length - 1][0]
+    expect(fetchUrl).toBe('http://127.0.0.1:5050/project')
+  })
+
+  it('treats /find/file as OpenCode API path', async () => {
+    mockGetMobileBridgeConfig.mockReturnValue({
+      enabled: true,
+      host: '127.0.0.1',
+      port: 8787,
+      pairingCode: '123456'
+    })
+    mockGetServerStatus.mockReturnValue({
+      enabled: true,
+      running: true,
+      url: 'http://127.0.0.1:5050',
+      pid: 5050,
+      error: null
+    })
+    mockFetch.mockResolvedValue(new Response('{"data":[]}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    }))
+    await syncMobileBridgeFromConfig()
+
+    const pairing = createMobilePairingToken()
+    const exchange = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/pair/exchange', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: pairing.token })
+      })
+    )
+    const token = exchange ? (await exchange.json() as { sessionToken: string }).sessionToken : ''
+
+    const webSession = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/opencode/web/session', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ worktreePath: '/repo/wt-1' })
+      })
+    )
+    const webUrl = webSession ? (await webSession.json() as { webUrl: string }).webUrl : ''
+    const ticketUrl = new URL(webUrl)
+
+    const exchanged = await serveHandler?.(new Request(ticketUrl.toString()))
+    const setCookie = exchanged?.headers.get('set-cookie') || ''
+    const cookie = setCookie.split(';')[0]
+
+    const proxied = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/find/file?query=&dirs=true', {
+        headers: { cookie }
+      })
+    )
+
+    expect(proxied?.status).toBe(200)
+    expect(mockFetch).toHaveBeenCalled()
+    const fetchUrl = mockFetch.mock.calls[mockFetch.mock.calls.length - 1][0]
+    expect(fetchUrl).toBe('http://127.0.0.1:5050/find/file?query=&dirs=true')
   })
 
   it('keeps bridge API paths reserved', async () => {

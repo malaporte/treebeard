@@ -1,4 +1,5 @@
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
+import Electrobun from 'electrobun/bun'
 import os from 'node:os'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
 import { checkDependencies } from './services/dependencies'
@@ -230,6 +231,22 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
+      'launch:url': async ({ url }) => {
+        // Prefer Electrobun's native FFI — Bun.spawn('/usr/bin/open') is
+        // silently blocked in the Electrobun process sandbox.
+        if (Utils.openExternal(url)) {
+          return { success: true }
+        }
+        try {
+          await launchURL(url)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
       'opencode:getStatus': () => {
         return getServerStatus()
       },
@@ -238,10 +255,36 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'opencode:openProxyUI': async ({ worktreePath }) => {
         try {
+          let status = getServerStatus()
+          if (!status.running) {
+            status = await setServerEnabled(true)
+          }
+
+          if (!status.url) {
+            return {
+              success: false,
+              error: status.error || 'OpenCode server did not report a URL'
+            }
+          }
+
+          const bridge = await setMobileBridgeEnabledState(true)
+          if (!bridge.running) {
+            return {
+              success: false,
+              error: 'Mobile bridge failed to start'
+            }
+          }
+
           const session = await createLocalOpencodeWebUrl(worktreePath)
-          await launchURL(session.webUrl)
-          return { success: true }
+          return { success: true, url: session.webUrl }
         } catch (err) {
+          const status = getServerStatus()
+          if (status.url) {
+            const direct = new URL(status.url)
+            direct.pathname = `/${Buffer.from(worktreePath, 'utf8').toString('base64url')}/session`
+            return { success: true, url: direct.toString() }
+          }
+
           return {
             success: false,
             error: err instanceof Error ? err.message : String(err)
@@ -375,6 +418,15 @@ const win = new BrowserWindow({
     y: 200
   },
   rpc: mainviewRPC
+})
+
+// Open window.open() / target="_blank" links in the system browser
+Electrobun.events.on(`new-window-open-${win.webview.id}`, (event: { data?: { detail?: string | { url?: string } } }) => {
+  const detail = event.data?.detail
+  const url = typeof detail === 'string' ? detail : detail?.url
+  if (url) {
+    Utils.openExternal(url)
+  }
 })
 
 startAutoUpdateScheduler()

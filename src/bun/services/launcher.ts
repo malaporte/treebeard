@@ -19,10 +19,12 @@ export async function launchGhostty(worktreePath: string): Promise<void> {
 }
 
 export async function launchURL(url: string): Promise<void> {
-  const env = await getShellEnv()
-  Bun.spawn(['open', url], {
-    stdout: 'ignore',
-    stderr: 'ignore',
-    env
+  const proc = Bun.spawn(['/usr/bin/open', url], {
+    stdout: 'pipe',
+    stderr: 'pipe'
   })
+  const exitCode = await proc.exited
+  if (exitCode !== 0) {
+    throw new Error('Failed to open URL')
+  }
 }

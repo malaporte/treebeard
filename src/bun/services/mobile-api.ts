@@ -655,11 +655,15 @@ async function proxyWithSession(
     return upgraded ? undefined as unknown as Response : json(502, { error: 'WebSocket upgrade failed' })
   }
 
-  const headers = new Headers(request.headers)
-  headers.delete('host')
-  headers.delete('authorization')
-
+  // Build a minimal header set for the upstream request. Forwarding the
+  // full browser header bag (sec-ch-*, sec-fetch-*, connection, etc.)
+  // causes Bun-to-Bun fetch issues and is unnecessary for API calls.
+  const headers = new Headers()
+  headers.set('accept', request.headers.get('accept') || '*/*')
+  headers.set('accept-encoding', 'identity')
+  headers.set('content-type', request.headers.get('content-type') || 'application/json')
   headers.set('origin', upstreamBase.origin)
+
   const referer = request.headers.get('referer')
   if (referer) {
     try {
@@ -675,8 +679,17 @@ async function proxyWithSession(
   const sanitizedCookie = stripBridgeSessionCookie(request.headers.get('cookie'))
   if (sanitizedCookie) {
     headers.set('cookie', sanitizedCookie)
-  } else {
-    headers.delete('cookie')
+  }
+
+  // Requests that don't match any OpenCode API route fall through to
+  // OpenCode's catch-all, which proxies to app.opencode.ai — but first
+  // runs Instance.provide() + InstanceBootstrap(). On the first request
+  // for a directory this spawns LSP servers, file watchers, etc., causing
+  // massive RAM spikes for what is essentially a static asset fetch.
+  // Bypass OpenCode entirely for these requests.
+  if (!isOpencodeApiPath(proxyPath)) {
+    addProxyTrace('proxy', `CDN direct ${request.method} ${proxyPath}`)
+    return proxyCdnDirect(request, proxyPath, setCookieHeader, worktreePath)
   }
 
   if (!headers.get('x-opencode-directory') && shouldInjectDirectoryHeader(proxyPath)) {
@@ -684,14 +697,26 @@ async function proxyWithSession(
     addProxyTrace('proxy', `directory hint applied ${worktreePath} for ${proxyPath}`)
   }
 
+  addProxyTrace('proxy', `→ ${request.method} ${upstreamUrl.toString()}`)
+
+  const abort = new AbortController()
+  if (request.signal) {
+    request.signal.addEventListener('abort', () => abort.abort(), { once: true })
+  }
+
+  let body: ArrayBuffer | null = null
+  if (request.method !== 'GET' && request.method !== 'HEAD' && request.body) {
+    body = await request.arrayBuffer()
+  }
+
   const upstream = await fetch(upstreamUrl.toString(), {
     method: request.method,
     headers,
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
-    redirect: 'manual'
+    body,
+    redirect: 'manual',
+    signal: abort.signal
   })
 
-  addProxyTrace('proxy', `${request.method} ${proxyPath}${upstreamUrl.search} -> ${upstream.status}`)
   traceImportantResponse(proxyPath, upstream)
 
   const responseHeaders = new Headers(upstream.headers)
@@ -706,7 +731,7 @@ async function proxyWithSession(
     responseHeaders.append('set-cookie', setCookieHeader)
   }
 
-  const textBody = await maybeRewriteProxyBody(
+  const rewritten = await maybeRewriteProxyBody(
     upstream,
     responseHeaders,
     upstreamBase,
@@ -714,8 +739,123 @@ async function proxyWithSession(
     proxyPath,
     worktreePath
   )
-  if (textBody !== null) {
-    return new Response(textBody, {
+
+  if (rewritten !== null) {
+    return new Response(rewritten, {
+      status: upstream.status,
+      headers: responseHeaders
+    })
+  }
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: responseHeaders
+  })
+}
+
+// OpenCode API route prefixes — everything else falls through to the
+// catch-all which proxies to app.opencode.ai (the SPA CDN).
+const OPENCODE_API_PREFIXES = [
+  '/global/',
+  '/auth/',
+  '/project/',
+  '/pty/',
+  '/config/',
+  '/experimental/',
+  '/session/',
+  '/permission/',
+  '/question/',
+  '/provider/',
+  '/find/',
+  '/file/',
+  '/mcp/',
+  '/tui/',
+  '/instance/'
+]
+
+const OPENCODE_API_EXACT = new Set([
+  '/auth',
+  '/project',
+  '/pty',
+  '/config',
+  '/experimental',
+  '/session',
+  '/permission',
+  '/question',
+  '/provider',
+  '/file',
+  '/mcp',
+  '/tui',
+  '/instance',
+  '/global',
+  '/doc',
+  '/path',
+  '/vcs',
+  '/command',
+  '/log',
+  '/agent',
+  '/skill',
+  '/lsp',
+  '/formatter',
+  '/event',
+  '/find',
+  '/files',
+  '/symbols'
+])
+
+function isOpencodeApiPath(proxyPath: string): boolean {
+  if (OPENCODE_API_EXACT.has(proxyPath)) return true
+  for (const prefix of OPENCODE_API_PREFIXES) {
+    if (proxyPath.startsWith(prefix)) return true
+  }
+  return false
+}
+
+/** Fetch SPA shell / static assets directly from app.opencode.ai,
+ *  bypassing OpenCode to avoid triggering InstanceBootstrap. */
+async function proxyCdnDirect(
+  request: Request,
+  proxyPath: string,
+  setCookieHeader: string | null,
+  worktreePath: string
+): Promise<Response> {
+  const cdnUrl = `https://app.opencode.ai${proxyPath}`
+
+  const abort = new AbortController()
+  if (request.signal) {
+    request.signal.addEventListener('abort', () => abort.abort(), { once: true })
+  }
+
+  const upstream = await fetch(cdnUrl, {
+    method: request.method,
+    headers: { 'accept-encoding': 'identity' },
+    redirect: 'follow',
+    signal: abort.signal
+  })
+
+  addProxyTrace('proxy', `CDN ${proxyPath} -> ${upstream.status} [${upstream.headers.get('content-type') || ''}]`)
+
+  const responseHeaders = new Headers(upstream.headers)
+  responseHeaders.delete('content-encoding')
+  responseHeaders.delete('content-length')
+  responseHeaders.delete('transfer-encoding')
+
+  // OpenCode sets this CSP on its catch-all. Replicate it so the SPA
+  // behaves identically when served through the bridge.
+  responseHeaders.set(
+    'content-security-policy',
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data:"
+  )
+
+  if (setCookieHeader) {
+    responseHeaders.append('set-cookie', setCookieHeader)
+  }
+
+  const contentType = upstream.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    const html = await upstream.text()
+    const rewritten = injectRandomUuidPolyfill(html)
+    return new Response(rewritten, {
       status: upstream.status,
       headers: responseHeaders
     })
@@ -781,11 +921,12 @@ function buildUpstreamWebSocketHeaders(request: Request, upstreamBase: URL): Rec
 }
 
 function addProxyTrace(source: 'http' | 'proxy' | 'ws', message: string): void {
-  proxyTrace.push({
+  const entry = {
     at: new Date().toISOString(),
     source,
     message
-  })
+  }
+  proxyTrace.push(entry)
 
   if (proxyTrace.length > MAX_PROXY_TRACE_ENTRIES) {
     proxyTrace.splice(0, proxyTrace.length - MAX_PROXY_TRACE_ENTRIES)
@@ -939,22 +1080,21 @@ async function maybeRewriteProxyBody(
   worktreePath: string
 ): Promise<string | null> {
   const contentType = responseHeaders.get('content-type') || ''
-  const isText =
-    contentType.includes('text/html') ||
-    contentType.includes('application/javascript') ||
-    contentType.includes('text/css') ||
-    contentType.includes('application/json')
 
-  if (!isText) {
+  // Never buffer streaming responses — SSE and chunked streams will hang
+  // indefinitely because the body never ends.
+  if (contentType.includes('text/event-stream')) {
+    return null
+  }
+
+  // Only HTML needs rewriting (polyfill injection). Pass everything else
+  // through as a stream to avoid buffering large JS/CSS/JSON payloads.
+  if (!contentType.includes('text/html')) {
     return null
   }
 
   const source = await upstream.text()
-  let rewritten = source
-
-  if (contentType.includes('text/html')) {
-    rewritten = injectRandomUuidPolyfill(rewritten)
-  }
+  const rewritten = injectRandomUuidPolyfill(source)
 
   // Rewritten text bodies are no longer byte-identical to upstream payloads,
   // so encoding/length metadata must be cleared.

@@ -77,6 +77,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:url': {
+        params: { url: string }
+        response: { success: boolean; error?: string }
+      }
       'opencode:getStatus': {
         params: Record<string, never>
         response: OpencodeServerStatus
@@ -87,7 +91,7 @@ export type TreebeardRPC = {
       }
       'opencode:openProxyUI': {
         params: { worktreePath: string }
-        response: { success: boolean; error?: string }
+        response: { success: boolean; url?: string; error?: string }
       }
       'opencode:getSync': {
         params: Record<string, never>

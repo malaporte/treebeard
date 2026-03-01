@@ -40,7 +40,14 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
   }
 
   const handleOpenProxyUi = async () => {
-    await rpc().request['opencode:openProxyUI']({ worktreePath: worktree.path })
+    try {
+      const result = await rpc().request['opencode:openProxyUI']({ worktreePath: worktree.path })
+      if (!result.success || !result.url) return
+
+      await rpc().request['launch:url']({ url: result.url })
+    } catch {
+      // Silently fail — no alert support in Electrobun webview
+    }
   }
 
   return (
