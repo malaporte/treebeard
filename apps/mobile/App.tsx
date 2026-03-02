@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import * as SecureStore from 'expo-secure-store'
 import {
   ActivityIndicator,
   FlatList,
@@ -25,6 +26,48 @@ import type { MobileWorktree, OpencodeServerStatus } from './src/types'
 interface ParsedPairingInput {
   url: string
   token: string
+}
+
+const BRIDGE_CONNECTION_STORAGE_KEY = 'treebeard.bridgeConnection'
+
+function isUnauthorizedError(message: string): boolean {
+  const normalized = message.toLowerCase()
+  return normalized.includes('unauthorized') || normalized.includes('401')
+}
+
+async function loadStoredConnection(): Promise<BridgeConnection | null> {
+  try {
+    const raw = await SecureStore.getItemAsync(BRIDGE_CONNECTION_STORAGE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as { baseUrl?: string; sessionToken?: string }
+    if (typeof parsed.baseUrl !== 'string' || typeof parsed.sessionToken !== 'string') {
+      return null
+    }
+
+    return {
+      baseUrl: parsed.baseUrl,
+      sessionToken: parsed.sessionToken
+    }
+  } catch {
+    return null
+  }
+}
+
+async function saveStoredConnection(connection: BridgeConnection): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(BRIDGE_CONNECTION_STORAGE_KEY, JSON.stringify(connection))
+  } catch {
+    // Best-effort persistence keeps pairing usable even if storage write fails.
+  }
+}
+
+async function clearStoredConnection(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(BRIDGE_CONNECTION_STORAGE_KEY)
+  } catch {
+    // Ignore clear failures so disconnect flow is never blocked.
+  }
 }
 
 function parsePairingInput(input: string): ParsedPairingInput | null {
@@ -59,6 +102,7 @@ export default function App() {
   const [activeWebUrl, setActiveWebUrl] = useState<string | null>(null)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
   const [scanning, setScanning] = useState(false)
+  const [restoringConnection, setRestoringConnection] = useState(true)
 
   const grouped = useMemo(() => {
     const map = new Map<string, MobileWorktree[]>()
@@ -70,6 +114,50 @@ export default function App() {
     }
     return [...map.entries()]
   }, [worktrees])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const restoreConnection = async () => {
+      const stored = await loadStoredConnection()
+      if (!stored) {
+        if (!cancelled) setRestoringConnection(false)
+        return
+      }
+
+      try {
+        await getStatus(stored)
+        if (cancelled) return
+
+        setConnection(stored)
+        setBaseUrlInput(stored.baseUrl)
+
+        const response = await getWorktrees(stored)
+        if (cancelled) return
+
+        setWorktrees(response.worktrees)
+        setOpencodeStatus(response.opencode)
+      } catch (err) {
+        await clearStoredConnection()
+        if (cancelled) return
+
+        setConnection(null)
+        setWorktrees([])
+        setOpencodeStatus(null)
+
+        const message = err instanceof Error ? err.message : 'Failed to restore connection'
+        setError(isUnauthorizedError(message) ? 'Saved session expired. Please pair again.' : message)
+      } finally {
+        if (!cancelled) setRestoringConnection(false)
+      }
+    }
+
+    void restoreConnection()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const connect = async () => {
     const baseUrl = baseUrlInput.trim().replace(/\/$/, '')
@@ -89,6 +177,8 @@ export default function App() {
       await getStatus(next)
       setConnection(next)
       setBaseUrlInput(resolvedBaseUrl)
+      setPairingTokenInput('')
+      await saveStoredConnection(next)
       await refreshData(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
@@ -107,10 +197,28 @@ export default function App() {
       setWorktrees(response.worktrees)
       setOpencodeStatus(response.opencode)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data')
+      const message = err instanceof Error ? err.message : 'Failed to fetch data'
+      if (isUnauthorizedError(message)) {
+        await clearStoredConnection()
+        setConnection(null)
+        setWorktrees([])
+        setOpencodeStatus(null)
+        setError('Session expired. Please pair again.')
+      } else {
+        setError(message)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const disconnect = async () => {
+    await clearStoredConnection()
+    setConnection(null)
+    setWorktrees([])
+    setOpencodeStatus(null)
+    setActiveWebUrl(null)
+    setError(null)
   }
 
   const openOpencodeUi = async (item: MobileWorktree) => {
@@ -188,6 +296,17 @@ export default function App() {
     )
   }
 
+  if (restoringConnection) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator color="#58a6ff" />
+          <Text style={styles.statusText}>Restoring saved connection...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
   if (!connection) {
     return (
       <SafeAreaView style={styles.container}>
@@ -232,7 +351,7 @@ export default function App() {
       <View style={styles.listHeader}>
         <Text style={styles.title}>Worktrees</Text>
         <View style={styles.headerButtons}>
-          <Pressable style={styles.secondaryButton} onPress={() => { setConnection(null); setWorktrees([]); setOpencodeStatus(null) }}>
+          <Pressable style={styles.secondaryButton} onPress={() => { void disconnect() }}>
             <Text style={styles.buttonText}>Disconnect</Text>
           </Pressable>
           <Pressable style={styles.primaryButton} onPress={() => refreshData()} disabled={loading}>
@@ -357,6 +476,13 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginBottom: 8
+  },
+  loadingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 20
   },
   listContent: {
     padding: 12,
