@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as SecureStore from 'expo-secure-store'
 import {
   ActivityIndicator,
@@ -20,13 +20,9 @@ import {
   getStatus,
   getWorktrees
 } from './src/api'
+import { handleScannedPairing, resolvePairingCredentials } from './src/pairing'
 import type { BridgeConnection } from './src/api'
 import type { MobileWorktree, OpencodeServerStatus } from './src/types'
-
-interface ParsedPairingInput {
-  url: string
-  token: string
-}
 
 const BRIDGE_CONNECTION_STORAGE_KEY = 'treebeard.bridgeConnection'
 
@@ -70,27 +66,6 @@ async function clearStoredConnection(): Promise<void> {
   }
 }
 
-function parsePairingInput(input: string): ParsedPairingInput | null {
-  if (!input.startsWith('treebeard://pair?')) return null
-  try {
-    const query = input.slice('treebeard://pair?'.length)
-    const params = new URLSearchParams(query)
-    const encodedData = params.get('data')
-    if (!encodedData) return null
-
-    const decoded = decodeURIComponent(encodedData)
-    const payload = JSON.parse(decoded) as { url?: string; token?: string }
-    if (typeof payload.url !== 'string' || typeof payload.token !== 'string') return null
-
-    return {
-      url: payload.url,
-      token: payload.token
-    }
-  } catch {
-    return null
-  }
-}
-
 export default function App() {
   const [baseUrlInput, setBaseUrlInput] = useState('http://192.168.1.10:8787')
   const [pairingTokenInput, setPairingTokenInput] = useState('')
@@ -103,6 +78,8 @@ export default function App() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
   const [scanning, setScanning] = useState(false)
   const [restoringConnection, setRestoringConnection] = useState(true)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const connectInFlightRef = useRef(false)
 
   const grouped = useMemo(() => {
     const map = new Map<string, MobileWorktree[]>()
@@ -159,15 +136,16 @@ export default function App() {
     }
   }, [])
 
-  const connect = async () => {
-    const baseUrl = baseUrlInput.trim().replace(/\/$/, '')
-    const rawTokenInput = pairingTokenInput.trim()
-    if (!baseUrl || !rawTokenInput) return
+  useEffect(() => {
+    if (!connection) {
+      setShowAdvanced(false)
+    }
+  }, [connection])
 
-    const pairing = parsePairingInput(rawTokenInput)
-    const resolvedBaseUrl = pairing?.url || baseUrl
-    const pairingToken = pairing?.token || rawTokenInput
+  const connectWithCredentials = async (resolvedBaseUrl: string, pairingToken: string) => {
+    if (connectInFlightRef.current) return
 
+    connectInFlightRef.current = true
     setLoading(true)
     setError(null)
     try {
@@ -175,22 +153,33 @@ export default function App() {
       const exchange = await exchangePairingToken(resolvedBaseUrl, pairingToken)
       const next = { baseUrl: resolvedBaseUrl, sessionToken: exchange.sessionToken }
       await getStatus(next)
+
       setConnection(next)
       setBaseUrlInput(resolvedBaseUrl)
       setPairingTokenInput('')
       await saveStoredConnection(next)
-      await refreshData(next)
+      await refreshData(next, false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
       setConnection(null)
     } finally {
       setLoading(false)
+      connectInFlightRef.current = false
     }
   }
 
-  const refreshData = async (current = connection) => {
+  const connect = async () => {
+    const resolved = resolvePairingCredentials(baseUrlInput, pairingTokenInput)
+    if (!resolved) return
+
+    await connectWithCredentials(resolved.baseUrl, resolved.token)
+  }
+
+  const refreshData = async (current = connection, manageLoading = true) => {
     if (!current) return
-    setLoading(true)
+    if (manageLoading) {
+      setLoading(true)
+    }
     setError(null)
     try {
       const response = await getWorktrees(current)
@@ -208,7 +197,9 @@ export default function App() {
         setError(message)
       }
     } finally {
-      setLoading(false)
+      if (manageLoading) {
+        setLoading(false)
+      }
     }
   }
 
@@ -246,17 +237,25 @@ export default function App() {
     setScanning(true)
   }
 
-  const handleQrScanned = (value: string) => {
-    const pairing = parsePairingInput(value)
-    if (!pairing) {
-      setError('Scanned QR is not a valid Treebeard pairing code')
-      setScanning(false)
-      return
-    }
-
-    setBaseUrlInput(pairing.url)
-    setPairingTokenInput(pairing.token)
-    setScanning(false)
+  const handleQrScanned = async (value: string) => {
+    await handleScannedPairing(value, {
+      connectInFlight: connectInFlightRef.current,
+      onInvalid: () => {
+        setError('Scanned QR is not a valid Treebeard pairing code')
+        setScanning(false)
+      },
+      onIgnored: () => {
+        setScanning(false)
+      },
+      onPairingParsed: (pairing) => {
+        setBaseUrlInput(pairing.url)
+        setPairingTokenInput(pairing.token)
+        setScanning(false)
+      },
+      connect: async (pairing) => {
+        await connectWithCredentials(pairing.url, pairing.token)
+      }
+    })
   }
 
   if (scanning) {
@@ -274,7 +273,7 @@ export default function App() {
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           onBarcodeScanned={(event: { data?: string }) => {
             if (typeof event.data === 'string' && event.data.length > 0) {
-              handleQrScanned(event.data)
+              void handleQrScanned(event.data)
             }
           }}
         />
@@ -314,31 +313,39 @@ export default function App() {
           <Text style={styles.title}>Treebeard Mobile</Text>
           <Text style={styles.subtitle}>Pair with your desktop bridge</Text>
 
-          <TextInput
-            value={baseUrlInput}
-            onChangeText={setBaseUrlInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="Bridge URL (e.g. http://192.168.1.10:8787)"
-            placeholderTextColor="#7d8590"
-            style={styles.input}
-          />
-          <TextInput
-            value={pairingTokenInput}
-            onChangeText={setPairingTokenInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="One-time pairing token or deep link"
-            placeholderTextColor="#7d8590"
-            style={styles.input}
-          />
-
-          <Pressable style={styles.primaryButton} onPress={connect} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Connecting...' : 'Connect'}</Text>
-          </Pressable>
           <Pressable style={styles.secondaryButton} onPress={handleScanQrPress} disabled={loading}>
-            <Text style={styles.buttonText}>Scan QR</Text>
+            <Text style={styles.buttonText}>{loading ? 'Connecting...' : 'Scan QR'}</Text>
           </Pressable>
+
+          <Pressable style={styles.advancedLink} onPress={() => setShowAdvanced((current) => !current)}>
+            <Text style={styles.advancedLinkText}>{showAdvanced ? 'Hide advanced' : 'Advanced'}</Text>
+          </Pressable>
+
+          {showAdvanced && (
+            <View style={styles.advancedContainer}>
+              <TextInput
+                value={baseUrlInput}
+                onChangeText={setBaseUrlInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Bridge URL (e.g. http://192.168.1.10:8787)"
+                placeholderTextColor="#7d8590"
+                style={styles.input}
+              />
+              <TextInput
+                value={pairingTokenInput}
+                onChangeText={setPairingTokenInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="One-time pairing token or deep link"
+                placeholderTextColor="#7d8590"
+                style={styles.input}
+              />
+              <Pressable style={styles.primaryButton} onPress={() => { void connect() }} disabled={loading}>
+                <Text style={styles.buttonText}>{loading ? 'Connecting...' : 'Connect manually'}</Text>
+              </Pressable>
+            </View>
+          )}
 
           {error && <Text style={styles.errorText}>{error}</Text>}
         </ScrollView>
@@ -425,6 +432,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     color: '#f0f6fc'
+  },
+  advancedContainer: {
+    gap: 10
+  },
+  advancedLink: {
+    alignItems: 'center',
+    paddingVertical: 6
+  },
+  advancedLinkText: {
+    color: '#9aa4b2',
+    fontSize: 12,
+    textDecorationLine: 'underline'
   },
   primaryButton: {
     backgroundColor: '#1f6feb',
