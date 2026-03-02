@@ -36,5 +36,6 @@ export interface MobileWorktree {
 export interface WorktreesResponse {
   worktrees: MobileWorktree[]
   opencode: OpencodeServerStatus
+  homedir?: string
   generatedAt: string
 }

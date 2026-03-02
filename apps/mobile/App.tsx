@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as SecureStore from 'expo-secure-store'
+import { Ionicons } from '@expo/vector-icons'
 import {
   ActivityIndicator,
   FlatList,
@@ -72,7 +73,9 @@ export default function App() {
   const [connection, setConnection] = useState<BridgeConnection | null>(null)
   const [worktrees, setWorktrees] = useState<MobileWorktree[]>([])
   const [opencodeStatus, setOpencodeStatus] = useState<OpencodeServerStatus | null>(null)
+  const [homedir, setHomedir] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeWebUrl, setActiveWebUrl] = useState<string | null>(null)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
@@ -91,6 +94,14 @@ export default function App() {
     }
     return [...map.entries()]
   }, [worktrees])
+
+  const shortenPath = useCallback(
+    (filepath: string): string => {
+      if (!homedir || !filepath.startsWith(homedir)) return filepath
+      return `~${filepath.slice(homedir.length)}`
+    },
+    [homedir]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -114,6 +125,7 @@ export default function App() {
 
         setWorktrees(response.worktrees)
         setOpencodeStatus(response.opencode)
+        setHomedir(response.homedir ?? null)
       } catch (err) {
         await clearStoredConnection()
         if (cancelled) return
@@ -121,6 +133,7 @@ export default function App() {
         setConnection(null)
         setWorktrees([])
         setOpencodeStatus(null)
+        setHomedir(null)
 
         const message = err instanceof Error ? err.message : 'Failed to restore connection'
         setError(isUnauthorizedError(message) ? 'Saved session expired. Please pair again.' : message)
@@ -185,6 +198,7 @@ export default function App() {
       const response = await getWorktrees(current)
       setWorktrees(response.worktrees)
       setOpencodeStatus(response.opencode)
+      setHomedir(response.homedir ?? null)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data'
       if (isUnauthorizedError(message)) {
@@ -192,6 +206,7 @@ export default function App() {
         setConnection(null)
         setWorktrees([])
         setOpencodeStatus(null)
+        setHomedir(null)
         setError('Session expired. Please pair again.')
       } else {
         setError(message)
@@ -208,8 +223,20 @@ export default function App() {
     setConnection(null)
     setWorktrees([])
     setOpencodeStatus(null)
+    setHomedir(null)
     setActiveWebUrl(null)
     setError(null)
+  }
+
+  const handleRefresh = async () => {
+    if (!connection || loading || refreshing) return
+
+    setRefreshing(true)
+    try {
+      await refreshData(connection, false)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const openOpencodeUi = async (item: MobileWorktree) => {
@@ -356,23 +383,18 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.listHeader}>
-        <Text style={styles.title}>Worktrees</Text>
-        <View style={styles.headerButtons}>
-          <Pressable style={styles.secondaryButton} onPress={() => { void disconnect() }}>
-            <Text style={styles.buttonText}>Disconnect</Text>
-          </Pressable>
-          <Pressable style={styles.primaryButton} onPress={() => refreshData()} disabled={loading}>
-            <Text style={styles.buttonText}>Refresh</Text>
-          </Pressable>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Worktrees</Text>
+          <View style={[styles.statusDot, opencodeStatus?.running ? styles.statusDotRunning : styles.statusDotStopped]} />
         </View>
-      </View>
-
-      <View style={styles.serverRow}>
-        <Text style={styles.statusText}>
-          {opencodeStatus?.running
-            ? `OpenCode: running (${opencodeStatus.url || 'url unavailable'})`
-            : 'OpenCode: stopped'}
-        </Text>
+        <Pressable
+          style={styles.settingsButton}
+          onPress={() => { void disconnect() }}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Ionicons name="settings-outline" size={18} color="#f0f6fc" />
+        </Pressable>
       </View>
 
       {loading && <ActivityIndicator color="#58a6ff" style={styles.loader} />}
@@ -381,24 +403,24 @@ export default function App() {
       <FlatList
         data={grouped}
         keyExtractor={([repo]) => repo}
+        onRefresh={() => { void handleRefresh() }}
+        refreshing={refreshing}
         contentContainerStyle={styles.listContent}
         renderItem={({ item: [repo, repoWorktrees] }) => (
           <View style={styles.repoSection}>
             <Text style={styles.repoTitle}>{repo}</Text>
             {repoWorktrees.map((entry) => (
-              <View key={entry.worktree.path} style={styles.card}>
+              <Pressable
+                key={entry.worktree.path}
+                style={opencodeStatus?.url ? styles.card : styles.cardDisabled}
+                onPress={() => openOpencodeUi(entry)}
+                disabled={!opencodeStatus?.url}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${entry.worktree.branch}`}
+              >
                 <Text style={styles.branch}>{entry.worktree.branch}</Text>
-                <Text style={styles.path}>{entry.worktree.path}</Text>
-                <View style={styles.cardButtons}>
-                  <Pressable
-                    style={opencodeStatus?.url ? styles.primaryButton : styles.disabledButton}
-                    onPress={() => openOpencodeUi(entry)}
-                    disabled={!opencodeStatus?.url}
-                  >
-                    <Text style={styles.buttonText}>Open UI</Text>
-                  </Pressable>
-                </View>
-              </View>
+                <Text style={styles.path}>{shortenPath(entry.worktree.path)}</Text>
+              </Pressable>
             ))}
           </View>
         )}
@@ -459,6 +481,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center'
   },
+  settingsButton: {
+    backgroundColor: '#30363d',
+    borderRadius: 8,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   disabledButton: {
     backgroundColor: '#21262d',
     borderRadius: 8,
@@ -483,15 +513,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  serverRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+  titleRow: {
     flexDirection: 'row',
-    alignItems: 'center'
-  },
-  headerButtons: {
-    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999
+  },
+  statusDotRunning: {
+    backgroundColor: '#2ea043'
+  },
+  statusDotStopped: {
+    backgroundColor: '#f85149'
   },
   loader: {
     marginBottom: 8
@@ -522,6 +558,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#161b22',
     gap: 6
   },
+  cardDisabled: {
+    borderWidth: 1,
+    borderColor: '#30363d',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#161b22',
+    gap: 6,
+    opacity: 0.6
+  },
   branch: {
     color: '#f0f6fc',
     fontWeight: '600'
@@ -533,11 +578,6 @@ const styles = StyleSheet.create({
   statusText: {
     color: '#d2d8de',
     fontSize: 12
-  },
-  cardButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4
   },
   webHeader: {
     flexDirection: 'row',

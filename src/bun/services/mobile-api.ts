@@ -381,6 +381,7 @@ async function handleRequest(
     return json(200, {
       worktrees,
       opencode,
+      homedir: os.homedir(),
       generatedAt: new Date().toISOString()
     })
   }
