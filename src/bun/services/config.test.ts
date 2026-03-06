@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  getCodexEnabled,
   getCollapsedRepos,
   getConfig,
   getMobileBridgeConfig,
-  getOpencodeEnabled,
   rotateMobileBridgePairingCode,
+  setCodexEnabled,
   setMobileBridgeEnabled,
   setCollapsedRepos,
-  setConfig,
-  setOpencodeEnabled
+  setConfig
 } from './config'
 
 vi.mock('node:os', () => ({
@@ -57,7 +57,7 @@ describe('config service', () => {
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      opencodeServerEnabled: false,
+      codexServerEnabled: false,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -74,7 +74,7 @@ describe('config service', () => {
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
-      opencodeServerEnabled: false,
+      codexServerEnabled: false,
       mobileBridge: {
         enabled: true,
         host: '10.0.0.5',
@@ -89,7 +89,7 @@ describe('config service', () => {
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
-      opencodeServerEnabled: false,
+      codexServerEnabled: false,
       mobileBridge: {
         enabled: true,
         host: '10.0.0.5',
@@ -105,34 +105,34 @@ describe('config service', () => {
   })
 })
 
-describe('opencode server config helpers', () => {
+describe('codex server config helpers', () => {
   beforeEach(() => {
     setupStore()
   })
 
   it('returns false by default', () => {
-    expect(getOpencodeEnabled()).toBe(false)
+    expect(getCodexEnabled()).toBe(false)
   })
 
   it('persists enabled state', () => {
-    setOpencodeEnabled(true)
-    expect(getOpencodeEnabled()).toBe(true)
+    setCodexEnabled(true)
+    expect(getCodexEnabled()).toBe(true)
   })
 
   it('can disable server state', () => {
-    setOpencodeEnabled(true)
-    setOpencodeEnabled(false)
-    expect(getOpencodeEnabled()).toBe(false)
+    setCodexEnabled(true)
+    setCodexEnabled(false)
+    expect(getCodexEnabled()).toBe(false)
   })
 
-  it('preserves other config fields when toggling opencode servers', () => {
+  it('preserves other config fields when toggling codex servers', () => {
     setConfig({
       repositories: [{ id: '1', name: 'repo', path: '/repo' }],
       pollIntervalSec: 120,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 45,
       collapsedRepos: ['repo-1'],
-      opencodeServerEnabled: false,
+      codexServerEnabled: false,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -141,28 +141,28 @@ describe('opencode server config helpers', () => {
       }
     })
 
-    setOpencodeEnabled(true)
+    setCodexEnabled(true)
 
     const config = getConfig()
     expect(config.repositories).toEqual([{ id: '1', name: 'repo', path: '/repo' }])
     expect(config.pollIntervalSec).toBe(120)
     expect(config.autoUpdateEnabled).toBe(false)
     expect(config.collapsedRepos).toEqual(['repo-1'])
-    expect(config.opencodeServerEnabled).toBe(true)
+    expect(config.codexServerEnabled).toBe(true)
   })
 
-  it('sanitizes invalid opencodeServerEnabled value to false', () => {
-    store.set('/Users/test/.config/treebeard', JSON.stringify({
+  it('sanitizes invalid codexServerEnabled value to false', () => {
+    store.set('/Users/test/.config/treebeard/treebeard-config.json', JSON.stringify({
       repositories: [],
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      opencodeServerEnabled: 'invalid'
+      codexServerEnabled: 'invalid'
     }))
 
     const config = getConfig()
-    expect(config.opencodeServerEnabled).toBe(false)
+    expect(config.codexServerEnabled).toBe(false)
   })
 })
 

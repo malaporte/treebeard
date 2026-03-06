@@ -1,7 +1,15 @@
+import os from 'node:os'
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import Electrobun from 'electrobun/bun'
-import os from 'node:os'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
+import {
+  forceStopAllCodexSessions,
+  getCodexStatus,
+  interruptCodexSession,
+  setCodexStatusEnabled,
+  startCodexSession,
+  stopAllCodexSessions
+} from './services/codex'
 import { checkDependencies } from './services/dependencies'
 import {
   getWorktrees,
@@ -13,21 +21,12 @@ import {
   getWorktreeStatus,
   removeWorktree
 } from './services/git'
-import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
+import { getJiraIssue } from './services/jira'
 import { launchVSCode, launchGhostty, launchURL } from './services/launcher'
-import {
-  forceStopAllServers,
-  getServerSync,
-  getServerStatus,
-  setServerEnabled,
-  stopAllServers,
-  restoreEnabledServer
-} from './services/opencode'
 import {
   clearMobileProxyTrace,
   createMobilePairingToken,
-  createLocalOpencodeWebUrl,
   getMobileProxyTrace,
   getMobileBridgeStatus,
   rotateMobileBridgePairingCodeStatus,
@@ -168,7 +167,7 @@ async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
 
   shutdownInFlight = (async () => {
     stopMobileBridge()
-    await stopAllServers()
+    await stopAllCodexSessions()
     if (quitAfterCleanup) {
       Utils.quit()
     }
@@ -232,8 +231,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         launchGhostty(worktreePath)
       },
       'launch:url': async ({ url }) => {
-        // Prefer Electrobun's native FFI — Bun.spawn('/usr/bin/open') is
-        // silently blocked in the Electrobun process sandbox.
         if (Utils.openExternal(url)) {
           return { success: true }
         }
@@ -247,63 +244,33 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
           }
         }
       },
-      'opencode:getStatus': () => {
-        return getServerStatus()
+      'codex:getStatus': () => {
+        return getCodexStatus()
       },
-      'opencode:setEnabled': async ({ enabled }) => {
-        return setServerEnabled(enabled)
+      'codex:setEnabled': async ({ enabled }) => {
+        return setCodexStatusEnabled(enabled)
       },
-      'opencode:openProxyUI': async ({ worktreePath }) => {
+      'codex:startSession': async ({ worktreePath, prompt }) => {
         try {
-          let status = getServerStatus()
-          if (!status.running) {
-            status = await setServerEnabled(true)
-          }
-
-          if (!status.url) {
-            return {
-              success: false,
-              error: status.error || 'OpenCode server did not report a URL'
-            }
-          }
-
-          const bridge = await setMobileBridgeEnabledState(true)
-          if (!bridge.running) {
-            return {
-              success: false,
-              error: 'Mobile bridge failed to start'
-            }
-          }
-
-          const session = await createLocalOpencodeWebUrl(worktreePath)
-          return { success: true, url: session.webUrl }
+          const status = await startCodexSession(worktreePath, prompt)
+          return { success: true, status }
         } catch (err) {
-          const status = getServerStatus()
-          if (status.url) {
-            const direct = new URL(status.url)
-            direct.pathname = `/${Buffer.from(worktreePath, 'utf8').toString('base64url')}/session`
-            return { success: true, url: direct.toString() }
-          }
-
           return {
             success: false,
             error: err instanceof Error ? err.message : String(err)
           }
         }
       },
-      'opencode:getSync': async () => {
-        const config = getConfig()
-        const paths = await Promise.all(
-          config.repositories.map(async (repo) => {
-            try {
-              const worktrees = await getWorktrees(repo.path)
-              return worktrees.map((worktree) => worktree.path)
-            } catch {
-              return []
-            }
-          })
-        )
-        return getServerSync(paths.flat())
+      'codex:interruptSession': async ({ worktreePath }) => {
+        const status = await interruptCodexSession(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+
+        return { success: true, status }
       },
       'mobile:getStatus': () => {
         return getMobileBridgeStatus()
@@ -379,17 +346,17 @@ ApplicationMenu.setApplicationMenu([
       { role: 'hideOthers' },
       { role: 'showAll' },
       { type: 'separator' },
-      { label: 'Quit Treebeard', action: 'quit-treebeard', accelerator: 'CmdOrCtrl+Q' },
-    ],
+      { label: 'Quit Treebeard', action: 'quit-treebeard', accelerator: 'CmdOrCtrl+Q' }
+    ]
   },
   {
     label: 'Window',
     submenu: [
       { role: 'minimize' },
       { role: 'zoom' },
-      { role: 'close' },
-    ],
-  },
+      { role: 'close' }
+    ]
+  }
 ])
 
 ApplicationMenu.on('application-menu-clicked', (event) => {
@@ -431,7 +398,9 @@ Electrobun.events.on(`new-window-open-${win.webview.id}`, (event: { data?: { det
 
 startAutoUpdateScheduler()
 void getDependencyStatus()
-void restoreEnabledServer()
+if (getConfig().codexServerEnabled) {
+  void setCodexStatusEnabled(true)
+}
 void syncMobileBridgeFromConfig()
 
 // --- Shutdown Cleanup ---
@@ -443,6 +412,6 @@ function handleShutdown() {
 process.on('SIGINT', handleShutdown)
 process.on('SIGTERM', handleShutdown)
 process.on('exit', () => {
-  forceStopAllServers()
+  forceStopAllCodexSessions()
   stopMobileBridge()
 })

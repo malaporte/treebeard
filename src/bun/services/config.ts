@@ -11,7 +11,7 @@ const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
 const MIN_MOBILE_BRIDGE_PORT = 1024
 const MAX_MOBILE_BRIDGE_PORT = 65535
 
-const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard')
+const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', CONFIG_FILENAME)
 
 const DEFAULTS: AppConfig = {
   repositories: [],
@@ -19,7 +19,7 @@ const DEFAULTS: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  opencodeServerEnabled: false,
+  codexServerEnabled: false,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',
@@ -59,15 +59,9 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
-    opencodeServerEnabled: typeof config.opencodeServerEnabled === 'boolean'
-      ? config.opencodeServerEnabled
-      : DEFAULTS.opencodeServerEnabled,
+    codexServerEnabled: typeof config.codexServerEnabled === 'boolean' ? config.codexServerEnabled : DEFAULTS.codexServerEnabled,
     mobileBridge
   }
-}
-
-function configPath(): string {
-  return CONFIG_PATH
 }
 
 function readConfigFile(filePath: string): AppConfig | null {
@@ -81,12 +75,12 @@ function readConfigFile(filePath: string): AppConfig | null {
 }
 
 function readConfig(): AppConfig {
-  return readConfigFile(configPath()) ?? sanitizeConfig({})
+  return readConfigFile(CONFIG_PATH) ?? sanitizeConfig({})
 }
 
 function writeConfig(config: AppConfig): void {
-  fs.mkdirSync(path.dirname(configPath()), { recursive: true })
-  fs.writeFileSync(configPath(), JSON.stringify(config, null, 2))
+  fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true })
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
 }
 
 export function getConfig(): AppConfig {
@@ -107,13 +101,13 @@ export function setCollapsedRepos(ids: string[]): void {
   writeConfig(config)
 }
 
-export function getOpencodeEnabled(): boolean {
-  return readConfig().opencodeServerEnabled === true
+export function getCodexEnabled(): boolean {
+  return readConfig().codexServerEnabled === true
 }
 
-export function setOpencodeEnabled(enabled: boolean): void {
+export function setCodexEnabled(enabled: boolean): void {
   const config = readConfig()
-  config.opencodeServerEnabled = enabled
+  config.codexServerEnabled = enabled
   writeConfig(config)
 }
 

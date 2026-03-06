@@ -1,13 +1,13 @@
 import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
+  CodexRuntimeStatus,
+  CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
   MobileBridgeStatus,
   MobilePairingInfo,
   MobileProxyTraceEntry,
-  OpencodeSyncStatus,
-  OpencodeServerStatus,
   PRInfo,
   Worktree,
   WorktreeStatus
@@ -81,21 +81,21 @@ export type TreebeardRPC = {
         params: { url: string }
         response: { success: boolean; error?: string }
       }
-      'opencode:getStatus': {
+      'codex:getStatus': {
         params: Record<string, never>
-        response: OpencodeServerStatus
+        response: CodexRuntimeStatus
       }
-      'opencode:setEnabled': {
+      'codex:setEnabled': {
         params: { enabled: boolean }
-        response: OpencodeServerStatus
+        response: CodexRuntimeStatus
       }
-      'opencode:openProxyUI': {
+      'codex:startSession': {
+        params: { worktreePath: string; prompt: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:interruptSession': {
         params: { worktreePath: string }
-        response: { success: boolean; url?: string; error?: string }
-      }
-      'opencode:getSync': {
-        params: Record<string, never>
-        response: OpencodeSyncStatus
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
       }
       'mobile:getStatus': {
         params: Record<string, never>

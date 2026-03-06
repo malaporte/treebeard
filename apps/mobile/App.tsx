@@ -13,17 +13,22 @@ import {
   View
 } from 'react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
-import { WebView } from 'react-native-webview'
 import {
-  createOpencodeWebSession,
   exchangePairingToken,
+  getCodexPendingActions,
+  getCodexSessionEvents,
+  getCodexSessionStatus,
   getHealth,
   getStatus,
-  getWorktrees
+  getWorktrees,
+  interruptCodexSession,
+  respondCodexPendingAction,
+  startCodexSession,
+  steerCodexSession
 } from './src/api'
 import { handleScannedPairing, resolvePairingCredentials } from './src/pairing'
 import type { BridgeConnection } from './src/api'
-import type { MobileWorktree, OpencodeServerStatus } from './src/types'
+import type { CodexPendingAction, CodexSessionEvent, CodexSessionStatus, MobileWorktree } from './src/types'
 
 const BRIDGE_CONNECTION_STORAGE_KEY = 'treebeard.bridgeConnection'
 
@@ -67,21 +72,32 @@ async function clearStoredConnection(): Promise<void> {
   }
 }
 
+function formatEvent(event: CodexSessionEvent): string {
+  if (event.rawType) {
+    return `[${event.kind}] ${event.message} (${event.rawType})`
+  }
+  return `[${event.kind}] ${event.message}`
+}
+
 export default function App() {
   const [baseUrlInput, setBaseUrlInput] = useState('http://192.168.1.10:8787')
   const [pairingTokenInput, setPairingTokenInput] = useState('')
   const [connection, setConnection] = useState<BridgeConnection | null>(null)
   const [worktrees, setWorktrees] = useState<MobileWorktree[]>([])
-  const [opencodeStatus, setOpencodeStatus] = useState<OpencodeServerStatus | null>(null)
   const [homedir, setHomedir] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeWebUrl, setActiveWebUrl] = useState<string | null>(null)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
   const [scanning, setScanning] = useState(false)
   const [restoringConnection, setRestoringConnection] = useState(true)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [selectedWorktree, setSelectedWorktree] = useState<MobileWorktree | null>(null)
+  const [sessionStatus, setSessionStatus] = useState<CodexSessionStatus | null>(null)
+  const [sessionEvents, setSessionEvents] = useState<CodexSessionEvent[]>([])
+  const [sessionCursor, setSessionCursor] = useState(0)
+  const [pendingActions, setPendingActions] = useState<CodexPendingAction[]>([])
+  const [promptInput, setPromptInput] = useState('')
   const connectInFlightRef = useRef(false)
 
   const grouped = useMemo(() => {
@@ -102,6 +118,21 @@ export default function App() {
     },
     [homedir]
   )
+
+  const refreshSessionState = useCallback(async (currentConnection: BridgeConnection, worktreePath: string) => {
+    const [statusResponse, eventsResponse, actionsResponse] = await Promise.all([
+      getCodexSessionStatus(currentConnection, worktreePath),
+      getCodexSessionEvents(currentConnection, worktreePath, sessionCursor),
+      getCodexPendingActions(currentConnection, worktreePath)
+    ])
+
+    setSessionStatus(statusResponse.status)
+    setPendingActions(actionsResponse.actions)
+    if (eventsResponse.events.length > 0) {
+      setSessionEvents((existing) => [...existing, ...eventsResponse.events])
+      setSessionCursor(eventsResponse.nextCursor)
+    }
+  }, [sessionCursor])
 
   useEffect(() => {
     let cancelled = false
@@ -124,7 +155,6 @@ export default function App() {
         if (cancelled) return
 
         setWorktrees(response.worktrees)
-        setOpencodeStatus(response.opencode)
         setHomedir(response.homedir ?? null)
       } catch (err) {
         await clearStoredConnection()
@@ -132,7 +162,6 @@ export default function App() {
 
         setConnection(null)
         setWorktrees([])
-        setOpencodeStatus(null)
         setHomedir(null)
 
         const message = err instanceof Error ? err.message : 'Failed to restore connection'
@@ -154,6 +183,18 @@ export default function App() {
       setShowAdvanced(false)
     }
   }, [connection])
+
+  useEffect(() => {
+    if (!connection || !selectedWorktree) return
+
+    const interval = setInterval(() => {
+      void refreshSessionState(connection, selectedWorktree.worktree.path)
+    }, 2000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [connection, selectedWorktree, refreshSessionState])
 
   const connectWithCredentials = async (resolvedBaseUrl: string, pairingToken: string) => {
     if (connectInFlightRef.current) return
@@ -197,7 +238,6 @@ export default function App() {
     try {
       const response = await getWorktrees(current)
       setWorktrees(response.worktrees)
-      setOpencodeStatus(response.opencode)
       setHomedir(response.homedir ?? null)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data'
@@ -205,7 +245,6 @@ export default function App() {
         await clearStoredConnection()
         setConnection(null)
         setWorktrees([])
-        setOpencodeStatus(null)
         setHomedir(null)
         setError('Session expired. Please pair again.')
       } else {
@@ -222,9 +261,13 @@ export default function App() {
     await clearStoredConnection()
     setConnection(null)
     setWorktrees([])
-    setOpencodeStatus(null)
     setHomedir(null)
-    setActiveWebUrl(null)
+    setSelectedWorktree(null)
+    setSessionStatus(null)
+    setSessionEvents([])
+    setSessionCursor(0)
+    setPendingActions([])
+    setPromptInput('')
     setError(null)
   }
 
@@ -239,15 +282,70 @@ export default function App() {
     }
   }
 
-  const openOpencodeUi = async (item: MobileWorktree) => {
+  const openSession = async (item: MobileWorktree) => {
     if (!connection) return
+    setSelectedWorktree(item)
+    setSessionStatus(null)
+    setSessionEvents([])
+    setSessionCursor(0)
+    setPendingActions([])
+    setError(null)
+
+    try {
+      await refreshSessionState(connection, item.worktree.path)
+    } catch {
+      // No existing session yet.
+    }
+  }
+
+  const handleStartOrSteer = async () => {
+    if (!connection || !selectedWorktree) return
+    const prompt = promptInput.trim()
+    if (!prompt) return
+
     setLoading(true)
     setError(null)
     try {
-      const session = await createOpencodeWebSession(connection, item.worktree.path)
-      setActiveWebUrl(session.webUrl)
+      if (sessionStatus?.running) {
+        const response = await steerCodexSession(connection, selectedWorktree.worktree.path, prompt)
+        setSessionStatus(response.status)
+      } else {
+        const response = await startCodexSession(connection, selectedWorktree.worktree.path, prompt)
+        setSessionStatus(response.status)
+      }
+      setPromptInput('')
+      await refreshSessionState(connection, selectedWorktree.worktree.path)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to open OpenCode UI')
+      setError(err instanceof Error ? err.message : 'Failed to send prompt')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInterrupt = async () => {
+    if (!connection || !selectedWorktree) return
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await interruptCodexSession(connection, selectedWorktree.worktree.path)
+      setSessionStatus(response.status)
+      await refreshSessionState(connection, selectedWorktree.worktree.path)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to interrupt session')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResolveAction = async (actionId: string, response: string) => {
+    if (!connection || !selectedWorktree) return
+    setLoading(true)
+    setError(null)
+    try {
+      await respondCodexPendingAction(connection, selectedWorktree.worktree.path, actionId, response)
+      await refreshSessionState(connection, selectedWorktree.worktree.path)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resolve action')
     } finally {
       setLoading(false)
     }
@@ -304,20 +402,6 @@ export default function App() {
             }
           }}
         />
-      </SafeAreaView>
-    )
-  }
-
-  if (activeWebUrl) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.webHeader}>
-          <Pressable style={styles.secondaryButton} onPress={() => setActiveWebUrl(null)}>
-            <Text style={styles.buttonText}>Back to list</Text>
-          </Pressable>
-          <Text style={styles.webTitle} numberOfLines={1}>{activeWebUrl}</Text>
-        </View>
-        <WebView source={{ uri: activeWebUrl }} style={styles.webview} />
       </SafeAreaView>
     )
   }
@@ -380,12 +464,80 @@ export default function App() {
     )
   }
 
+  if (selectedWorktree) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.webHeader}>
+          <Pressable style={styles.secondaryButton} onPress={() => setSelectedWorktree(null)}>
+            <Text style={styles.buttonText}>Back</Text>
+          </Pressable>
+          <Text style={styles.webTitle} numberOfLines={1}>{selectedWorktree.worktree.branch}</Text>
+        </View>
+
+        {loading && <ActivityIndicator color="#58a6ff" style={styles.loader} />}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+
+        <View style={styles.sessionInfo}>
+          <Text style={styles.path}>{shortenPath(selectedWorktree.worktree.path)}</Text>
+          <Text style={styles.statusText}>Status: {sessionStatus?.running ? 'Running' : 'Idle'}</Text>
+        </View>
+
+        <View style={styles.promptRow}>
+          <TextInput
+            value={promptInput}
+            onChangeText={setPromptInput}
+            placeholder="Ask Codex..."
+            placeholderTextColor="#7d8590"
+            style={styles.promptInput}
+            multiline
+          />
+          <Pressable style={styles.primaryButton} onPress={() => { void handleStartOrSteer() }} disabled={loading}>
+            <Text style={styles.buttonText}>{sessionStatus?.running ? 'Steer' : 'Start'}</Text>
+          </Pressable>
+          <Pressable style={styles.secondaryButton} onPress={() => { void handleInterrupt() }} disabled={loading || !sessionStatus?.running}>
+            <Text style={styles.buttonText}>Stop</Text>
+          </Pressable>
+        </View>
+
+        {pendingActions.length > 0 && (
+          <View style={styles.pendingActions}>
+            <Text style={styles.repoTitle}>Pending actions</Text>
+            {pendingActions.map((action) => (
+              <View key={action.id} style={styles.pendingCard}>
+                <Text style={styles.branch}>{action.prompt}</Text>
+                <View style={styles.pendingButtons}>
+                  <Pressable style={styles.secondaryButton} onPress={() => { void handleResolveAction(action.id, 'deny') }}>
+                    <Text style={styles.buttonText}>Deny</Text>
+                  </Pressable>
+                  <Pressable style={styles.primaryButton} onPress={() => { void handleResolveAction(action.id, 'approve') }}>
+                    <Text style={styles.buttonText}>Approve</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <FlatList
+          data={sessionEvents}
+          keyExtractor={(item) => `${item.id}`}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.branch}>{formatEvent(item)}</Text>
+              <Text style={styles.path}>{new Date(item.at).toLocaleTimeString()}</Text>
+            </View>
+          )}
+        />
+      </SafeAreaView>
+    )
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.listHeader}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Worktrees</Text>
-          <View style={[styles.statusDot, opencodeStatus?.running ? styles.statusDotRunning : styles.statusDotStopped]} />
         </View>
         <Pressable
           style={styles.settingsButton}
@@ -412,9 +564,8 @@ export default function App() {
             {repoWorktrees.map((entry) => (
               <Pressable
                 key={entry.worktree.path}
-                style={opencodeStatus?.url ? styles.card : styles.cardDisabled}
-                onPress={() => openOpencodeUi(entry)}
-                disabled={!opencodeStatus?.url}
+                style={styles.card}
+                onPress={() => { void openSession(entry) }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${entry.worktree.branch}`}
               >
@@ -455,6 +606,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: '#f0f6fc'
   },
+  promptInput: {
+    borderWidth: 1,
+    borderColor: '#30363d',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#f0f6fc',
+    flex: 1,
+    minHeight: 42
+  },
   advancedContainer: {
     gap: 10
   },
@@ -489,21 +650,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  disabledButton: {
-    backgroundColor: '#21262d',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    opacity: 0.6
-  },
   buttonText: {
     color: '#f0f6fc',
     fontWeight: '600',
     fontSize: 13
   },
   errorText: {
-    color: '#ff7b72'
+    color: '#ff7b72',
+    paddingHorizontal: 12
   },
   listHeader: {
     paddingHorizontal: 16,
@@ -517,17 +671,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999
-  },
-  statusDotRunning: {
-    backgroundColor: '#2ea043'
-  },
-  statusDotStopped: {
-    backgroundColor: '#f85149'
   },
   loader: {
     marginBottom: 8
@@ -558,15 +701,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#161b22',
     gap: 6
   },
-  cardDisabled: {
-    borderWidth: 1,
-    borderColor: '#30363d',
-    borderRadius: 10,
-    padding: 12,
-    backgroundColor: '#161b22',
-    gap: 6,
-    opacity: 0.6
-  },
   branch: {
     color: '#f0f6fc',
     fontWeight: '600'
@@ -592,5 +726,34 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1
+  },
+  sessionInfo: {
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    gap: 4
+  },
+  promptRow: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-end'
+  },
+  pendingActions: {
+    paddingHorizontal: 12,
+    gap: 8,
+    paddingBottom: 8
+  },
+  pendingCard: {
+    borderWidth: 1,
+    borderColor: '#30363d',
+    borderRadius: 8,
+    padding: 10,
+    gap: 8,
+    backgroundColor: '#161b22'
+  },
+  pendingButtons: {
+    flexDirection: 'row',
+    gap: 8
   }
 })

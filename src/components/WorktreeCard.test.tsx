@@ -1,11 +1,10 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorktreeCard } from './WorktreeCard'
 import { renderWithMantine } from '../test/render'
 
 const launchVSCodeRequest = vi.fn()
-const launchUrlRequest = vi.fn()
-const opencodeOpenProxyUIRequest = vi.fn()
+const codexOpenProxyUIRequest = vi.fn()
 const useJiraIssueMock = vi.fn()
 const usePRMock = vi.fn()
 const useWorktreeStatusMock = vi.fn()
@@ -14,8 +13,7 @@ vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
       'launch:vscode': launchVSCodeRequest,
-      'launch:url': launchUrlRequest,
-      'opencode:openProxyUI': opencodeOpenProxyUIRequest
+      'codex:startSession': codexOpenProxyUIRequest
     }
   })
 }))
@@ -82,17 +80,15 @@ describe('WorktreeCard', () => {
   beforeEach(() => {
     vi.stubGlobal('alert', vi.fn())
     launchVSCodeRequest.mockReset()
-    launchUrlRequest.mockReset()
     useJiraIssueMock.mockReset()
     usePRMock.mockReset()
     useWorktreeStatusMock.mockReset()
-    opencodeOpenProxyUIRequest.mockReset()
+    codexOpenProxyUIRequest.mockReset()
 
     useJiraIssueMock.mockReturnValue({ issue: null, loading: false })
     usePRMock.mockReturnValue({ pr: null, loading: false })
     useWorktreeStatusMock.mockReturnValue({ status: null, loading: false })
-    opencodeOpenProxyUIRequest.mockResolvedValue({ success: true, url: 'http://localhost:8787/test' })
-    launchUrlRequest.mockResolvedValue({ success: true })
+    codexOpenProxyUIRequest.mockResolvedValue({ success: true, status: null })
   })
 
   it('extracts and normalizes jira key from branch name', () => {
@@ -128,7 +124,7 @@ describe('WorktreeCard', () => {
 
     fireEvent.doubleClick(screen.getAllByText('main')[0])
     expect(launchVSCodeRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/main' })
-    // Open OpenCode button is present, delete button is hidden for main
+    // Open Codex button is present, delete button is hidden for main
     expect(screen.queryAllByRole('button')).toHaveLength(1)
 
     rerender(
@@ -147,7 +143,7 @@ describe('WorktreeCard', () => {
     expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
   })
 
-  it('opens proxied opencode UI when button is clicked', async () => {
+  it('starts codex session when button is clicked', async () => {
     renderWithMantine(
       <WorktreeCard
         worktree={{
@@ -163,9 +159,9 @@ describe('WorktreeCard', () => {
 
     const openButton = screen.getByRole('button')
     fireEvent.click(openButton)
-    expect(opencodeOpenProxyUIRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/main' })
-    await waitFor(() => {
-      expect(launchUrlRequest).toHaveBeenCalledWith({ url: 'http://localhost:8787/test' })
+    expect(codexOpenProxyUIRequest).toHaveBeenCalledWith({
+      worktreePath: '/repo/worktrees/main',
+      prompt: 'Summarize current branch status and next engineering step.'
     })
   })
 })

@@ -41,10 +41,11 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
 
   const handleOpenProxyUi = async () => {
     try {
-      const result = await rpc().request['opencode:openProxyUI']({ worktreePath: worktree.path })
-      if (!result.success || !result.url) return
-
-      await rpc().request['launch:url']({ url: result.url })
+      const result = await rpc().request['codex:startSession']({
+        worktreePath: worktree.path,
+        prompt: 'Summarize current branch status and next engineering step.'
+      })
+      if (!result.success) return
     } catch {
       // Silently fail — no alert support in Electrobun webview
     }
@@ -96,7 +97,7 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
 
         <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
           <LaunchButtons worktreePath={worktree.path} />
-          <Tooltip label="Open OpenCode UI (via bridge proxy)">
+          <Tooltip label="Start Codex session for this worktree">
             <ActionIcon
               variant="subtle"
               color="blue"

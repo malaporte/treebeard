@@ -12,7 +12,7 @@ export interface AppConfig {
   autoUpdateEnabled: boolean
   updateCheckIntervalMin: number
   collapsedRepos: string[]
-  opencodeServerEnabled: boolean
+  codexServerEnabled: boolean
   mobileBridge: MobileBridgeConfig
 }
 
@@ -58,25 +58,38 @@ export interface WorktreeStatus {
   linesDeleted: number
 }
 
-export interface OpencodeServerStatus {
+export interface CodexRuntimeStatus {
   enabled: boolean
   running: boolean
-  url: string | null
   pid: number | null
   error: string | null
 }
 
-export interface OpencodeSyncStatus {
-  checkedAt: string
-  serverRunning: boolean
-  treebeardWorktrees: number
-  opencodeProjects: number
-  opencodeSessionDirectories: number
-  missingProjects: string[]
-  staleProjects: string[]
-  missingSessionDirectories: string[]
-  staleSessionDirectories: string[]
+export interface CodexSessionStatus {
+  worktreePath: string
+  threadId: string
+  running: boolean
+  startedAt: string
+  updatedAt: string
+  lastEventId: number
   error: string | null
+}
+
+export interface CodexSessionEvent {
+  id: number
+  at: string
+  worktreePath: string
+  kind: 'status' | 'message' | 'reasoning' | 'command' | 'error'
+  message: string
+  rawType: string | null
+}
+
+export interface CodexPendingAction {
+  id: string
+  worktreePath: string
+  kind: 'approval' | 'user_input'
+  prompt: string
+  options: string[]
 }
 
 export interface MobileWorktree {
@@ -102,12 +115,12 @@ export interface MobilePairingInfo {
 
 export interface MobileProxyTraceEntry {
   at: string
-  source: 'http' | 'proxy' | 'ws'
+  source: 'http' | 'codex'
   message: string
 }
 
 export interface DependencyCheck {
-  name: 'gh' | 'jira' | 'opencode'
+  name: 'gh' | 'jira' | 'codex'
   required: boolean
   installed: boolean
   authenticated: boolean | null

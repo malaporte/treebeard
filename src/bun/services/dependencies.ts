@@ -10,7 +10,7 @@ interface CommandResult {
 }
 
 async function runCommand(
-  name: 'gh' | 'jira' | 'opencode',
+  name: 'gh' | 'jira' | 'codex',
   args: string[],
   env: Record<string, string>
 ): Promise<CommandResult> {
@@ -45,7 +45,7 @@ async function runCommand(
 }
 
 async function checkCommand(
-  name: 'gh' | 'jira' | 'opencode',
+  name: 'gh' | 'jira' | 'codex',
   probes: string[][],
   env: Record<string, string>
 ): Promise<{ installed: boolean; version: string | null; error: string | null }> {
@@ -78,7 +78,7 @@ function isUnsupportedCommandError(error: string | null): boolean {
 }
 
 async function checkAuth(
-  name: 'gh' | 'jira' | 'opencode',
+  name: 'gh' | 'jira' | 'codex',
   probes: string[][],
   env: Record<string, string>
 ): Promise<{ authenticated: boolean | null; authError: string | null }> {
@@ -103,10 +103,10 @@ async function checkAuth(
   }
 }
 
-async function checkDependency(name: 'gh' | 'jira' | 'opencode', env: Record<string, string>): Promise<DependencyCheck> {
+async function checkDependency(name: 'gh' | 'jira' | 'codex', env: Record<string, string>): Promise<DependencyCheck> {
   const commandProbes = name === 'gh'
     ? [['--version']]
-    : name === 'opencode'
+    : name === 'codex'
       ? [['--version']]
       : [['--version'], ['version']]
   const commandStatus = await checkCommand(name, commandProbes, env)
@@ -123,11 +123,10 @@ async function checkDependency(name: 'gh' | 'jira' | 'opencode', env: Record<str
     }
   }
 
-  // opencode has no auth check
-  if (name === 'opencode') {
+  if (name === 'codex') {
     return {
       name,
-      required: false,
+      required: true,
       installed: true,
       authenticated: null,
       version: commandStatus.version,
@@ -158,7 +157,7 @@ export async function checkDependencies(): Promise<DependencyStatus> {
   const checks = await Promise.all([
     checkDependency('gh', env),
     checkDependency('jira', env),
-    checkDependency('opencode', env)
+    checkDependency('codex', env)
   ])
 
   return {

@@ -1,13 +1,13 @@
-# Treebeard Mobile (Foundation)
+# Treebeard Mobile
 
-This is an Expo-based mobile foundation for Treebeard.
+This is an Expo-based mobile app for Treebeard.
 
 Current scope:
 
 - Pair to the desktop LAN bridge using one-time token/deep link from a QR payload
 - List worktrees from the desktop bridge
-- Enable/disable OpenCode servers for each worktree
-- Open the OpenCode web UI in an in-app WebView
+- Start, steer, and stop Codex sessions per worktree
+- Follow Codex session events and resolve pending actions from mobile
 
 ## Run locally
 

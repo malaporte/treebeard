@@ -14,7 +14,7 @@ describe('dependencies service', () => {
       if (key === 'gh auth status') return { stdout: 'logged in\n' }
       if (key === 'jira --version') return { stdout: 'jira version 1.0.0\n' }
       if (key === 'jira me --raw') return { stdout: '{"name":"sam"}' }
-      if (key === 'opencode --version') return { stdout: 'opencode version 1.2.0\n' }
+      if (key === 'codex --version') return { stdout: 'codex version 1.2.0\n' }
       return { stderr: `unexpected command: ${key}`, exitCode: 1 }
     })
 
@@ -39,11 +39,11 @@ describe('dependencies service', () => {
         authError: null
       },
       {
-        name: 'opencode',
-        required: false,
+        name: 'codex',
+        required: true,
         installed: true,
         authenticated: null,
-        version: 'opencode version 1.2.0',
+        version: 'codex version 1.2.0',
         error: null,
         authError: null
       }

@@ -19,12 +19,11 @@ import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
 import type {
   AppConfig,
+  CodexRuntimeStatus,
   DependencyStatus,
   MobileBridgeStatus,
-  OpencodeSyncStatus,
   MobileProxyTraceEntry,
   MobilePairingInfo,
-  OpencodeServerStatus,
   RepoConfig
 } from '../shared/types'
 
@@ -65,9 +64,8 @@ export function SettingsModal({
   const [mobilePairingInfo, setMobilePairingInfo] = useState<MobilePairingInfo | null>(null)
   const [mobilePairingQr, setMobilePairingQr] = useState<string | null>(null)
   const [mobileProxyTrace, setMobileProxyTrace] = useState<MobileProxyTraceEntry[]>([])
-  const [opencodeStatus, setOpencodeStatus] = useState<OpencodeServerStatus | null>(null)
-  const [opencodeSync, setOpencodeSync] = useState<OpencodeSyncStatus | null>(null)
-  const [opencodeBusy, setOpencodeBusy] = useState(false)
+  const [codexStatus, setCodexStatus] = useState<CodexRuntimeStatus | null>(null)
+  const [codexBusy, setCodexBusy] = useState(false)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const { shortenPath } = useHomedir()
 
@@ -97,27 +95,15 @@ export function SettingsModal({
     }
   }
 
-  const loadOpencodeStatus = async () => {
-    setOpencodeBusy(true)
+  const loadCodexStatus = async () => {
+    setCodexBusy(true)
     try {
-      const status = await rpc().request['opencode:getStatus']({})
-      setOpencodeStatus(status)
+      const status = await rpc().request['codex:getStatus']({})
+      setCodexStatus(status)
     } catch {
-      setOpencodeStatus(null)
+      setCodexStatus(null)
     } finally {
-      setOpencodeBusy(false)
-    }
-  }
-
-  const loadOpencodeSync = async () => {
-    setOpencodeBusy(true)
-    try {
-      const status = await rpc().request['opencode:getSync']({})
-      setOpencodeSync(status)
-    } catch {
-      setOpencodeSync(null)
-    } finally {
-      setOpencodeBusy(false)
+      setCodexBusy(false)
     }
   }
 
@@ -126,18 +112,18 @@ export function SettingsModal({
     setActiveSection('general')
     loadDependencies(false)
     loadMobileBridgeStatus()
-    loadOpencodeStatus()
+    loadCodexStatus()
   }, [opened])
 
-  const handleOpencodeEnabledChange = async (enabled: boolean) => {
-    setOpencodeBusy(true)
+  const handleCodexEnabledChange = async (enabled: boolean) => {
+    setCodexBusy(true)
     try {
-      const status = await rpc().request['opencode:setEnabled']({ enabled })
-      setOpencodeStatus(status)
+      const status = await rpc().request['codex:setEnabled']({ enabled })
+      setCodexStatus(status)
     } catch {
       // Keep existing status if RPC fails
     } finally {
-      setOpencodeBusy(false)
+      setCodexBusy(false)
     }
   }
 
@@ -422,60 +408,32 @@ export function SettingsModal({
 
               <div>
                 <Text fw={600} size="sm" mb="xs">
-                  OpenCode
+                  Codex
                 </Text>
                 <Switch
-                  label="Auto-start OpenCode server on app launch"
-                  checked={opencodeStatus?.enabled ?? config.opencodeServerEnabled}
+                  label="Enable Codex sessions from Treebeard"
+                  checked={codexStatus?.enabled ?? config.codexServerEnabled}
                   onChange={(e) => {
-                    handleOpencodeEnabledChange(e.currentTarget.checked)
+                    handleCodexEnabledChange(e.currentTarget.checked)
                   }}
-                  disabled={opencodeBusy}
+                  disabled={codexBusy}
                   size="sm"
                 />
                 <Group gap="sm" mt="xs">
                   <Text size="xs" c="dimmed">
-                    Status: {opencodeStatus?.running ? 'Running' : 'Stopped'}
-                    {opencodeStatus?.url ? ` at ${opencodeStatus.url}` : ''}
+                    Status: {codexStatus?.running ? 'Running' : 'Stopped'}
+                    {codexStatus?.pid ? ` (pid ${codexStatus.pid})` : ''}
                   </Text>
                   <Button
                     size="xs"
                     variant="subtle"
-                    onClick={loadOpencodeStatus}
-                    loading={opencodeBusy}
+                    onClick={loadCodexStatus}
+                    loading={codexBusy}
                   >
-                    Refresh OpenCode status
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="subtle"
-                    onClick={loadOpencodeSync}
-                    loading={opencodeBusy}
-                  >
-                    Refresh OpenCode sync
+                    Refresh Codex status
                   </Button>
                 </Group>
-                {opencodeSync && (
-                  <Stack gap={2} mt="xs">
-                    <Text size="xs" c="dimmed">
-                      Sync snapshot ({new Date(opencodeSync.checkedAt).toLocaleTimeString()}):
-                      {' '}Treebeard {opencodeSync.treebeardWorktrees} | Projects {opencodeSync.opencodeProjects} | Session dirs {opencodeSync.opencodeSessionDirectories}
-                    </Text>
-                    {opencodeSync.error && (
-                      <Text size="xs" c="yellow">
-                        {opencodeSync.error}
-                      </Text>
-                    )}
-                    <Text size="xs" c="dimmed">
-                      Missing projects: {opencodeSync.missingProjects.length}
-                      {' '}| Stale projects: {opencodeSync.staleProjects.length}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      Missing session dirs: {opencodeSync.missingSessionDirectories.length}
-                      {' '}| Stale session dirs: {opencodeSync.staleSessionDirectories.length}
-                    </Text>
-                  </Stack>
-                )}
+                {codexStatus?.error && <Text size="xs" c="yellow">{codexStatus.error}</Text>}
               </div>
 
               <Divider />
