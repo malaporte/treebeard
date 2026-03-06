@@ -1,0 +1,695 @@
+<!DOCTYPE html><html lang="en" style="background-color: var(--background-base); --font-family-mono: &quot;IBM Plex Mono&quot;, &quot;IBM Plex Mono Fallback&quot;, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, &quot;Liberation Mono&quot;, &quot;Courier New&quot;, monospace; --dialog-left-margin: 48px;" data-theme="oc-1" data-color-scheme="light"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenCode</title>
+    <link rel="icon" type="image/png" href="/favicon-96x96-v3.png" sizes="96x96">
+    <link rel="icon" type="image/svg+xml" href="/favicon-v3.svg">
+    <link rel="shortcut icon" href="/favicon-v3.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v3.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#F8F7F7">
+    <meta name="theme-color" content="#131010" media="(prefers-color-scheme: dark)">
+    <meta property="og:image" content="/social-share.png">
+    <meta property="twitter:image" content="/social-share.png">
+    <script id="oc-theme-preload-script" src="/oc-theme-preload.js"></script>
+    <script type="module" crossorigin="" src="/assets/index-D7E5miXu.js"></script>
+    <link rel="stylesheet" crossorigin="" href="/assets/index-CLHnvSji.css">
+  <script id="treebeard-random-uuid-polyfill" src="/treebeard-random-uuid-polyfill.js" defer=""></script><style>
+        @font-face {
+          font-family: "Inter";
+          src: url("/assets/inter-FIwubZjA.woff2") format("woff2-variations");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Inter Fallback";
+          src: local("Arial");
+          size-adjust: 100%;
+          ascent-override: 97%;
+          descent-override: 25%;
+          line-gap-override: 1%;
+        }
+        @font-face {
+          font-family: "IBM Plex Mono";
+          src: url("/assets/BlexMonoNerdFontMono-Regular-DSJ7IWr2.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "IBM Plex Mono";
+          src: url("/assets/BlexMonoNerdFontMono-Medium-BvtJB5kd.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 500;
+        }
+        @font-face {
+          font-family: "IBM Plex Mono";
+          src: url("/assets/BlexMonoNerdFontMono-Bold-B8jzonSj.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "IBM Plex Mono Fallback";
+          src: local("Courier New");
+          size-adjust: 100%;
+          ascent-override: 97%;
+          descent-override: 25%;
+          line-gap-override: 1%;
+        }
+
+        @font-face {
+          font-family: "JetBrains Mono Nerd Font";
+          src: url("/assets/JetBrainsMonoNerdFontMono-Regular-QVq88ZfU.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "JetBrains Mono Nerd Font";
+          src: url("/assets/JetBrainsMonoNerdFontMono-Bold-CU80ifuM.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Fira Code Nerd Font";
+          src: url("/assets/FiraCodeNerdFontMono-Regular-io3c92n9.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Fira Code Nerd Font";
+          src: url("/assets/FiraCodeNerdFontMono-Bold-BjAeM3gJ.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Cascadia Code Nerd Font";
+          src: url("/assets/CaskaydiaCoveNerdFontMono-Regular-C_H0OSLN.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Cascadia Code Nerd Font";
+          src: url("/assets/CaskaydiaCoveNerdFontMono-Bold-CxABrWmj.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Hack Nerd Font";
+          src: url("/assets/HackNerdFontMono-Regular-IcpSchWC.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Hack Nerd Font";
+          src: url("/assets/HackNerdFontMono-Bold-BNG4kp7w.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Source Code Pro Nerd Font";
+          src: url("/assets/SauceCodeProNerdFontMono-Regular-Ba96Bdne.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Source Code Pro Nerd Font";
+          src: url("/assets/SauceCodeProNerdFontMono-Bold-DloEeUVQ.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Inconsolata Nerd Font";
+          src: url("/assets/InconsolataNerdFontMono-Regular-CRHGEvh2.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Inconsolata Nerd Font";
+          src: url("/assets/InconsolataNerdFontMono-Bold-oTRjQesI.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Roboto Mono Nerd Font";
+          src: url("/assets/RobotoMonoNerdFontMono-Regular-DvxS3QZC.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Roboto Mono Nerd Font";
+          src: url("/assets/RobotoMonoNerdFontMono-Bold-DNxuDepp.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Ubuntu Mono Nerd Font";
+          src: url("/assets/UbuntuMonoNerdFontMono-Regular-tdnXLyap.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Ubuntu Mono Nerd Font";
+          src: url("/assets/UbuntuMonoNerdFontMono-Bold-wLXUURqB.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Intel One Mono Nerd Font";
+          src: url("/assets/IntoneMonoNerdFontMono-Regular-BwjBdmsJ.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Intel One Mono Nerd Font";
+          src: url("/assets/IntoneMonoNerdFontMono-Bold-BL6LrHzx.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Meslo LGS Nerd Font";
+          src: url("/assets/MesloLGSNerdFontMono-Regular-j-nTZDWZ.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Meslo LGS Nerd Font";
+          src: url("/assets/MesloLGSNerdFontMono-Bold-CrpVO3ec.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "Iosevka Nerd Font";
+          src: url("/assets/iosevka-nerd-font-DKH7rjGs.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "Iosevka Nerd Font";
+          src: url("/assets/iosevka-nerd-font-bold-BObfzjZJ.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+        @font-face {
+          font-family: "GeistMono Nerd Font";
+          src: url("/assets/GeistMonoNerdFontMono-Regular-DE7-1zdA.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "GeistMono Nerd Font";
+          src: url("/assets/GeistMonoNerdFontMono-Bold-BUWrnNa7.woff2") format("woff2");
+          font-display: swap;
+          font-style: normal;
+          font-weight: 700;
+        }
+      </style><link rel="preload" href="/assets/inter-FIwubZjA.woff2" as="font" type="font/woff2" crossorigin="anonymous"><link rel="preload" href="/assets/BlexMonoNerdFontMono-Regular-DSJ7IWr2.woff2" as="font" type="font/woff2" crossorigin="anonymous"><style id="oc-theme">:root {
+  color-scheme: light;
+  --text-mix-blend-mode: multiply;
+  --background-base: #f8f7f7;
+  --background-weak: var(--smoke-light-3);
+  --background-strong: var(--smoke-light-1);
+  --background-stronger: #fcfcfc;
+  --surface-base: var(--smoke-light-alpha-2);
+  --base: var(--smoke-light-alpha-2);
+  --surface-base-hover: #0500000f;
+  --surface-base-active: var(--smoke-light-alpha-3);
+  --surface-base-interactive-active: var(--cobalt-light-alpha-3);
+  --base2: var(--smoke-light-alpha-2);
+  --base3: var(--smoke-light-alpha-2);
+  --surface-inset-base: var(--smoke-light-alpha-2);
+  --surface-inset-base-hover: var(--smoke-light-alpha-3);
+  --surface-inset-strong: #1f000017;
+  --surface-inset-strong-hover: #1f000017;
+  --surface-raised-base: var(--smoke-light-alpha-2);
+  --surface-float-base: var(--smoke-dark-1);
+  --surface-float-base-hover: var(--smoke-dark-2);
+  --surface-raised-base-hover: var(--smoke-light-alpha-3);
+  --surface-raised-base-active: var(--smoke-light-alpha-4);
+  --surface-raised-strong: var(--smoke-light-1);
+  --surface-raised-strong-hover: var(--white);
+  --surface-raised-stronger: var(--white);
+  --surface-raised-stronger-hover: var(--white);
+  --surface-weak: var(--smoke-light-alpha-3);
+  --surface-weaker: var(--smoke-light-alpha-4);
+  --surface-strong: #ffffff;
+  --surface-raised-stronger-non-alpha: var(--white);
+  --surface-brand-base: var(--yuzu-light-9);
+  --surface-brand-hover: var(--yuzu-light-10);
+  --surface-interactive-base: var(--cobalt-light-3);
+  --surface-interactive-hover: #E5F0FF;
+  --surface-interactive-weak: var(--cobalt-light-2);
+  --surface-interactive-weak-hover: var(--cobalt-light-3);
+  --surface-success-base: var(--apple-light-3);
+  --surface-success-weak: var(--apple-light-2);
+  --surface-success-strong: var(--apple-light-9);
+  --surface-warning-base: var(--solaris-light-3);
+  --surface-warning-weak: var(--solaris-light-2);
+  --surface-warning-strong: var(--solaris-light-9);
+  --surface-critical-base: var(--ember-light-3);
+  --surface-critical-weak: var(--ember-light-2);
+  --surface-critical-strong: var(--ember-light-9);
+  --surface-info-base: var(--lilac-light-3);
+  --surface-info-weak: var(--lilac-light-2);
+  --surface-info-strong: var(--lilac-light-9);
+  --surface-diff-unchanged-base: #ffffff00;
+  --surface-diff-skip-base: var(--smoke-light-2);
+  --surface-diff-hidden-base: var(--blue-light-3);
+  --surface-diff-hidden-weak: var(--blue-light-2);
+  --surface-diff-hidden-weaker: var(--blue-light-1);
+  --surface-diff-hidden-strong: var(--blue-light-5);
+  --surface-diff-hidden-stronger: var(--blue-light-9);
+  --surface-diff-add-base: #dafbe0;
+  --surface-diff-add-weak: var(--mint-light-2);
+  --surface-diff-add-weaker: var(--mint-light-1);
+  --surface-diff-add-strong: var(--mint-light-5);
+  --surface-diff-add-stronger: var(--mint-light-9);
+  --surface-diff-delete-base: var(--ember-light-3);
+  --surface-diff-delete-weak: var(--ember-light-2);
+  --surface-diff-delete-weaker: var(--ember-light-1);
+  --surface-diff-delete-strong: var(--ember-light-6);
+  --surface-diff-delete-stronger: var(--ember-light-9);
+  --input-base: var(--smoke-light-1);
+  --input-hover: var(--smoke-light-2);
+  --input-active: var(--cobalt-light-1);
+  --input-selected: var(--cobalt-light-4);
+  --input-focus: var(--cobalt-light-1);
+  --input-disabled: var(--smoke-light-4);
+  --text-base: var(--smoke-light-11);
+  --text-weak: var(--smoke-light-9);
+  --text-weaker: var(--smoke-light-8);
+  --text-strong: var(--smoke-light-12);
+  --text-invert-base: var(--smoke-dark-alpha-11);
+  --text-invert-weak: var(--smoke-dark-alpha-9);
+  --text-invert-weaker: var(--smoke-dark-alpha-8);
+  --text-invert-strong: var(--smoke-dark-alpha-12);
+  --text-interactive-base: var(--cobalt-light-9);
+  --text-on-brand-base: var(--smoke-light-alpha-11);
+  --text-on-interactive-base: var(--smoke-light-1);
+  --text-on-interactive-weak: var(--smoke-dark-alpha-11);
+  --text-on-success-base: var(--apple-light-10);
+  --text-on-critical-base: var(--ember-light-10);
+  --text-on-critical-weak: var(--ember-light-8);
+  --text-on-critical-strong: var(--ember-light-12);
+  --text-on-warning-base: var(--smoke-dark-alpha-11);
+  --text-on-info-base: var(--smoke-dark-alpha-11);
+  --text-diff-add-base: var(--mint-light-11);
+  --text-diff-delete-base: var(--ember-light-10);
+  --text-diff-delete-strong: var(--ember-light-12);
+  --text-diff-add-strong: var(--mint-light-12);
+  --text-on-info-weak: var(--smoke-dark-alpha-9);
+  --text-on-info-strong: var(--smoke-dark-alpha-12);
+  --text-on-warning-weak: var(--smoke-dark-alpha-9);
+  --text-on-warning-strong: var(--smoke-dark-alpha-12);
+  --text-on-success-weak: var(--apple-light-6);
+  --text-on-success-strong: var(--apple-light-12);
+  --text-on-brand-weak: var(--smoke-light-alpha-9);
+  --text-on-brand-weaker: var(--smoke-light-alpha-8);
+  --text-on-brand-strong: var(--smoke-light-alpha-12);
+  --button-secondary-base: #fdfcfc;
+  --button-secondary-hover: #faf9f9;
+  --button-ghost-hover: var(--smoke-light-alpha-2);
+  --button-ghost-hover2: var(--smoke-light-alpha-3);
+  --border-base: var(--smoke-light-alpha-7);
+  --border-hover: var(--smoke-light-alpha-8);
+  --border-active: var(--smoke-light-alpha-9);
+  --border-selected: var(--cobalt-light-alpha-9);
+  --border-disabled: var(--smoke-light-alpha-8);
+  --border-focus: var(--smoke-light-alpha-9);
+  --border-weak-base: var(--smoke-light-alpha-5);
+  --border-strong-base: var(--smoke-light-alpha-7);
+  --border-strong-hover: var(--smoke-light-alpha-8);
+  --border-strong-active: var(--smoke-light-alpha-7);
+  --border-strong-selected: var(--cobalt-light-alpha-6);
+  --border-strong-disabled: var(--smoke-light-alpha-6);
+  --border-strong-focus: var(--smoke-light-alpha-7);
+  --border-weak-hover: var(--smoke-light-alpha-6);
+  --border-weak-active: var(--smoke-light-alpha-7);
+  --border-weak-selected: var(--cobalt-light-alpha-5);
+  --border-weak-disabled: var(--smoke-light-alpha-6);
+  --border-weak-focus: var(--smoke-light-alpha-7);
+  --border-weaker-base: var(--smoke-light-alpha-3);
+  --border-weaker-hover: var(--smoke-light-alpha-4);
+  --border-weaker-active: var(--smoke-light-alpha-6);
+  --border-weaker-selected: var(--cobalt-light-alpha-4);
+  --border-weaker-disabled: var(--smoke-light-alpha-2);
+  --border-weaker-focus: var(--smoke-light-alpha-6);
+  --border-interactive-base: var(--cobalt-light-7);
+  --border-interactive-hover: var(--cobalt-light-8);
+  --border-interactive-active: var(--cobalt-light-9);
+  --border-interactive-selected: var(--cobalt-light-9);
+  --border-interactive-disabled: var(--smoke-light-8);
+  --border-interactive-focus: var(--cobalt-light-9);
+  --border-success-base: var(--apple-light-6);
+  --border-success-hover: var(--apple-light-7);
+  --border-success-selected: var(--apple-light-9);
+  --border-warning-base: var(--solaris-light-6);
+  --border-warning-hover: var(--solaris-light-7);
+  --border-warning-selected: var(--solaris-light-9);
+  --border-critical-base: var(--ember-light-6);
+  --border-critical-hover: var(--ember-light-7);
+  --border-critical-selected: var(--ember-light-9);
+  --border-info-base: var(--lilac-light-6);
+  --border-info-hover: var(--lilac-light-7);
+  --border-info-selected: var(--lilac-light-9);
+  --border-color: #ffffff;
+  --icon-base: var(--smoke-light-9);
+  --icon-hover: var(--smoke-light-11);
+  --icon-active: var(--smoke-light-12);
+  --icon-selected: var(--smoke-light-12);
+  --icon-disabled: var(--smoke-light-8);
+  --icon-focus: var(--smoke-light-12);
+  --icon-invert-base: #ffffff;
+  --icon-weak-base: var(--smoke-light-7);
+  --icon-weak-hover: var(--smoke-light-8);
+  --icon-weak-active: var(--smoke-light-9);
+  --icon-weak-selected: var(--smoke-light-10);
+  --icon-weak-disabled: var(--smoke-light-6);
+  --icon-weak-focus: var(--smoke-light-9);
+  --icon-strong-base: var(--smoke-light-12);
+  --icon-strong-hover: #151313;
+  --icon-strong-active: #020202;
+  --icon-strong-selected: #020202;
+  --icon-strong-disabled: var(--smoke-light-8);
+  --icon-strong-focus: #020202;
+  --icon-brand-base: var(--smoke-light-12);
+  --icon-interactive-base: var(--cobalt-light-9);
+  --icon-success-base: var(--apple-light-7);
+  --icon-success-hover: var(--apple-light-8);
+  --icon-success-active: var(--apple-light-11);
+  --icon-warning-base: var(--amber-light-7);
+  --icon-warning-hover: var(--amber-light-8);
+  --icon-warning-active: var(--amber-light-11);
+  --icon-critical-base: var(--ember-light-10);
+  --icon-critical-hover: var(--ember-light-11);
+  --icon-critical-active: var(--ember-light-12);
+  --icon-info-base: var(--lilac-light-7);
+  --icon-info-hover: var(--lilac-light-8);
+  --icon-info-active: var(--lilac-light-11);
+  --icon-on-brand-base: var(--smoke-light-alpha-11);
+  --icon-on-brand-hover: var(--smoke-light-alpha-12);
+  --icon-on-brand-selected: var(--smoke-light-alpha-12);
+  --icon-on-interactive-base: var(--smoke-light-1);
+  --icon-agent-plan-base: var(--purple-light-9);
+  --icon-agent-docs-base: var(--amber-light-9);
+  --icon-agent-ask-base: var(--cyan-light-9);
+  --icon-agent-build-base: var(--cobalt-light-9);
+  --icon-on-success-base: var(--apple-light-alpha-9);
+  --icon-on-success-hover: var(--apple-light-alpha-10);
+  --icon-on-success-selected: var(--apple-light-alpha-11);
+  --icon-on-warning-base: var(--amber-lightalpha-9);
+  --icon-on-warning-hover: var(--amber-lightalpha-10);
+  --icon-on-warning-selected: var(--amber-lightalpha-11);
+  --icon-on-critical-base: var(--ember-light-alpha-9);
+  --icon-on-critical-hover: var(--ember-light-alpha-10);
+  --icon-on-critical-selected: var(--ember-light-alpha-11);
+  --icon-on-info-base: var(--lilac-light-9);
+  --icon-on-info-hover: var(--lilac-light-alpha-10);
+  --icon-on-info-selected: var(--lilac-light-alpha-11);
+  --icon-diff-add-base: var(--mint-light-11);
+  --icon-diff-add-hover: var(--mint-light-12);
+  --icon-diff-add-active: var(--mint-light-12);
+  --icon-diff-delete-base: var(--ember-light-10);
+  --icon-diff-delete-hover: var(--ember-light-11);
+  --icon-diff-modified-base: #FF8C00;
+  --syntax-comment: var(--text-weak);
+  --syntax-regexp: var(--text-base);
+  --syntax-string: #006656;
+  --syntax-keyword: var(--text-weak);
+  --syntax-primitive: #fb4804;
+  --syntax-operator: var(--text-base);
+  --syntax-variable: var(--text-strong);
+  --syntax-property: #ed6dc8;
+  --syntax-type: #596600;
+  --syntax-constant: #007b80;
+  --syntax-punctuation: var(--text-base);
+  --syntax-object: var(--text-strong);
+  --syntax-success: var(--apple-light-10);
+  --syntax-warning: var(--amber-light-10);
+  --syntax-critical: var(--ember-light-10);
+  --syntax-info: #0092a8;
+  --syntax-diff-add: var(--mint-light-11);
+  --syntax-diff-delete: var(--ember-light-11);
+  --syntax-diff-unknown: #ff0000;
+  --markdown-heading: #d68c27;
+  --markdown-text: #1a1a1a;
+  --markdown-link: #3b7dd8;
+  --markdown-link-text: #318795;
+  --markdown-code: #3d9a57;
+  --markdown-block-quote: #b0851f;
+  --markdown-emph: #b0851f;
+  --markdown-strong: #d68c27;
+  --markdown-horizontal-rule: #8a8a8a;
+  --markdown-list-item: #3b7dd8;
+  --markdown-list-enumeration: #318795;
+  --markdown-image: #3b7dd8;
+  --markdown-image-text: #318795;
+  --markdown-code-block: #1a1a1a;
+  --avatar-background-pink: #feeef8;
+  --avatar-background-mint: #e1fbf4;
+  --avatar-background-orange: #fff1e7;
+  --avatar-background-purple: #f9f1fe;
+  --avatar-background-cyan: #e7f9fb;
+  --avatar-background-lime: #eefadc;
+  --avatar-text-pink: #cd1d8d;
+  --avatar-text-mint: #147d6f;
+  --avatar-text-orange: #ed5f00;
+  --avatar-text-purple: #8445bc;
+  --avatar-text-cyan: #0894b3;
+  --avatar-text-lime: #5d770d;
+  --button-primary-base: var(--smoke-light-12);
+}</style><style id="opencode-line-comment-styles">
+[data-annotation-slot] {
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+[data-component="line-comment"] {
+  position: absolute;
+  right: 24px;
+  z-index: var(--line-comment-z, 30);
+}
+
+[data-component="line-comment"][data-inline] {
+  position: relative;
+  right: auto;
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+}
+
+[data-component="line-comment"][data-open] {
+  z-index: var(--line-comment-open-z, 100);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-button"] {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--icon-interactive-base);
+  box-shadow: var(--shadow-xs);
+  cursor: default;
+  border: none;
+}
+
+[data-component="line-comment"][data-variant="add"] [data-slot="line-comment-button"] {
+  background: var(--syntax-diff-add);
+}
+
+[data-component="line-comment"] [data-component="icon"] {
+  color: var(--white);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-icon"] {
+  width: 12px;
+  height: 12px;
+  color: var(--white);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-button"]:focus {
+  outline: none;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-button"]:focus-visible {
+  box-shadow: var(--shadow-xs-border-focus);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-popover"] {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: -8px;
+  z-index: var(--line-comment-popover-z, 40);
+  min-width: 200px;
+  max-width: none;
+  border-radius: 8px;
+  background: var(--surface-raised-stronger-non-alpha);
+  box-shadow: var(--shadow-xxs-border);
+  padding: 12px;
+}
+
+[data-component="line-comment"][data-inline] [data-slot="line-comment-popover"] {
+  position: relative;
+  top: auto;
+  right: auto;
+  margin-left: 8px;
+  flex: 0 1 600px;
+  width: min(100%, 600px);
+  max-width: min(100%, 600px);
+}
+
+[data-component="line-comment"][data-inline] [data-slot="line-comment-popover"][data-inline-body] {
+  margin-left: 0;
+}
+
+[data-component="line-comment"][data-inline][data-variant="default"] [data-slot="line-comment-popover"][data-inline-body] {
+  cursor: pointer;
+}
+
+[data-component="line-comment"][data-variant="editor"] [data-slot="line-comment-popover"] {
+  width: 380px;
+  max-width: none;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+[data-component="line-comment"][data-inline][data-variant="editor"] [data-slot="line-comment-popover"] {
+  flex-basis: 600px;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-content"] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-head"] {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-text"] {
+  flex: 1;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-x-large);
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--text-strong);
+  white-space: pre-wrap;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-tools"] {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-label"],
+[data-component="line-comment"] [data-slot="line-comment-editor-label"] {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-large);
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--text-weak);
+  white-space: nowrap;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-editor"] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-textarea"] {
+  width: 100%;
+  resize: vertical;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  border: 1px solid var(--border-base);
+  color: var(--text-strong);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-large);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-textarea"]:focus {
+  outline: none;
+  box-shadow: var(--shadow-xs-border-select);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-actions"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-editor-label"] {
+  margin-right: auto;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-action"] {
+  border: 1px solid var(--border-base);
+  background: var(--surface-base);
+  color: var(--text-strong);
+  border-radius: var(--radius-md);
+  height: 28px;
+  padding: 0 10px;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-action"][data-variant="ghost"] {
+  background: transparent;
+}
+
+[data-component="line-comment"] [data-slot="line-comment-action"][data-variant="primary"] {
+  background: var(--text-strong);
+  border-color: var(--text-strong);
+  color: var(--background-base);
+}
+
+[data-component="line-comment"] [data-slot="line-comment-action"]:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+</style></head>
+  <body class="antialiased overscroll-none text-12-regular overflow-hidden">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root" class="flex flex-col h-dvh p-px"><div class="relative bg-background-base flex-1 min-h-0 flex flex-col select-none [&amp;_input]:select-text [&amp;_textarea]:select-text [&amp;_[contenteditable]]:select-text"><header class="h-10 shrink-0 bg-background-base relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center"><div class="flex items-center min-w-0 pl-2"><div class="xl:hidden w-[48px] shrink-0 flex items-center justify-center"><button type="button" icon="menu" aria-label="Toggle menu" aria-expanded="false" data-component="icon-button" data-icon="menu" data-size="normal" data-variant="ghost" class="titlebar-icon rounded-md"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M2.5 5H17.5M2.5 10H17.5M2.5 15H17.5" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div><div class="flex items-center gap-1 shrink-0"><div data-closed="" data-component="tooltip-trigger" class="hidden xl:flex shrink-0 ml-14"><button type="button" aria-label="Toggle sidebar" aria-expanded="false" data-component="button" data-size="normal" data-variant="ghost" class="group/sidebar-toggle titlebar-icon w-8 h-6 p-0 box-border"><div class="relative flex items-center justify-center size-4 [&amp;&gt;*]:absolute [&amp;&gt;*]:inset-0"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="group-hover/sidebar-toggle:hidden" viewBox="0 0 20 20"><path d="M2.91675 2.91699L2.91675 2.41699L2.41675 2.41699L2.41675 2.91699L2.91675 2.91699ZM17.0834 2.91699L17.5834 2.91699L17.5834 2.41699L17.0834 2.41699L17.0834 2.91699ZM17.0834 17.0837L17.0834 17.5837L17.5834 17.5837L17.5834 17.0837L17.0834 17.0837ZM2.91675 17.0837L2.41675 17.0837L2.41675 17.5837L2.91675 17.5837L2.91675 17.0837ZM7.41674 17.0837L7.41674 17.5837L8.41674 17.5837L8.41674 17.0837L7.91674 17.0837L7.41674 17.0837ZM8.41674 2.91699L8.41674 2.41699L7.41674 2.41699L7.41674 2.91699L7.91674 2.91699L8.41674 2.91699ZM2.91675 2.91699L2.91675 3.41699L17.0834 3.41699L17.0834 2.91699L17.0834 2.41699L2.91675 2.41699L2.91675 2.91699ZM17.0834 2.91699L16.5834 2.91699L16.5834 17.0837L17.0834 17.0837L17.5834 17.0837L17.5834 2.91699L17.0834 2.91699ZM17.0834 17.0837L17.0834 16.5837L2.91675 16.5837L2.91675 17.0837L2.91675 17.5837L17.0834 17.5837L17.0834 17.0837ZM2.91675 17.0837L3.41675 17.0837L3.41675 2.91699L2.91675 2.91699L2.41675 2.91699L2.41675 17.0837L2.91675 17.0837ZM7.91674 17.0837L8.41674 17.0837L8.41674 2.91699L7.91674 2.91699L7.41674 2.91699L7.41674 17.0837L7.91674 17.0837Z" fill="currentColor"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-hover/sidebar-toggle:inline-block" viewBox="0 0 20 20"><path d="M2.91732 2.91602L7.91732 2.91602L7.91732 17.0827H2.91732L2.91732 2.91602Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91732 2.91602L17.084 2.91602M2.91732 2.91602L2.91732 17.0827M2.91732 2.91602L7.91732 2.91602M17.084 2.91602L17.084 17.0827M17.084 2.91602L7.91732 2.91602M17.084 17.0827L2.91732 17.0827M17.084 17.0827L7.91732 17.0827M2.91732 17.0827H7.91732M7.91732 17.0827L7.91732 2.91602" stroke="currentColor" stroke-linecap="square"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-active/sidebar-toggle:inline-block" viewBox="0 0 20 20"><path d="M2.91732 2.91602L7.91732 2.91602L7.91732 17.0827H2.91732L2.91732 2.91602Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91732 2.91602L17.084 2.91602M2.91732 2.91602L2.91732 17.0827M2.91732 2.91602L7.91732 2.91602M17.084 2.91602L17.084 17.0827M17.084 2.91602L7.91732 2.91602M17.084 17.0827L2.91732 17.0827M17.084 17.0827L7.91732 17.0827M2.91732 17.0827H7.91732M7.91732 17.0827L7.91732 2.91602" stroke="currentColor" stroke-linecap="square"></path></svg></div></div></button></div><div class="hidden xl:flex items-center shrink-0"><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-label="New session" data-component="button" data-size="normal" data-variant="ghost" data-icon="new-session" class="titlebar-icon w-8 h-6 p-0 box-border"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M17.0827 17.0807V17.5807H17.5827V17.0807H17.0827ZM2.91602 17.0807H2.41602L2.41602 17.5807H2.91602L2.91602 17.0807ZM2.91602 2.91406V2.41406H2.41602V2.91406H2.91602ZM9.58268 3.41406H10.0827V2.41406L9.58268 2.41406V2.91406V3.41406ZM17.5827 10.4141V9.91406L16.5827 9.91406V10.4141H17.0827H17.5827ZM6.24935 11.2474L5.8958 10.8938L5.74935 11.0403V11.2474H6.24935ZM6.24935 13.7474H5.74935V14.2474H6.24935V13.7474ZM8.74935 13.7474V14.2474H8.95646L9.1029 14.101L8.74935 13.7474ZM15.2077 2.28906L15.5612 1.93551L15.2077 1.58196L14.8541 1.93551L15.2077 2.28906ZM17.7077 4.78906L18.0612 5.14262L18.4148 4.78906L18.0612 4.43551L17.7077 4.78906ZM17.0827 17.0807V16.5807H2.91602V17.0807L2.91602 17.5807H17.0827V17.0807ZM2.91602 17.0807H3.41602L3.41602 2.91406H2.91602H2.41602L2.41602 17.0807H2.91602ZM2.91602 2.91406V3.41406L9.58268 3.41406V2.91406V2.41406L2.91602 2.41406V2.91406ZM17.0827 10.4141H16.5827V17.0807H17.0827H17.5827V10.4141H17.0827ZM6.24935 11.2474H5.74935V13.7474H6.24935H6.74935V11.2474H6.24935ZM6.24935 13.7474V14.2474L8.74935 14.2474V13.7474V13.2474L6.24935 13.2474V13.7474ZM6.24935 11.2474L6.6029 11.6009L15.5612 2.64262L15.2077 2.28906L14.8541 1.93551L5.8958 10.8938L6.24935 11.2474ZM15.2077 2.28906L14.8541 2.64262L17.3541 5.14262L17.7077 4.78906L18.0612 4.43551L15.5612 1.93551L15.2077 2.28906ZM17.7077 4.78906L17.3541 4.43551L8.3958 13.3938L8.74935 13.7474L9.1029 14.101L18.0612 5.14262L17.7077 4.78906Z" fill="currentColor"></path></svg></div></button></div><div class="flex items-center gap-0 ml-1"><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-label="Navigate back" data-component="button" data-size="normal" data-variant="ghost" data-icon="chevron-left" class="titlebar-icon w-6 h-6 p-0 box-border"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M12 15L7 10L12 5" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div><div data-closed="" data-component="tooltip-trigger"><button type="button" disabled="" data-disabled="" aria-label="Navigate forward" data-component="button" data-size="normal" data-variant="ghost" data-icon="chevron-right" class="titlebar-icon w-6 h-6 p-0 box-border"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M8 15L13 10L8 5" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div></div><div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2"></div></div><div class="min-w-0 flex items-center justify-center pointer-events-none"><div id="opencode-titlebar-center" class="pointer-events-auto w-full min-w-0 flex justify-center lg:w-fit"><div><button type="button" aria-label="Search files" data-component="button" data-size="small" data-variant="ghost" class="hidden md:flex w-[240px] max-w-full min-w-0 pl-0.5 pr-2 items-center gap-2 justify-between rounded-md border border-border-weak-base bg-surface-panel shadow-none cursor-default"><div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-visible"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="icon-base shrink-0 size-4" viewBox="0 0 16 16"><path d="M13 13L10.6418 10.6418M11.9552 7.47761C11.9552 9.95053 9.95053 11.9552 7.47761 11.9552C5.0047 11.9552 3 9.95053 3 7.47761C3 5.0047 5.0047 3 7.47761 3C9.95053 3 11.9552 5.0047 11.9552 7.47761Z" stroke="currentColor" stroke-linecap="square" vector-effect="non-scaling-stroke"></path></svg></div><span class="flex-1 min-w-0 text-12-regular text-text-weak truncate text-left">Search node-commons</span></div><span data-component="keybind" class="shrink-0 !border-0 !bg-transparent !shadow-none px-0">⌘P</span></button></div></div></div><div class="flex items-center min-w-0 justify-end pr-2"><div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end"><div><div class="flex items-center gap-2"><button type="button" aria-haspopup="dialog" aria-expanded="false" data-closed="" data-slot="popover-trigger" data-component="button" data-size="normal" data-variant="ghost" class="rounded-md h-[24px] pr-3 pl-0.5 gap-2 border border-border-weak-base bg-surface-panel shadow-none data-[expanded]:bg-surface-base-active" style="scale: 1;"><div class="flex items-center gap-0.5"><div class="size-4 flex items-center justify-center"><div class="size-1.5 rounded-full bg-icon-success-base"></div></div><span class="text-12-regular text-text-strong">Status</span></div></button><div class="hidden xl:flex items-center"><div class="flex h-[24px] box-border items-center rounded-md border border-border-weak-base bg-surface-panel overflow-hidden"><button type="button" aria-label="Copy path" data-component="button" data-size="normal" data-variant="ghost" class="rounded-none h-full py-0 pr-3 pl-0.5 gap-1.5 border-none shadow-none"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="text-icon-base" viewBox="0 0 20 20"><path d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z" stroke="currentColor" stroke-linecap="round"></path></svg></div><span class="text-12-regular text-text-strong">Copy path</span></button></div></div><div class="flex items-center gap-1"><div class="hidden md:flex items-center gap-1 shrink-0"><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-label="Toggle terminal" aria-expanded="false" aria-controls="terminal-panel" data-component="button" data-size="normal" data-variant="ghost" class="group/terminal-toggle titlebar-icon w-8 h-6 p-0 box-border"><div class="relative flex items-center justify-center size-4 [&amp;&gt;*]:absolute [&amp;&gt;*]:inset-0"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="group-hover/terminal-toggle:hidden" viewBox="0 0 20 20"><path d="M2.91699 17.0832L2.41699 17.0832L2.41699 17.5832L2.91699 17.5832L2.91699 17.0832ZM2.91699 2.91653L2.91699 2.41653L2.41699 2.41653L2.41699 2.91653L2.91699 2.91653ZM17.0837 2.91653L17.5837 2.91653L17.5837 2.41653L17.0837 2.41653L17.0837 2.91653ZM17.0837 17.0832L17.5837 17.0832L17.5837 17.5832L17.0837 17.5832L17.0837 17.0832ZM17.0837 12.5827L17.5837 12.5827L17.5837 11.5827L17.0837 11.5827L17.0837 12.0827L17.0837 12.5827ZM2.91699 11.5827L2.41699 11.5827L2.41699 12.5827L2.91699 12.5827L2.91699 12.0827L2.91699 11.5827ZM2.91699 17.0832L3.41699 17.0832L3.41699 2.91653L2.91699 2.91653L2.41699 2.91653L2.41699 17.0832L2.91699 17.0832ZM2.91699 2.91653L2.91699 3.41653L17.0837 3.41653L17.0837 2.91653L17.0837 2.41653L2.91699 2.41653L2.91699 2.91653ZM17.0837 2.91653L16.5837 2.91653L16.5837 17.0832L17.0837 17.0832L17.5837 17.0832L17.5837 2.91653L17.0837 2.91653ZM17.0837 17.0832L17.0837 16.5832L2.91699 16.5832L2.91699 17.0832L2.91699 17.5832L17.0837 17.5832L17.0837 17.0832ZM17.0837 12.0827L17.0837 11.5827L2.91699 11.5827L2.91699 12.0827L2.91699 12.5827L17.0837 12.5827L17.0837 12.0827Z" fill="currentColor"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-hover/terminal-toggle:inline-block" viewBox="0 0 20 20"><path d="M2.91732 12.0827L17.084 12.0827L17.084 17.0827H2.91732L2.91732 12.0827Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91732 2.91602L17.084 2.91602M2.91732 2.91602L2.91732 17.0827M17.084 2.91602L17.084 17.0827M17.084 17.0827L2.91732 17.0827M2.91732 12.0827L17.084 12.0827" stroke="currentColor" stroke-linecap="square"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-active/terminal-toggle:inline-block" viewBox="0 0 20 20"><path d="M2.91732 12.0827L17.084 12.0827L17.084 17.0827H2.91732L2.91732 12.0827Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91732 2.91602L17.084 2.91602M2.91732 2.91602L2.91732 17.0827M17.084 2.91602L17.084 17.0827M17.084 17.0827L2.91732 17.0827M2.91732 12.0827L17.084 12.0827" stroke="currentColor" stroke-linecap="square"></path></svg></div></div></button></div><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-label="Toggle review" aria-expanded="true" aria-controls="review-panel" data-component="button" data-size="normal" data-variant="ghost" class="group/review-toggle titlebar-icon w-8 h-6 p-0 box-border"><div class="relative flex items-center justify-center size-4 [&amp;&gt;*]:absolute [&amp;&gt;*]:inset-0"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="group-hover/review-toggle:hidden" viewBox="0 0 20 20"><path d="M17.082 17.0807L6.9987 17.0807V2.91406H17.082V17.0807Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91536 2.91406H2.36536V2.36406H2.91536V2.91406ZM2.91536 17.0807V17.6307H2.36536V17.0807H2.91536ZM17.082 17.0807H17.632V17.6307H17.082V17.0807ZM17.082 2.91406V2.36406H17.632V2.91406H17.082ZM6.9987 2.91406H6.4487V2.36406H6.9987V2.91406ZM6.9987 17.0807V17.6307H6.4487V17.0807H6.9987ZM2.91536 2.91406H3.46536V17.0807H2.91536H2.36536V2.91406H2.91536ZM2.91536 17.0807V16.5307H17.082V17.0807V17.6307H2.91536V17.0807ZM17.082 17.0807H16.532V2.91406H17.082H17.632V17.0807H17.082ZM17.082 2.91406V3.46406H2.91536V2.91406V2.36406H17.082V2.91406ZM6.9987 2.91406H7.5487V17.0807H6.9987H6.4487V2.91406H6.9987ZM17.082 17.0807L17.082 17.6307L6.9987 17.6307V17.0807V16.5307L17.082 16.5307L17.082 17.0807ZM6.9987 2.91406V2.36406H17.082V2.91406V3.46406H6.9987V2.91406Z" fill="currentColor"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-hover/review-toggle:inline-block" viewBox="0 0 20 20"><path d="M17.082 17.0807L6.9987 17.0807V2.91406H17.082V17.0807Z" fill="currentColor" fill-opacity="16%"></path><path d="M2.91536 2.91406H2.36536V2.36406H2.91536V2.91406ZM2.91536 17.0807V17.6307H2.36536V17.0807H2.91536ZM17.082 17.0807H17.632V17.6307H17.082V17.0807ZM17.082 2.91406V2.36406H17.632V2.91406H17.082ZM6.9987 2.91406H6.4487V2.36406H6.9987V2.91406ZM6.9987 17.0807V17.6307H6.4487V17.0807H6.9987ZM2.91536 2.91406H3.46536V17.0807H2.91536H2.36536V2.91406H2.91536ZM2.91536 17.0807V16.5307H17.082V17.0807V17.6307H2.91536V17.0807ZM17.082 17.0807H16.532V2.91406H17.082H17.632V17.0807H17.082ZM17.082 2.91406V3.46406H2.91536V2.91406V2.36406H17.082V2.91406ZM6.9987 2.91406H7.5487V17.0807H6.9987H6.4487V2.91406H6.9987ZM17.082 17.0807L17.082 17.6307L6.9987 17.6307V17.0807V16.5307L17.082 16.5307L17.082 17.0807ZM6.9987 2.91406V2.36406H17.082V2.91406V3.46406H6.9987V2.91406Z" fill="currentColor"></path></svg></div><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="hidden group-active/review-toggle:inline-block" viewBox="0 0 20 20"><path d="M2.91536 2.91406H2.36536V2.36406H2.91536V2.91406ZM2.91536 17.0807V17.6307H2.36536V17.0807H2.91536ZM17.082 17.0807H17.632V17.6307H17.082V17.0807ZM17.082 2.91406V2.36406H17.632V2.91406H17.082ZM6.9987 2.91406H6.4487V2.36406H6.9987V2.91406ZM6.9987 17.0807V17.6307H6.4487V17.0807H6.9987ZM2.91536 2.91406H3.46536V17.0807H2.91536H2.36536V2.91406H2.91536ZM2.91536 17.0807V16.5307H17.082V17.0807V17.6307H2.91536V17.0807ZM17.082 17.0807H16.532V2.91406H17.082H17.632V17.0807H17.082ZM17.082 2.91406V3.46406H2.91536V2.91406V2.36406H17.082V2.91406ZM6.9987 2.91406H7.5487V17.0807H6.9987H6.4487V2.91406H6.9987ZM17.082 17.0807L17.082 17.6307L6.9987 17.6307V17.0807V16.5307L17.082 16.5307L17.082 17.0807ZM6.9987 2.91406V2.36406H17.082V2.91406V3.46406H6.9987V2.91406Z" fill="currentColor"></path></svg></div></div></button></div><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-label="Toggle file tree" aria-expanded="true" aria-controls="file-tree-panel" data-component="button" data-size="normal" data-variant="ghost" class="titlebar-icon w-8 h-6 p-0 box-border"><div class="relative flex items-center justify-center size-4"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="text-icon-strong" viewBox="0 0 20 20"><path d="M6.66536 9.58594L4.58203 16.6693H16.457L18.5404 9.58594H17.082H6.66536Z" fill="currentColor" fill-opacity="16%"></path><path d="M4.58203 16.6693L6.66536 9.58594H17.082M4.58203 16.6693H16.457L18.5404 9.58594H17.082M4.58203 16.6693H2.08203V3.33594H8.33203L9.9987 5.83594H17.082V9.58594" stroke="currentColor" stroke-linecap="round"></path></svg></div></div></button></div></div></div></div></div></div></div></header><div class="flex-1 min-h-0 flex"><nav data-component="sidebar-nav-desktop" class="hidden xl:block relative shrink-0" aria-label="Projects and sessions" style="width: 64px;"><div class="@container w-full h-full contain-strict"><div class="flex h-full w-full overflow-hidden"><div class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"><div class="flex-1 min-h-0 w-full"><div class="h-full w-full flex flex-col items-center gap-3 px-3 py-3 overflow-y-auto no-scrollbar"><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="plus" aria-label="Open project" data-component="icon-button" data-icon="plus" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M9.9987 2.20703V9.9987M9.9987 9.9987V17.7904M9.9987 9.9987H2.20703M9.9987 9.9987H17.7904" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div><div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2"><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="settings-gear" aria-label="Settings" data-component="icon-button" data-icon="settings-gear" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M7.62516 4.46094L5.05225 3.86719L3.86475 5.05469L4.4585 7.6276L2.0835 9.21094V10.7943L4.4585 12.3776L3.86475 14.9505L5.05225 16.138L7.62516 15.5443L9.2085 17.9193H10.7918L12.3752 15.5443L14.9481 16.138L16.1356 14.9505L15.5418 12.3776L17.9168 10.7943V9.21094L15.5418 7.6276L16.1356 5.05469L14.9481 3.86719L12.3752 4.46094L10.7918 2.08594H9.2085L7.62516 4.46094Z" stroke="currentColor"></path><path d="M12.5002 10.0026C12.5002 11.3833 11.3809 12.5026 10.0002 12.5026C8.61945 12.5026 7.50016 11.3833 7.50016 10.0026C7.50016 8.62189 8.61945 7.5026 10.0002 7.5026C11.3809 7.5026 12.5002 8.62189 12.5002 10.0026Z" stroke="currentColor"></path></svg></div></button></div><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="help" aria-label="Help" data-component="icon-button" data-icon="help" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M7.91683 7.91927V6.2526H12.0835V8.7526L10.0002 10.0026V12.0859M10.0002 13.7526V13.7609M17.9168 10.0026C17.9168 14.3749 14.3724 17.9193 10.0002 17.9193C5.62791 17.9193 2.0835 14.3749 2.0835 10.0026C2.0835 5.63035 5.62791 2.08594 10.0002 2.08594C14.3724 2.08594 17.9168 5.63035 17.9168 10.0026Z" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div></div></div></nav><div class="xl:hidden"><div class="fixed inset-x-0 top-10 bottom-0 z-40 transition-opacity duration-200 opacity-0 pointer-events-none"></div><nav data-component="sidebar-nav-mobile" aria-label="Projects and sessions" class="@container fixed top-10 bottom-0 left-0 z-50 w-72 bg-background-base transition-transform duration-200 ease-out -translate-x-full"><div class="flex h-full w-full overflow-hidden"><div class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"><div class="flex-1 min-h-0 w-full"><div class="h-full w-full flex flex-col items-center gap-3 px-3 py-3 overflow-y-auto no-scrollbar"><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="plus" aria-label="Open project" data-component="icon-button" data-icon="plus" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M9.9987 2.20703V9.9987M9.9987 9.9987V17.7904M9.9987 9.9987H2.20703M9.9987 9.9987H17.7904" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div><div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2"><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="settings-gear" aria-label="Settings" data-component="icon-button" data-icon="settings-gear" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M7.62516 4.46094L5.05225 3.86719L3.86475 5.05469L4.4585 7.6276L2.0835 9.21094V10.7943L4.4585 12.3776L3.86475 14.9505L5.05225 16.138L7.62516 15.5443L9.2085 17.9193H10.7918L12.3752 15.5443L14.9481 16.138L16.1356 14.9505L15.5418 12.3776L17.9168 10.7943V9.21094L15.5418 7.6276L16.1356 5.05469L14.9481 3.86719L12.3752 4.46094L10.7918 2.08594H9.2085L7.62516 4.46094Z" stroke="currentColor"></path><path d="M12.5002 10.0026C12.5002 11.3833 11.3809 12.5026 10.0002 12.5026C8.61945 12.5026 7.50016 11.3833 7.50016 10.0026C7.50016 8.62189 8.61945 7.5026 10.0002 7.5026C11.3809 7.5026 12.5002 8.62189 12.5002 10.0026Z" stroke="currentColor"></path></svg></div></button></div><div data-closed="" data-component="tooltip-trigger"><button type="button" icon="help" aria-label="Help" data-component="icon-button" data-icon="help" data-size="large" data-variant="ghost"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M7.91683 7.91927V6.2526H12.0835V8.7526L10.0002 10.0026V12.0859M10.0002 13.7526V13.7609M17.9168 10.0026C17.9168 14.3749 14.3724 17.9193 10.0002 17.9193C5.62791 17.9193 2.0835 14.3749 2.0835 10.0026C2.0835 5.63035 5.62791 2.08594 10.0002 2.08594C14.3724 2.08594 17.9168 5.63035 17.9168 10.0026Z" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div><div class="flex flex-col min-h-0 bg-background-stronger border border-b-0 border-border-weak-base rounded-tl-[12px] flex-1 min-w-0"><div class="shrink-0 px-2 py-3 border-t border-border-weak-base hidden"><div class="rounded-md bg-background-base shadow-xs-border-base"><div class="p-3 flex flex-col gap-2"><div class="text-12-medium text-text-strong">Getting started</div><div class="text-text-base">OpenCode includes free models so you can start immediately.</div><div class="text-text-base">Connect any provider to use models, inc. Claude, GPT, Gemini etc.</div></div><button type="button" data-component="button" data-size="large" data-variant="secondary" data-icon="plus" class="flex w-full text-left justify-start text-12-medium text-text-strong stroke-[1.5px] rounded-md rounded-t-none shadow-none border-t border-border-weak-base px-3"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M9.9987 2.20703V9.9987M9.9987 9.9987V17.7904M9.9987 9.9987H2.20703M9.9987 9.9987H17.7904" stroke="currentColor" stroke-linecap="square"></path></svg></div>Connect provider</button></div></div></div></div></nav></div><main class="size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base xl:border-l xl:rounded-tl-[12px]"><div class="relative bg-background-base size-full overflow-hidden flex flex-col"><div class="flex-1 min-h-0 flex flex-col md:flex-row"><div class="@container relative shrink-0 flex flex-col min-h-0 h-full bg-background-stronger flex-1 md:flex-none" style="width: 600px;"><div class="flex-1 min-h-0 overflow-hidden"></div><div data-component="session-prompt-dock" class="shrink-0 w-full pb-3 flex flex-col justify-center items-center bg-background-stronger pointer-events-none"><div class="w-full px-3 pointer-events-auto"><div class="relative z-10 transition-[margin] duration-[400ms] ease-out mt-0"><div class="relative size-full _max-h-[320px] flex flex-col gap-0"><form data-dock-surface="shell" class="group/prompt-input focus-within:shadow-xs-border"><div class="relative"><div class="relative max-h-[240px] overflow-y-auto no-scrollbar"><div data-component="prompt-input" role="textbox" aria-multiline="true" contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Ask anything... &quot;Add logging throughout the codebase&quot;" class="select-text w-full pl-3 pr-2 pt-2 pb-11 text-14-regular text-text-strong focus:outline-none whitespace-pre-wrap [&amp;_[data-type=file]]:text-syntax-property [&amp;_[data-type=agent]]:text-syntax-type" style=""></div><div class="absolute top-0 inset-x-0 pl-3 pr-2 pt-2 pb-11 text-14-regular text-text-weak pointer-events-none whitespace-nowrap truncate">Ask anything... "Add logging throughout the codebase"</div></div><div class="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2"><input type="file" class="hidden" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" style=""><div class="flex items-center gap-1 transition-all duration-200 ease-out opacity-100 translate-y-0 scale-100 pointer-events-auto" aria-hidden="false"><div data-closed="" data-component="tooltip-trigger"><button type="button" data-action="prompt-attach" aria-label="Add file" data-component="button" data-size="normal" data-variant="ghost" class="size-8 p-0"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="size-4.5" viewBox="0 0 20 20"><path d="M9.9987 2.20703V9.9987M9.9987 9.9987V17.7904M9.9987 9.9987H2.20703M9.9987 9.9987H17.7904" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div><button type="submit" disabled="" data-disabled="" data-action="prompt-submit" icon="arrow-up" aria-label="Send" data-component="icon-button" data-icon="arrow-up" data-size="normal" data-variant="primary" class="size-8"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.99991 2.24121L16.0921 8.33343L15.2083 9.21731L10.6249 4.63397V17.5001H9.37492V4.63398L4.7916 9.21731L3.90771 8.33343L9.99991 2.24121Z" fill="currentColor"></path></svg></div></button></div></div><div class="pointer-events-none absolute bottom-2 left-2"><div class="pointer-events-auto"><div data-closed="" data-component="tooltip-trigger"><button type="button" data-action="prompt-permissions" aria-label="Stop auto-accepting permissions" aria-pressed="true" data-component="button" data-size="normal" data-variant="ghost" class="size-6 flex items-center justify-center hover:bg-surface-success-base"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20" class="text-icon-success-base"><path d="M11.6654 13.3346L14.9987 10.0013L11.6654 6.66797M5.83203 13.3346L9.16536 10.0013L5.83203 6.66797" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div></div></form><div data-dock-surface="tray" data-dock-attach="top"><div class="px-1.75 pt-5.5 pb-2 flex items-center gap-2 min-w-0"><div class="flex items-center gap-1.5 min-w-0 flex-1"><div data-closed="" data-component="tooltip-trigger"><div role="group" id="select-cl-17" data-closed="" size="normal" variant="ghost" data-component="select"><button type="button" id="select-cl-17-trigger" aria-haspopup="listbox" aria-expanded="false" data-closed="" data-slot="select-select-trigger" data-component="button" data-size="normal" data-variant="ghost" class="capitalize max-w-[160px]" aria-labelledby="select-cl-17-value" style="height: 28px;"><span id="select-cl-17-value" data-slot="select-select-trigger-value" class="truncate text-13-regular">plan</span><span aria-hidden="true" data-closed="" data-slot="select-select-trigger-icon"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M6.6665 8.33325L9.99984 11.6666L13.3332 8.33325" stroke="currentColor" stroke-linecap="square"></path></svg></div></span></button></div></div><div data-closed="" data-component="tooltip-trigger"><button type="button" aria-haspopup="dialog" aria-expanded="false" data-closed="" data-component="button" data-size="normal" data-variant="ghost" class="min-w-0 max-w-[320px] text-13-regular group" style="height: 28px;"><svg data-component="provider-icon" class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150" style="will-change: opacity; transform: translateZ(0px);"><use href="/assets/sprite-B0ryth1W.svg#github-copilot"></use></svg><span class="truncate">Claude Opus 4.6</span><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="shrink-0" viewBox="0 0 20 20"><path d="M6.6665 8.33325L9.99984 11.6666L13.3332 8.33325" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div><div data-closed="" data-component="tooltip-trigger"><div role="group" id="select-cl-22" data-closed="" size="normal" variant="ghost" data-component="select"><button type="button" id="select-cl-22-trigger" aria-haspopup="listbox" aria-expanded="false" data-closed="" data-slot="select-select-trigger" data-component="button" data-size="normal" data-variant="ghost" class="capitalize max-w-[160px]" aria-labelledby="select-cl-22-value" style="height: 28px;"><span id="select-cl-22-value" data-slot="select-select-trigger-value" class="truncate text-13-regular">Default</span><span aria-hidden="true" data-closed="" data-slot="select-select-trigger-icon"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M6.6665 8.33325L9.99984 11.6666L13.3332 8.33325" stroke="currentColor" stroke-linecap="square"></path></svg></div></span></button></div></div></div><div class="shrink-0"><div role="radiogroup" id="radiogroup-cl-24" aria-orientation="horizontal" data-component="radio-group" data-size="medium" data-fill="" data-pad="none" class="w-[68px]"><div role="presentation" data-slot="radio-group-wrapper"><div role="presentation" data-resizing="false" data-orientation="horizontal" data-slot="radio-group-indicator" style="width: 32px; height: 28px; transform: translate(36px, 0px); transition-duration: 0ms;"></div><div role="presentation" data-slot="radio-group-items"><div role="group" id="radiogroup-cl-24-item-cl-26" data-slot="radio-group-item" data-value="shell"><input type="radio" name="radiogroup-cl-24" value="shell" id="radiogroup-cl-24-item-cl-26-input" data-slot="radio-group-item-input" aria-labelledby="radiogroup-cl-24-item-cl-26-label" style="border: 0px; clip: rect(0px, 0px, 0px, 0px); clip-path: inset(50%); height: 1px; margin: 0px -1px -1px 0px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;"><label id="radiogroup-cl-24-item-cl-26-label" data-slot="radio-group-item-label" for="radiogroup-cl-24-item-cl-26-input"><span data-slot="radio-group-item-control"><div data-closed="" data-component="tooltip-trigger" class="size-full flex items-center justify-center"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="text-icon-weak size-[18px]" viewBox="0 0 20 20"><path d="M3.75 5.4165L8.33333 9.99984L3.75 14.5832M10.4167 14.5832H16.25" stroke="currentColor" stroke-linecap="square"></path></svg></div></div></span></label></div><div role="group" data-checked="" id="radiogroup-cl-24-item-cl-28" data-slot="radio-group-item" data-value="normal"><input type="radio" name="radiogroup-cl-24" value="normal" data-checked="" id="radiogroup-cl-24-item-cl-28-input" data-slot="radio-group-item-input" aria-labelledby="radiogroup-cl-24-item-cl-28-label" style="border: 0px; clip: rect(0px, 0px, 0px, 0px); clip-path: inset(50%); height: 1px; margin: 0px -1px -1px 0px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;"><label data-checked="" id="radiogroup-cl-24-item-cl-28-label" data-slot="radio-group-item-label" for="radiogroup-cl-24-item-cl-28-input"><span data-slot="radio-group-item-control"><div data-closed="" data-component="tooltip-trigger" class="size-full flex items-center justify-center"><div data-component="icon" data-size="normal"><svg data-slot="icon-svg" fill="none" aria-hidden="true" class="text-icon-strong-base size-[18px]" viewBox="0 0 20 20"><path d="M14.5841 12.0807H17.9193V2.91406H5.6276V6.2474M14.5859 6.2474H2.08594V15.4141H5.0026V17.4974L8.7526 15.4141H14.5859V6.2474Z" stroke="currentColor" stroke-linecap="square"></path></svg></div></div></span></label></div></div></div></div></div></div></div></div></div></div></div><div data-component="resize-handle" data-direction="horizontal" data-edge="end"></div></div><aside id="review-panel" class="relative min-w-0 h-full border-l border-border-weak-base flex flex-1" aria-label="Review and files"><div class="flex-1 min-w-0 h-full"><div id="tabs-cl-30" data-component="tabs" data-variant="normal" data-orientation="horizontal"><div class="sticky top-0 shrink-0 flex"><div role="tablist" aria-orientation="horizontal" data-orientation="horizontal" data-slot="tabs-list"><div data-slot="tabs-trigger-wrapper" data-value="review"><button id="tabs-cl-30-trigger-review" role="tab" aria-selected="true" data-key="review" data-orientation="horizontal" type="button" data-slot="tabs-trigger" data-value="review" tabindex="0" data-highlighted="" aria-controls="tabs-cl-30-content-review" data-selected=""><div class="flex items-center gap-1.5"><div>Review</div></div></button></div><div class="bg-background-stronger h-full shrink-0 sticky right-0 z-10 flex items-center justify-center pr-3"><div data-closed="" data-component="tooltip-trigger" class="flex items-center"><button type="button" icon="plus-small" aria-label="Open file" data-component="icon-button" data-icon="plus-small" data-size="normal" data-variant="ghost" class="!rounded-md"><div data-component="icon" data-size="large"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M9.99984 5.41699V10.0003M9.99984 10.0003V14.5837M9.99984 10.0003H5.4165M9.99984 10.0003H14.5832" stroke="currentColor" stroke-linecap="square"></path></svg></div></button></div></div></div></div><div id="tabs-cl-30-content-review" role="tabpanel" aria-labelledby="tabs-cl-30-trigger-review" data-orientation="horizontal" data-selected="" data-slot="tabs-content" class="flex flex-col h-full overflow-hidden contain-strict"><div class="flex flex-col h-full overflow-hidden bg-background-stronger contain-strict"><div class="relative pt-2 flex-1 min-h-0 overflow-hidden"><div class="scroll-view pb-6 pr-3" data-component="session-review"><div class="scroll-view__viewport" tabindex="0" role="region" aria-label="scrollable content"><div data-slot="session-review-header" class="px-3"><div data-slot="session-review-title"><div role="group" id="select-cl-44" data-closed="" variant="ghost" size="small" data-component="select"><button type="button" id="select-cl-44-trigger" aria-haspopup="listbox" aria-expanded="false" data-closed="" data-slot="select-select-trigger" data-component="button" data-size="small" data-variant="ghost" aria-labelledby="select-cl-44-value"><span id="select-cl-44-value" data-slot="select-select-trigger-value" class="text-14-medium">Session changes</span><span aria-hidden="true" data-closed="" data-slot="select-select-trigger-icon"><div data-component="icon" data-size="small"><svg data-slot="icon-svg" fill="none" aria-hidden="true" viewBox="0 0 20 20"><path d="M6.6665 8.33325L9.99984 11.6666L13.3332 8.33325" stroke="currentColor" stroke-linecap="square"></path></svg></div></span></button></div></div><div data-slot="session-review-actions"></div></div><div data-slot="session-review-container" class="pl-3"><div class="h-full pb-30 flex flex-col items-center justify-center text-center gap-6"><svg data-component="logo-mark" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-14 opacity-10"><path data-slot="logo-logo-mark-shadow" d="M12 16H4V8H12V16Z" fill="var(--icon-weak-base)"></path><path data-slot="logo-logo-mark-o" d="M12 4H4V16H12V4ZM16 20H0V0H16V20Z" fill="var(--icon-strong-base)"></path></svg><div class="text-14-regular text-text-weak max-w-56">No changes in this session yet</div></div></div></div></div></div></div></div></div></div><div id="file-tree-panel" class="relative shrink-0 h-full" style="width: 344px;"><div class="h-full flex flex-col overflow-hidden group/filetree border-l border-border-weak-base"><div id="tabs-cl-32" data-scope="filetree" data-component="tabs" data-variant="pill" data-orientation="horizontal" class="h-full"><div role="tablist" aria-orientation="horizontal" data-orientation="horizontal" data-slot="tabs-list"><div data-slot="tabs-trigger-wrapper" data-value="changes" class="flex-1"><button id="tabs-cl-32-trigger-changes" role="tab" aria-selected="true" data-key="changes" data-orientation="horizontal" data-selected="" type="button" data-slot="tabs-trigger" data-value="changes" class="w-full" tabindex="0" aria-controls="tabs-cl-32-content-changes" data-highlighted="">0 Changes</button></div><div data-slot="tabs-trigger-wrapper" data-value="all" class="flex-1"><button id="tabs-cl-32-trigger-all" role="tab" aria-selected="false" data-key="all" data-orientation="horizontal" type="button" data-slot="tabs-trigger" data-value="all" class="w-full" tabindex="-1">All files</button></div></div><div id="tabs-cl-32-content-changes" role="tabpanel" tabindex="0" data-orientation="horizontal" data-selected="" data-slot="tabs-content" class="bg-background-stronger px-3 py-0"><div class="mt-8 text-center text-12-regular text-text-weak">No changes</div></div></div></div><div data-component="resize-handle" data-direction="horizontal" data-edge="start"></div></div></aside></div></div></main></div></div><div data-component="dialog-stack"></div></div>
+  
+
+<div></div><div></div><div><div role="region" tabindex="-1" aria-label="Notifications (alt+T)" data-kb-top-layer="" id="toast-region-cl-13" data-component="toast-region" style="pointer-events: none;"><ol tabindex="-1" data-slot="toast-list"></ol></div></div><div></div></body></html>

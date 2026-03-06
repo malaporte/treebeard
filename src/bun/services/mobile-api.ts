@@ -352,8 +352,20 @@ async function handleRequest(
     }
   }
 
-  if (!url.pathname.startsWith('/bridge')) {
+   if (!url.pathname.startsWith('/bridge')) {
     return proxyOpencodeWebRequest(request, url, server)
+  }
+
+  // TEMPORARY debug endpoint for bisect testing — remove before merge
+  if (request.method === 'POST' && path === '/debug/local-web-url') {
+    const body = await request.json().catch(() => null) as { worktreePath?: string } | null
+    if (!body?.worktreePath) return json(400, { error: 'worktreePath required' })
+    try {
+      const result = await createWebSessionUrl(body.worktreePath, url.origin)
+      return json(200, result)
+    } catch (err) {
+      return json(409, { error: err instanceof Error ? err.message : String(err) })
+    }
   }
 
   // After a browser has exchanged a web ticket and received the cookie, route
@@ -697,6 +709,7 @@ async function proxyWithSession(
 
   const responseHeaders = new Headers(upstream.headers)
   rewriteUpstreamSetCookies(responseHeaders)
+  rewriteCorsOrigin(responseHeaders, url.origin)
 
   const location = responseHeaders.get('location')
   if (location) {
@@ -954,6 +967,14 @@ function stripBridgeSessionCookie(cookieHeader: string | null): string {
   }
 
   return kept.join('; ')
+}
+
+/** Replace the upstream CORS origin with the bridge's own origin so
+ *  browser-enforced CORS checks pass for proxied responses. */
+function rewriteCorsOrigin(headers: Headers, bridgeOrigin: string): void {
+  if (headers.has('access-control-allow-origin')) {
+    headers.set('access-control-allow-origin', bridgeOrigin)
+  }
 }
 
 function rewriteUpstreamSetCookies(headers: Headers): void {
