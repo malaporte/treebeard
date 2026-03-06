@@ -27,12 +27,21 @@ interface RepoSectionProps {
   repo: RepoConfig
   pollIntervalSec: number
   search: string
+  embeddedCodexEnabled: boolean
   isCollapsed: boolean
   onToggleCollapse: () => void
   onOpenCodex: (worktree: Worktree) => void
 }
 
-function RepoSection({ repo, pollIntervalSec, search, isCollapsed, onToggleCollapse, onOpenCodex }: RepoSectionProps) {
+function RepoSection({
+  repo,
+  pollIntervalSec,
+  search,
+  embeddedCodexEnabled,
+  isCollapsed,
+  onToggleCollapse,
+  onOpenCodex
+}: RepoSectionProps) {
   const { worktrees, loading, error, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
@@ -119,6 +128,7 @@ function RepoSection({ repo, pollIntervalSec, search, isCollapsed, onToggleColla
                 key={wt.path}
                 worktree={wt}
                 repoPath={repo.path}
+                embeddedCodexEnabled={embeddedCodexEnabled}
                 onDelete={refresh}
                 onOpenCodex={onOpenCodex}
               />
@@ -134,11 +144,19 @@ interface RepoDashboardProps {
   repos: RepoConfig[]
   pollIntervalSec: number
   search: string
+  embeddedCodexEnabled: boolean
   onReorder: (repos: RepoConfig[]) => void
   onOpenCodex: (worktree: Worktree) => void
 }
 
-export function RepoDashboard({ repos, pollIntervalSec, search, onReorder, onOpenCodex }: RepoDashboardProps) {
+export function RepoDashboard({
+  repos,
+  pollIntervalSec,
+  search,
+  embeddedCodexEnabled,
+  onReorder,
+  onOpenCodex
+}: RepoDashboardProps) {
   const { collapsed, toggle } = useCollapsed()
   const [orderedRepos, setOrderedRepos] = useState(repos)
 
@@ -182,6 +200,7 @@ export function RepoDashboard({ repos, pollIntervalSec, search, onReorder, onOpe
               repo={repo}
               pollIntervalSec={pollIntervalSec}
               search={search}
+              embeddedCodexEnabled={embeddedCodexEnabled}
               isCollapsed={collapsed.has(repo.id)}
               onToggleCollapse={() => toggle(repo.id)}
               onOpenCodex={onOpenCodex}

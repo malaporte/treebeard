@@ -68,7 +68,8 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth
+    setDesktopCodexPaneWidth,
+    setMobileBridgeEnabled
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
@@ -76,7 +77,13 @@ export default function App() {
   const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
   const [codexPaneWidth, setCodexPaneWidth] = useState(420)
   const [resizingCodexPane, setResizingCodexPane] = useState(false)
-  const codexPaneOpened = selectedCodexWorktree !== null
+  const embeddedCodexEnabled = config?.mobileBridge.enabled === true
+  const codexPaneOpened = embeddedCodexEnabled && selectedCodexWorktree !== null
+
+  const handleOpenCodex = useCallback((worktree: Worktree) => {
+    if (!embeddedCodexEnabled) return
+    setSelectedCodexWorktree(worktree)
+  }, [embeddedCodexEnabled])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -118,6 +125,11 @@ export default function App() {
     if (!config) return
     setCodexPaneWidth(clampCodexPaneWidth(config.desktopCodexPaneWidth))
   }, [config])
+
+  useEffect(() => {
+    if (embeddedCodexEnabled) return
+    setSelectedCodexWorktree(null)
+  }, [embeddedCodexEnabled])
 
   useEffect(() => {
     const handleResize = () => {
@@ -250,8 +262,9 @@ export default function App() {
                   repos={config.repositories}
                   pollIntervalSec={config.pollIntervalSec}
                   search={search}
+                  embeddedCodexEnabled={embeddedCodexEnabled}
                   onReorder={reorderRepos}
-                  onOpenCodex={setSelectedCodexWorktree}
+                  onOpenCodex={handleOpenCodex}
                 />
               </Stack>
             </Box>
@@ -308,6 +321,7 @@ export default function App() {
         onSetPollInterval={setPollInterval}
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
+        onSetMobileBridgeEnabled={setMobileBridgeEnabled}
       />
     </MantineProvider>
   )

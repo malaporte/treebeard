@@ -37,6 +37,7 @@ interface SettingsModalProps {
   onSetPollInterval: (sec: number) => Promise<void>
   onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
   onSetUpdateCheckInterval: (minutes: number) => Promise<void>
+  onSetMobileBridgeEnabled: (enabled: boolean) => Promise<void>
 }
 
 type SettingsSection = 'general' | 'mobile' | 'updates' | 'dependencies'
@@ -50,7 +51,8 @@ export function SettingsModal({
   onRemoveRepo,
   onSetPollInterval,
   onSetAutoUpdateEnabled,
-  onSetUpdateCheckInterval
+  onSetUpdateCheckInterval,
+  onSetMobileBridgeEnabled
 }: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
@@ -132,6 +134,7 @@ export function SettingsModal({
     try {
       const status = await rpc().request['mobile:setEnabled']({ enabled })
       setMobileBridgeStatus(status)
+      await onSetMobileBridgeEnabled(enabled)
       if (!enabled) {
         setMobilePairingInfo(null)
         setMobilePairingQr(null)

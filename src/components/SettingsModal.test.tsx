@@ -160,6 +160,7 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
+        onSetMobileBridgeEnabled={async () => {}}
       />
     )
 
@@ -195,6 +196,7 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
+        onSetMobileBridgeEnabled={async () => {}}
       />
     )
 
@@ -216,6 +218,8 @@ describe('SettingsModal', () => {
   })
 
   it('shows and updates mobile bridge controls', async () => {
+    const onSetMobileBridgeEnabled = vi.fn(async () => {})
+
     renderWithMantine(
       <SettingsModal
         opened={true}
@@ -227,6 +231,7 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
+        onSetMobileBridgeEnabled={onSetMobileBridgeEnabled}
       />
     )
 
@@ -241,6 +246,7 @@ describe('SettingsModal', () => {
 
     await waitFor(() => {
       expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
+      expect(onSetMobileBridgeEnabled).toHaveBeenCalledWith(true)
       expect(screen.getByText(/Pairing code:/)).toBeTruthy()
       expect(screen.getByText('123456')).toBeTruthy()
     })
@@ -264,6 +270,7 @@ describe('SettingsModal', () => {
 
     await waitFor(() => {
       expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: false })
+      expect(onSetMobileBridgeEnabled).toHaveBeenCalledWith(false)
       expect(screen.queryByText(/Pairing code:/)).toBeNull()
       expect(screen.queryByRole('button', { name: 'Generate pairing QR' })).toBeNull()
       expect(screen.queryByAltText('Mobile pairing QR')).toBeNull()

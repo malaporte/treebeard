@@ -25,6 +25,7 @@ vi.mock('./rpc', () => ({
 
 interface RepoDashboardProps {
   search: string
+  embeddedCodexEnabled: boolean
   onOpenCodex: (worktree: { path: string; branch: string }) => void
 }
 
@@ -33,9 +34,10 @@ interface SettingsModalProps {
 }
 
 vi.mock('./components/RepoDashboard', () => ({
-  RepoDashboard: ({ search, onOpenCodex }: RepoDashboardProps) => (
+  RepoDashboard: ({ search, embeddedCodexEnabled, onOpenCodex }: RepoDashboardProps) => (
     <div>
       <div data-testid="repo-dashboard">search:{search}</div>
+      <div data-testid="embedded-codex-enabled">{String(embeddedCodexEnabled)}</div>
       <button onClick={() => onOpenCodex({ path: '/repo/worktrees/main', branch: 'main' })}>open-codex</button>
     </div>
   )
@@ -91,7 +93,8 @@ describe('App', () => {
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
       reorderRepos: vi.fn(async () => {}),
-      setDesktopCodexPaneWidth: vi.fn(async () => {})
+      setDesktopCodexPaneWidth: vi.fn(async () => {}),
+      setMobileBridgeEnabled: vi.fn(async () => {})
     })
   })
 
@@ -147,6 +150,25 @@ describe('App', () => {
   })
 
   it('keeps the codex pane hidden by default and allows opening and closing it', async () => {
+    useConfigMock.mockReturnValue({
+      config: {
+        ...config,
+        mobileBridge: {
+          ...config.mobileBridge,
+          enabled: true
+        }
+      },
+      loading: false,
+      addRepo: vi.fn(async () => {}),
+      removeRepo: vi.fn(async () => {}),
+      setPollInterval: vi.fn(async () => {}),
+      setAutoUpdateEnabled: vi.fn(async () => {}),
+      setUpdateCheckInterval: vi.fn(async () => {}),
+      reorderRepos: vi.fn(async () => {}),
+      setDesktopCodexPaneWidth: vi.fn(async () => {}),
+      setMobileBridgeEnabled: vi.fn(async () => {})
+    })
+
     systemDependenciesRequest.mockResolvedValue({
       checkedAt: new Date().toISOString(),
       checks: []
@@ -164,6 +186,21 @@ describe('App', () => {
 
     fireEvent.click(screen.getByText('close-codex'))
 
+    await waitFor(() => {
+      expect(screen.queryByTestId('codex-session-pane')).toBeNull()
+    })
+  })
+
+  it('disables embedded codex when the mobile bridge is disabled', async () => {
+    systemDependenciesRequest.mockResolvedValue({
+      checkedAt: new Date().toISOString(),
+      checks: []
+    })
+
+    renderWithMantine(<App />)
+
+    expect(screen.getByTestId('embedded-codex-enabled').textContent).toBe('false')
+    fireEvent.click(screen.getByText('open-codex'))
     await waitFor(() => {
       expect(screen.queryByTestId('codex-session-pane')).toBeNull()
     })

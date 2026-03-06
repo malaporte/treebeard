@@ -97,6 +97,7 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
         onOpenCodex={() => {}}
       />
@@ -115,6 +116,7 @@ describe('WorktreeCard', () => {
           isMain: true
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
         onOpenCodex={() => {}}
       />
@@ -134,6 +136,7 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
         onOpenCodex={() => {}}
       />
@@ -154,6 +157,7 @@ describe('WorktreeCard', () => {
           isMain: true
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
         onOpenCodex={onOpenCodex}
       />
@@ -167,5 +171,24 @@ describe('WorktreeCard', () => {
       head: 'abc',
       isMain: true
     })
+  })
+
+  it('hides the embedded codex button when mobile bridge support is disabled', () => {
+    renderWithMantine(
+      <WorktreeCard
+        worktree={{
+          path: '/repo/worktrees/main',
+          branch: 'main',
+          head: 'abc',
+          isMain: true
+        }}
+        repoPath={'/repo'}
+        embeddedCodexEnabled={false}
+        onDelete={() => {}}
+        onOpenCodex={() => {}}
+      />
+    )
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 })

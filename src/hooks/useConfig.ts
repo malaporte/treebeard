@@ -93,6 +93,20 @@ export function useConfig() {
     [config, save]
   )
 
+  const setMobileBridgeEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!config) return
+      await save({
+        ...config,
+        mobileBridge: {
+          ...config.mobileBridge,
+          enabled
+        }
+      })
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -102,6 +116,7 @@ export function useConfig() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth
+    setDesktopCodexPaneWidth,
+    setMobileBridgeEnabled
   }
 }
