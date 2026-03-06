@@ -1,0 +1,31 @@
+{
+  "url": "http://localhost:8787/L1VzZXJzL21hcnRpbi9EZXZlbG9wZXIvbm9kZS1jb21tb25z/session?ticket=TgWcG5Wya_SFslMHKbvlm0gQK2yR_14D",
+  "finalPageUrl": "http://localhost:8787/L1VzZXJzL21hcnRpbi9EZXZlbG9wZXIvbm9kZS1jb21tb25z/session/ses_3505a81f4ffego0vB2MYsr3v5n",
+  "worktreePath": "/Users/martin/Developer/node-commons",
+  "startedAt": "2026-03-02T17:43:00.917Z",
+  "requireAssistantResponse": true,
+  "promptRequestSeen": true,
+  "sessionId": "ses_3505a81f4ffego0vB2MYsr3v5n",
+  "assistantResponseSeen": true,
+  "assistantDomSeen": false,
+  "assistantSnippet": "ACK",
+  "lastMessageRoles": [
+    "user",
+    "assistant"
+  ],
+  "lastMessagePartTypes": [
+    "text",
+    "step-start",
+    "text",
+    "step-finish"
+  ],
+  "errors": [
+    "Assistant reply reached message payload but was not visible in DOM text"
+  ],
+  "consoleErrors": [],
+  "errorResponses": [],
+  "failedRequests": [
+    "POST http://localhost:8787/session/ses_3505a81f4ffego0vB2MYsr3v5n/prompt_async :: net::ERR_ABORTED"
+  ],
+  "proxyTracePath": "/Users/martin/.config/treebeard-mobile-proxy-trace.log"
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Card, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core'
-import { IconGitBranch, IconTrash } from '@tabler/icons-react'
+import { IconGitBranch, IconTrash, IconExternalLink } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
@@ -16,7 +16,9 @@ import type { Worktree } from '../shared/types'
 interface WorktreeCardProps {
   worktree: Worktree
   repoPath: string
+  embeddedCodexEnabled: boolean
   onDelete: () => void
+  onOpenCodex: (worktree: Worktree) => void
 }
 
 const JIRA_KEY_REGEX = /([a-zA-Z][a-zA-Z0-9]+-\d+)/i
@@ -26,7 +28,13 @@ function extractJiraKey(branch: string): string | null {
   return match ? match[1].toUpperCase() : null
 }
 
-export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps) {
+export function WorktreeCard({
+  worktree,
+  repoPath,
+  embeddedCodexEnabled,
+  onDelete,
+  onOpenCodex
+}: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
@@ -85,6 +93,18 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
 
         <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
           <LaunchButtons worktreePath={worktree.path} />
+          {embeddedCodexEnabled && (
+            <Tooltip label="Start Codex session for this worktree">
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                size="sm"
+                onClick={() => onOpenCodex(worktree)}
+              >
+                <IconExternalLink size={15} />
+              </ActionIcon>
+            </Tooltip>
+          )}
           {!worktree.isMain && (
             <Tooltip label="Delete worktree">
               <ActionIcon

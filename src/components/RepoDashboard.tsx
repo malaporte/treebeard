@@ -21,17 +21,27 @@ import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { RepoConfig } from '../shared/types'
+import type { RepoConfig, Worktree } from '../shared/types'
 
 interface RepoSectionProps {
   repo: RepoConfig
   pollIntervalSec: number
   search: string
+  embeddedCodexEnabled: boolean
   isCollapsed: boolean
   onToggleCollapse: () => void
+  onOpenCodex: (worktree: Worktree) => void
 }
 
-function RepoSection({ repo, pollIntervalSec, search, isCollapsed, onToggleCollapse }: RepoSectionProps) {
+function RepoSection({
+  repo,
+  pollIntervalSec,
+  search,
+  embeddedCodexEnabled,
+  isCollapsed,
+  onToggleCollapse,
+  onOpenCodex
+}: RepoSectionProps) {
   const { worktrees, loading, error, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
@@ -114,7 +124,14 @@ function RepoSection({ repo, pollIntervalSec, search, isCollapsed, onToggleColla
         ) : (
           <Stack gap="sm">
             {filtered.map((wt) => (
-              <WorktreeCard key={wt.path} worktree={wt} repoPath={repo.path} onDelete={refresh} />
+              <WorktreeCard
+                key={wt.path}
+                worktree={wt}
+                repoPath={repo.path}
+                embeddedCodexEnabled={embeddedCodexEnabled}
+                onDelete={refresh}
+                onOpenCodex={onOpenCodex}
+              />
             ))}
           </Stack>
         )}
@@ -127,10 +144,19 @@ interface RepoDashboardProps {
   repos: RepoConfig[]
   pollIntervalSec: number
   search: string
+  embeddedCodexEnabled: boolean
   onReorder: (repos: RepoConfig[]) => void
+  onOpenCodex: (worktree: Worktree) => void
 }
 
-export function RepoDashboard({ repos, pollIntervalSec, search, onReorder }: RepoDashboardProps) {
+export function RepoDashboard({
+  repos,
+  pollIntervalSec,
+  search,
+  embeddedCodexEnabled,
+  onReorder,
+  onOpenCodex
+}: RepoDashboardProps) {
   const { collapsed, toggle } = useCollapsed()
   const [orderedRepos, setOrderedRepos] = useState(repos)
 
@@ -174,8 +200,10 @@ export function RepoDashboard({ repos, pollIntervalSec, search, onReorder }: Rep
               repo={repo}
               pollIntervalSec={pollIntervalSec}
               search={search}
+              embeddedCodexEnabled={embeddedCodexEnabled}
               isCollapsed={collapsed.has(repo.id)}
               onToggleCollapse={() => toggle(repo.id)}
+              onOpenCodex={onOpenCodex}
             />
           ))}
         </Stack>

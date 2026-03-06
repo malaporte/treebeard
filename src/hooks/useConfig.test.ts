@@ -28,7 +28,15 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
+      mobileBridge: {
+        enabled: false,
+        host: '0.0.0.0',
+        port: 8787,
+        pairingCode: '123456'
+      }
     }
     getConfigRequest.mockResolvedValue(initial)
 
@@ -46,7 +54,15 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
+      mobileBridge: {
+        enabled: false,
+        host: '0.0.0.0',
+        port: 8787,
+        pairingCode: '123456'
+      }
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -83,7 +99,7 @@ describe('useConfig', () => {
     })
   })
 
-  it('updates poll interval, update settings, and repo order', async () => {
+  it('updates poll interval, update settings, mobile bridge state, and repo order', async () => {
     const initial: AppConfig = {
       repositories: [
         { id: '1', name: 'repo-a', path: '/repo-a' },
@@ -92,7 +108,15 @@ describe('useConfig', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
+      mobileBridge: {
+        enabled: false,
+        host: '0.0.0.0',
+        port: 8787,
+        pairingCode: '123456'
+      }
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -107,6 +131,7 @@ describe('useConfig', () => {
       await result.current.setPollInterval(120)
       await result.current.setAutoUpdateEnabled(false)
       await result.current.setUpdateCheckInterval(45)
+      await result.current.setMobileBridgeEnabled(true)
       await result.current.reorderRepos([initial.repositories[1], initial.repositories[0]])
     })
 
@@ -120,6 +145,15 @@ describe('useConfig', () => {
       config: { ...initial, updateCheckIntervalMin: 45 }
     })
     expect(setConfigRequest).toHaveBeenNthCalledWith(4, {
+      config: {
+        ...initial,
+        mobileBridge: {
+          ...initial.mobileBridge,
+          enabled: true
+        }
+      }
+    })
+    expect(setConfigRequest).toHaveBeenNthCalledWith(5, {
       config: { ...initial, repositories: [initial.repositories[1], initial.repositories[0]] }
     })
   })

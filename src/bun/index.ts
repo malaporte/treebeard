@@ -1,6 +1,23 @@
-import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import os from 'node:os'
+import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
+import Electrobun from 'electrobun/bun'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
+import {
+  getCodexConversation,
+  forceStopAllCodexSessions,
+  getCodexPendingActions,
+  getCodexSessionEvents,
+  getCodexSessionStatus,
+  getCodexStatus,
+  interruptCodexSession,
+  resumeCodexConversation,
+  respondCodexPendingAction,
+  setCodexStatusEnabled,
+  startCodexSession,
+  subscribeCodexConversation,
+  steerCodexSession,
+  stopAllCodexSessions
+} from './services/codex'
 import { checkDependencies } from './services/dependencies'
 import {
   getWorktrees,
@@ -12,9 +29,19 @@ import {
   getWorktreeStatus,
   removeWorktree
 } from './services/git'
-import { getJiraIssue } from './services/jira'
 import { getPRForBranch } from './services/github'
-import { launchVSCode, launchGhostty } from './services/launcher'
+import { getJiraIssue } from './services/jira'
+import { launchVSCode, launchGhostty, launchCodexDesktop, launchURL } from './services/launcher'
+import {
+  clearMobileProxyTrace,
+  createMobilePairingToken,
+  getMobileProxyTrace,
+  getMobileBridgeStatus,
+  rotateMobileBridgePairingCodeStatus,
+  setMobileBridgeEnabledState,
+  stopMobileBridge,
+  syncMobileBridgeFromConfig
+} from './services/mobile-api'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -27,6 +54,8 @@ let isUpdateCheckInFlight = false
 let isUpdatePromptOpen = false
 let dependencyStatus: DependencyStatus | null = null
 let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
+let shutdownInFlight: Promise<void> | null = null
+const codexConversationForwarders = new Map<string, () => void>()
 
 interface UpdateCheckResult {
   success: boolean
@@ -54,6 +83,23 @@ function configureAutoUpdateSchedule(config: AppConfig): void {
   autoUpdateInterval = setInterval(() => {
     void checkForAppUpdate()
   }, intervalMin * 60_000)
+}
+
+function ensureCodexConversationForwarding(worktreePath: string): void {
+  const key = worktreePath.trim()
+  if (codexConversationForwarders.has(key)) return
+
+  const unsubscribe = subscribeCodexConversation(key, (update) => {
+    try {
+      const webviewRpc = win.webview.rpc
+      if (!webviewRpc) return
+      webviewRpc.send['codex:conversationUpdate'](update)
+    } catch {
+      // Window may not be ready yet.
+    }
+  })
+
+  codexConversationForwarders.set(key, unsubscribe)
 }
 
 async function promptToRestartForUpdate(): Promise<void> {
@@ -139,6 +185,23 @@ async function getDependencyStatus(forceRefresh = false): Promise<DependencyStat
   return dependencyCheckInFlight
 }
 
+async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
+  if (shutdownInFlight) {
+    await shutdownInFlight
+    return
+  }
+
+  shutdownInFlight = (async () => {
+    stopMobileBridge()
+    await stopAllCodexSessions()
+    if (quitAfterCleanup) {
+      Utils.quit()
+    }
+  })()
+
+  await shutdownInFlight
+}
+
 // --- Main RPC Handlers ---
 
 const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
@@ -151,6 +214,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'config:set': ({ config }) => {
         setConfig(config)
         configureAutoUpdateSchedule(getConfig())
+        void syncMobileBridgeFromConfig()
       },
       'config:getCollapsed': () => {
         return getCollapsedRepos()
@@ -192,6 +256,150 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
+      'launch:codexDesktop': async ({ worktreePath }) => {
+        try {
+          await launchCodexDesktop(worktreePath)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'launch:url': async ({ url }) => {
+        if (Utils.openExternal(url)) {
+          return { success: true }
+        }
+        try {
+          await launchURL(url)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:getStatus': () => {
+        return getCodexStatus()
+      },
+      'codex:setEnabled': async ({ enabled }) => {
+        return setCodexStatusEnabled(enabled)
+      },
+      'codex:startSession': async ({ worktreePath, prompt }) => {
+        try {
+          ensureCodexConversationForwarding(worktreePath)
+          const status = await startCodexSession(worktreePath, prompt)
+          return { success: true, status }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:interruptSession': async ({ worktreePath }) => {
+        const status = await interruptCodexSession(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+
+        return { success: true, status }
+      },
+      'codex:steerSession': async ({ worktreePath, prompt }) => {
+        try {
+          ensureCodexConversationForwarding(worktreePath)
+          const status = await steerCodexSession(worktreePath, prompt)
+          return { success: true, status }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:getSessionStatus': ({ worktreePath }) => {
+        const status = getCodexSessionStatus(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status
+        }
+      },
+      'codex:getSessionEvents': ({ worktreePath, cursor }) => {
+        const result = getCodexSessionEvents(worktreePath, cursor)
+        return {
+          success: true,
+          events: result.events,
+          nextCursor: result.nextCursor
+        }
+      },
+      'codex:getConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await getCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:resumeConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await resumeCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:getPendingActions': ({ worktreePath }) => {
+        return {
+          success: true,
+          actions: getCodexPendingActions(worktreePath)
+        }
+      },
+      'codex:respondPendingAction': ({ worktreePath, actionId, response }) => {
+        return respondCodexPendingAction(worktreePath, actionId, response)
+      },
+      'mobile:getStatus': () => {
+        return getMobileBridgeStatus()
+      },
+      'mobile:setEnabled': async ({ enabled }) => {
+        return setMobileBridgeEnabledState(enabled)
+      },
+      'mobile:rotatePairingCode': () => {
+        return rotateMobileBridgePairingCodeStatus()
+      },
+      'mobile:createPairingToken': () => {
+        return createMobilePairingToken()
+      },
+      'mobile:getProxyTrace': () => {
+        return getMobileProxyTrace()
+      },
+      'mobile:clearProxyTrace': () => {
+        clearMobileProxyTrace()
+      },
       'system:homedir': () => {
         return os.homedir()
       },
@@ -210,7 +418,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         return getDependencyStatus(Boolean(refresh))
       },
       'app:quit': () => {
-        Utils.quit()
+        return gracefulShutdown(true)
       },
       'app:closeWindow': () => {
         win.close()
@@ -223,6 +431,17 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
   }
 })
 
+function openSettingsFromMenu() {
+  try {
+    win.focus()
+    const webviewRpc = win.webview.rpc
+    if (!webviewRpc) return
+    webviewRpc.send['ui:openSettings']()
+  } catch {
+    // Window may not be fully ready yet
+  }
+}
+
 // --- Application Menu ---
 
 ApplicationMenu.setApplicationMenu([
@@ -231,22 +450,37 @@ ApplicationMenu.setApplicationMenu([
     submenu: [
       { role: 'about' },
       { type: 'separator' },
+      { label: 'Settings...', action: 'open-settings', accelerator: 'CmdOrCtrl+,' },
+      { type: 'separator' },
       { role: 'hide' },
       { role: 'hideOthers' },
       { role: 'showAll' },
       { type: 'separator' },
-      { role: 'quit' },
-    ],
+      { label: 'Quit Treebeard', action: 'quit-treebeard', accelerator: 'CmdOrCtrl+Q' }
+    ]
   },
   {
     label: 'Window',
     submenu: [
       { role: 'minimize' },
       { role: 'zoom' },
-      { role: 'close' },
-    ],
-  },
+      { role: 'close' }
+    ]
+  }
 ])
+
+ApplicationMenu.on('application-menu-clicked', (event) => {
+  const payload = event as { action?: string; data?: { action?: string } }
+  const action = payload.data?.action ?? payload.action
+  if (action === 'open-settings') {
+    openSettingsFromMenu()
+    return
+  }
+
+  if (action === 'quit-treebeard') {
+    void gracefulShutdown(true)
+  }
+})
 
 // --- Main Window ---
 
@@ -263,5 +497,31 @@ const win = new BrowserWindow({
   rpc: mainviewRPC
 })
 
+// Open window.open() / target="_blank" links in the system browser
+Electrobun.events.on(`new-window-open-${win.webview.id}`, (event: { data?: { detail?: string | { url?: string } } }) => {
+  const detail = event.data?.detail
+  const url = typeof detail === 'string' ? detail : detail?.url
+  if (url) {
+    Utils.openExternal(url)
+  }
+})
+
 startAutoUpdateScheduler()
 void getDependencyStatus()
+if (getConfig().codexServerEnabled) {
+  void setCodexStatusEnabled(true)
+}
+void syncMobileBridgeFromConfig()
+
+// --- Shutdown Cleanup ---
+
+function handleShutdown() {
+  void gracefulShutdown(false)
+}
+
+process.on('SIGINT', handleShutdown)
+process.on('SIGTERM', handleShutdown)
+process.on('exit', () => {
+  forceStopAllCodexSessions()
+  stopMobileBridge()
+})

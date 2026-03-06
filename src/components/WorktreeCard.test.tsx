@@ -76,6 +76,7 @@ vi.mock('./DeleteWorktreeModal', () => ({
 
 describe('WorktreeCard', () => {
   beforeEach(() => {
+    vi.stubGlobal('alert', vi.fn())
     launchVSCodeRequest.mockReset()
     useJiraIssueMock.mockReset()
     usePRMock.mockReset()
@@ -96,7 +97,9 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
@@ -113,13 +116,16 @@ describe('WorktreeCard', () => {
           isMain: true
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
     fireEvent.doubleClick(screen.getAllByText('main')[0])
     expect(launchVSCodeRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/main' })
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    // Open Codex button is present, delete button is hidden for main
+    expect(screen.queryAllByRole('button')).toHaveLength(1)
 
     rerender(
       <WorktreeCard
@@ -130,10 +136,59 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        embeddedCodexEnabled={true}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
     expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
+  })
+
+  it('calls onOpenCodex when button is clicked', async () => {
+    const onOpenCodex = vi.fn()
+
+    renderWithMantine(
+      <WorktreeCard
+        worktree={{
+          path: '/repo/worktrees/main',
+          branch: 'main',
+          head: 'abc',
+          isMain: true
+        }}
+        repoPath={'/repo'}
+        embeddedCodexEnabled={true}
+        onDelete={() => {}}
+        onOpenCodex={onOpenCodex}
+      />
+    )
+
+    const openButton = screen.getByRole('button')
+    fireEvent.click(openButton)
+    expect(onOpenCodex).toHaveBeenCalledWith({
+      path: '/repo/worktrees/main',
+      branch: 'main',
+      head: 'abc',
+      isMain: true
+    })
+  })
+
+  it('hides the embedded codex button when mobile bridge support is disabled', () => {
+    renderWithMantine(
+      <WorktreeCard
+        worktree={{
+          path: '/repo/worktrees/main',
+          branch: 'main',
+          head: 'abc',
+          isMain: true
+        }}
+        repoPath={'/repo'}
+        embeddedCodexEnabled={false}
+        onDelete={() => {}}
+        onOpenCodex={() => {}}
+      />
+    )
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 })

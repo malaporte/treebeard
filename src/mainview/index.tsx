@@ -11,7 +11,14 @@ const rpc = Electroview.defineRPC<TreebeardRPC>({
   maxRequestTime: 30000,
   handlers: {
     requests: {},
-    messages: {}
+    messages: {
+      'ui:openSettings': () => {
+        window.dispatchEvent(new CustomEvent('treebeard:open-settings'))
+      },
+      'codex:conversationUpdate': (payload) => {
+        window.dispatchEvent(new CustomEvent('treebeard:codex-conversation-update', { detail: payload }))
+      }
+    }
   }
 })
 

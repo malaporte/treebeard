@@ -1,8 +1,17 @@
 import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
+  CodexConversationUpdate,
+  CodexConversationSnapshot,
+  CodexPendingAction,
+  CodexRuntimeStatus,
+  CodexSessionEvent,
+  CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
+  MobileBridgeStatus,
+  MobilePairingInfo,
+  MobileProxyTraceEntry,
   PRInfo,
   Worktree,
   WorktreeStatus
@@ -72,6 +81,82 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:codexDesktop': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string }
+      }
+      'launch:url': {
+        params: { url: string }
+        response: { success: boolean; error?: string }
+      }
+      'codex:getStatus': {
+        params: Record<string, never>
+        response: CodexRuntimeStatus
+      }
+      'codex:setEnabled': {
+        params: { enabled: boolean }
+        response: CodexRuntimeStatus
+      }
+      'codex:startSession': {
+        params: { worktreePath: string; prompt: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:interruptSession': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:steerSession': {
+        params: { worktreePath: string; prompt: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:getSessionStatus': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:getSessionEvents': {
+        params: { worktreePath: string; cursor: number }
+        response: { success: boolean; error?: string; events: CodexSessionEvent[]; nextCursor: number }
+      }
+      'codex:getConversation': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
+      }
+      'codex:resumeConversation': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
+      }
+      'codex:getPendingActions': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; actions: CodexPendingAction[] }
+      }
+      'codex:respondPendingAction': {
+        params: { worktreePath: string; actionId: string; response: string }
+        response: { success: boolean; error?: string }
+      }
+      'mobile:getStatus': {
+        params: Record<string, never>
+        response: MobileBridgeStatus
+      }
+      'mobile:setEnabled': {
+        params: { enabled: boolean }
+        response: MobileBridgeStatus
+      }
+      'mobile:rotatePairingCode': {
+        params: Record<string, never>
+        response: MobileBridgeStatus
+      }
+      'mobile:createPairingToken': {
+        params: Record<string, never>
+        response: MobilePairingInfo
+      }
+      'mobile:getProxyTrace': {
+        params: Record<string, never>
+        response: MobileProxyTraceEntry[]
+      }
+      'mobile:clearProxyTrace': {
+        params: Record<string, never>
+        response: void
+      }
       'system:homedir': {
         params: Record<string, never>
         response: string
@@ -101,6 +186,9 @@ export type TreebeardRPC = {
   }>
   webview: RPCSchema<{
     requests: Record<string, never>
-    messages: Record<string, never>
+    messages: {
+      'ui:openSettings': void
+      'codex:conversationUpdate': CodexConversationUpdate
+    }
   }>
 }
