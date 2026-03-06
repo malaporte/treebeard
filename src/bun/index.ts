@@ -31,7 +31,7 @@ import {
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
-import { launchVSCode, launchGhostty, launchURL } from './services/launcher'
+import { launchVSCode, launchGhostty, launchCodexDesktop, launchURL } from './services/launcher'
 import {
   clearMobileProxyTrace,
   createMobilePairingToken,
@@ -255,6 +255,17 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
+      },
+      'launch:codexDesktop': async ({ worktreePath }) => {
+        try {
+          await launchCodexDesktop(worktreePath)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
       },
       'launch:url': async ({ url }) => {
         if (Utils.openExternal(url)) {

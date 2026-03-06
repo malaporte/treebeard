@@ -13,6 +13,7 @@ export interface AppConfig {
   updateCheckIntervalMin: number
   collapsedRepos: string[]
   codexServerEnabled: boolean
+  desktopCodexPaneWidth: number
   mobileBridge: MobileBridgeConfig
 }
 

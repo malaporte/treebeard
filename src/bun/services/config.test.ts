@@ -58,6 +58,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -75,6 +76,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 99999,
       mobileBridge: {
         enabled: true,
         host: '10.0.0.5',
@@ -90,6 +92,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 4096,
       mobileBridge: {
         enabled: true,
         host: '10.0.0.5',
@@ -133,6 +136,7 @@ describe('codex server config helpers', () => {
       updateCheckIntervalMin: 45,
       collapsedRepos: ['repo-1'],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 480,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -163,6 +167,7 @@ describe('codex server config helpers', () => {
 
     const config = getConfig()
     expect(config.codexServerEnabled).toBe(false)
+    expect(config.desktopCodexPaneWidth).toBe(420)
   })
 })
 

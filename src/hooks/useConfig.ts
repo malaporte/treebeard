@@ -85,6 +85,14 @@ export function useConfig() {
     [config, save]
   )
 
+  const setDesktopCodexPaneWidth = useCallback(
+    async (width: number) => {
+      if (!config) return
+      await save({ ...config, desktopCodexPaneWidth: width })
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -93,6 +101,7 @@ export function useConfig() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos
+    reorderRepos,
+    setDesktopCodexPaneWidth
   }
 }

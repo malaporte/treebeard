@@ -20,6 +20,9 @@ export function createSpawnProcess(response: SpawnResponse) {
   return {
     stdout: streamText(response.stdout ?? ''),
     stderr: streamText(response.stderr ?? ''),
+    stdin: {
+      write: vi.fn()
+    },
     exited: Promise.resolve(response.exitCode ?? 0),
     kill: vi.fn()
   }

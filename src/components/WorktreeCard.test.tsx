@@ -74,16 +74,6 @@ vi.mock('./DeleteWorktreeModal', () => ({
   DeleteWorktreeModal: () => <div data-testid="delete-modal" />
 }))
 
-interface CodexSessionModalProps {
-  opened: boolean
-}
-
-vi.mock('./CodexSessionModal', () => ({
-  CodexSessionModal: ({ opened }: CodexSessionModalProps) => (
-    <div data-testid="codex-session-modal">{opened ? 'open' : 'closed'}</div>
-  )
-}))
-
 describe('WorktreeCard', () => {
   beforeEach(() => {
     vi.stubGlobal('alert', vi.fn())
@@ -108,6 +98,7 @@ describe('WorktreeCard', () => {
         }}
         repoPath={'/repo'}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
@@ -125,6 +116,7 @@ describe('WorktreeCard', () => {
         }}
         repoPath={'/repo'}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
@@ -143,13 +135,16 @@ describe('WorktreeCard', () => {
         }}
         repoPath={'/repo'}
         onDelete={() => {}}
+        onOpenCodex={() => {}}
       />
     )
 
     expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
   })
 
-  it('opens codex session modal when button is clicked', async () => {
+  it('calls onOpenCodex when button is clicked', async () => {
+    const onOpenCodex = vi.fn()
+
     renderWithMantine(
       <WorktreeCard
         worktree={{
@@ -160,12 +155,17 @@ describe('WorktreeCard', () => {
         }}
         repoPath={'/repo'}
         onDelete={() => {}}
+        onOpenCodex={onOpenCodex}
       />
     )
 
-    expect(screen.getByTestId('codex-session-modal').textContent).toBe('closed')
     const openButton = screen.getByRole('button')
     fireEvent.click(openButton)
-    expect(screen.getByTestId('codex-session-modal').textContent).toBe('open')
+    expect(onOpenCodex).toHaveBeenCalledWith({
+      path: '/repo/worktrees/main',
+      branch: 'main',
+      head: 'abc',
+      isMain: true
+    })
   })
 })

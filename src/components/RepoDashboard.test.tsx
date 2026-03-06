@@ -85,7 +85,7 @@ describe('RepoDashboard', () => {
 
   it('shows empty state when no repositories are configured', () => {
     renderWithMantine(
-      <RepoDashboard repos={[]} pollIntervalSec={60} search={''} onReorder={() => {}} />
+      <RepoDashboard repos={[]} pollIntervalSec={60} search={''} onReorder={() => {}} onOpenCodex={() => {}} />
     )
 
     expect(screen.getByText('No repositories configured')).toBeTruthy()
@@ -105,7 +105,7 @@ describe('RepoDashboard', () => {
     })
 
     const { rerender } = renderWithMantine(
-      <RepoDashboard repos={repos} pollIntervalSec={60} search={'feat'} onReorder={() => {}} />
+      <RepoDashboard repos={repos} pollIntervalSec={60} search={'feat'} onReorder={() => {}} onOpenCodex={() => {}} />
     )
 
     expect(screen.getByText('treebeard')).toBeTruthy()
@@ -113,7 +113,7 @@ describe('RepoDashboard', () => {
     expect(screen.queryByText('main')).toBeNull()
 
     rerender(
-      <RepoDashboard repos={repos} pollIntervalSec={60} search={'missing'} onReorder={() => {}} />
+      <RepoDashboard repos={repos} pollIntervalSec={60} search={'missing'} onReorder={() => {}} onOpenCodex={() => {}} />
     )
 
     expect(screen.queryByText('treebeard')).toBeNull()

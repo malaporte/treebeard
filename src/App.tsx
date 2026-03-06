@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   MantineProvider,
   AppShell,
+  Box,
   ActionIcon,
   Loader,
   Text,
@@ -9,14 +10,24 @@ import {
   Alert,
   Stack,
   Group,
+  Paper,
   createTheme
 } from '@mantine/core'
 import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
+import { CodexSessionPane } from './components/CodexSessionPane'
 import { RepoDashboard } from './components/RepoDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
 import { rpc } from './rpc'
-import type { DependencyStatus } from './shared/types'
+import type { DependencyStatus, Worktree } from './shared/types'
+
+const MIN_CODEX_PANE_WIDTH = 320
+const MIN_DASHBOARD_WIDTH = 360
+
+function clampCodexPaneWidth(width: number): number {
+  const maxWidth = Math.max(MIN_CODEX_PANE_WIDTH, window.innerWidth - MIN_DASHBOARD_WIDTH)
+  return Math.min(Math.max(Math.round(width), MIN_CODEX_PANE_WIDTH), maxWidth)
+}
 
 // Neon-blue palette tuned for dark backgrounds
 const neon: [string, string, string, string, string, string, string, string, string, string] = [
@@ -56,11 +67,16 @@ export default function App() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos
+    reorderRepos,
+    setDesktopCodexPaneWidth
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
+  const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
+  const [codexPaneWidth, setCodexPaneWidth] = useState(420)
+  const [resizingCodexPane, setResizingCodexPane] = useState(false)
+  const codexPaneOpened = selectedCodexWorktree !== null
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -97,6 +113,41 @@ export default function App() {
   useEffect(() => {
     loadDependencies()
   }, [loadDependencies])
+
+  useEffect(() => {
+    if (!config) return
+    setCodexPaneWidth(clampCodexPaneWidth(config.desktopCodexPaneWidth))
+  }, [config])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCodexPaneWidth((current) => clampCodexPaneWidth(current))
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    if (!resizingCodexPane) return
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const nextWidth = window.innerWidth - event.clientX
+      setCodexPaneWidth(clampCodexPaneWidth(nextWidth))
+    }
+
+    const handleMouseUp = () => {
+      setResizingCodexPane(false)
+      void setDesktopCodexPaneWidth(codexPaneWidth)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [codexPaneWidth, resizingCodexPane, setDesktopCodexPaneWidth])
 
   const missingDependencies = dependencyStatus
     ? dependencyStatus.checks.filter((check) => check.required && !check.installed)
@@ -175,24 +226,75 @@ export default function App() {
         </AppShell.Header>
 
         <AppShell.Main>
-          <Stack gap="md">
-            {missingDependencies.length > 0 && (
-              <Alert color="yellow" variant="light" title="Missing CLI dependencies">
-                {missingDependencyMessage}
-              </Alert>
+          <Group gap={0} align="stretch" wrap="nowrap" style={{ height: 'calc(100vh - 70px)' }}>
+            <Box
+              style={{
+                flex: 1,
+                minWidth: 0,
+                overflow: 'auto',
+                paddingRight: codexPaneOpened ? 16 : 0
+              }}
+            >
+              <Stack gap="md">
+                {missingDependencies.length > 0 && (
+                  <Alert color="yellow" variant="light" title="Missing CLI dependencies">
+                    {missingDependencyMessage}
+                  </Alert>
+                )}
+                {unauthenticatedDependencies.length > 0 && (
+                  <Alert color="orange" variant="light" title="CLI authentication required">
+                    {authDependencyMessage}
+                  </Alert>
+                )}
+                <RepoDashboard
+                  repos={config.repositories}
+                  pollIntervalSec={config.pollIntervalSec}
+                  search={search}
+                  onReorder={reorderRepos}
+                  onOpenCodex={setSelectedCodexWorktree}
+                />
+              </Stack>
+            </Box>
+
+            {selectedCodexWorktree && (
+              <>
+                <Box
+                  role="separator"
+                  aria-orientation="vertical"
+                  onMouseDown={() => setResizingCodexPane(true)}
+                  style={{
+                    width: 10,
+                    cursor: 'col-resize',
+                    flexShrink: 0,
+                    background: resizingCodexPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
+                    borderLeft: '1px solid rgba(0, 136, 255, 0.08)',
+                    borderRight: '1px solid rgba(0, 136, 255, 0.08)'
+                  }}
+                />
+
+                <Paper
+                  withBorder
+                  p="md"
+                  radius="md"
+                  style={{
+                    width: codexPaneWidth,
+                    minWidth: MIN_CODEX_PANE_WIDTH,
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: 'linear-gradient(180deg, rgba(0, 136, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+                    borderColor: 'rgba(0, 136, 255, 0.18)'
+                  }}
+                >
+                <CodexSessionPane
+                  worktreePath={selectedCodexWorktree.path}
+                  branch={selectedCodexWorktree.branch}
+                  onClose={() => setSelectedCodexWorktree(null)}
+                />
+                </Paper>
+              </>
             )}
-            {unauthenticatedDependencies.length > 0 && (
-              <Alert color="orange" variant="light" title="CLI authentication required">
-                {authDependencyMessage}
-              </Alert>
-            )}
-            <RepoDashboard
-              repos={config.repositories}
-              pollIntervalSec={config.pollIntervalSec}
-              search={search}
-              onReorder={reorderRepos}
-            />
-          </Stack>
+          </Group>
         </AppShell.Main>
       </AppShell>
 

@@ -25,6 +25,7 @@ vi.mock('./rpc', () => ({
 
 interface RepoDashboardProps {
   search: string
+  onOpenCodex: (worktree: { path: string; branch: string }) => void
 }
 
 interface SettingsModalProps {
@@ -32,11 +33,30 @@ interface SettingsModalProps {
 }
 
 vi.mock('./components/RepoDashboard', () => ({
-  RepoDashboard: ({ search }: RepoDashboardProps) => <div data-testid="repo-dashboard">search:{search}</div>
+  RepoDashboard: ({ search, onOpenCodex }: RepoDashboardProps) => (
+    <div>
+      <div data-testid="repo-dashboard">search:{search}</div>
+      <button onClick={() => onOpenCodex({ path: '/repo/worktrees/main', branch: 'main' })}>open-codex</button>
+    </div>
+  )
 }))
 
 vi.mock('./components/SettingsModal', () => ({
   SettingsModal: ({ opened }: SettingsModalProps) => <div data-testid="settings-modal">{String(opened)}</div>
+}))
+
+interface CodexSessionPaneProps {
+  branch: string
+  onClose: () => void
+}
+
+vi.mock('./components/CodexSessionPane', () => ({
+  CodexSessionPane: ({ branch, onClose }: CodexSessionPaneProps) => (
+    <div>
+      <div data-testid="codex-session-pane">{branch}</div>
+      <button onClick={onClose}>close-codex</button>
+    </div>
+  )
 }))
 
 const config: AppConfig = {
@@ -46,6 +66,7 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
+  desktopCodexPaneWidth: 420,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',
@@ -69,7 +90,8 @@ describe('App', () => {
       setPollInterval: vi.fn(async () => {}),
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
-      reorderRepos: vi.fn(async () => {})
+      reorderRepos: vi.fn(async () => {}),
+      setDesktopCodexPaneWidth: vi.fn(async () => {})
     })
   })
 
@@ -122,5 +144,28 @@ describe('App', () => {
 
     expect(appQuitRequest).toHaveBeenCalledWith({})
     expect(appCloseWindowRequest).toHaveBeenCalledWith({})
+  })
+
+  it('keeps the codex pane hidden by default and allows opening and closing it', async () => {
+    systemDependenciesRequest.mockResolvedValue({
+      checkedAt: new Date().toISOString(),
+      checks: []
+    })
+
+    renderWithMantine(<App />)
+
+    expect(screen.queryByTestId('codex-session-pane')).toBeNull()
+
+    fireEvent.click(screen.getByText('open-codex'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('codex-session-pane').textContent).toBe('main')
+    })
+
+    fireEvent.click(screen.getByText('close-codex'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('codex-session-pane')).toBeNull()
+    })
   })
 })

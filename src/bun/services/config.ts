@@ -8,6 +8,8 @@ const MIN_POLL_INTERVAL_SEC = 10
 const MAX_POLL_INTERVAL_SEC = 600
 const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
 const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
+const MIN_DESKTOP_CODEX_PANE_WIDTH = 320
+const MAX_DESKTOP_CODEX_PANE_WIDTH = 4096
 const MIN_MOBILE_BRIDGE_PORT = 1024
 const MAX_MOBILE_BRIDGE_PORT = 65535
 
@@ -20,6 +22,7 @@ const DEFAULTS: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
+  desktopCodexPaneWidth: 420,
   mobileBridge: {
     enabled: false,
     host: '0.0.0.0',
@@ -41,6 +44,10 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     ? clamp(Math.round(config.updateCheckIntervalMin), MIN_UPDATE_CHECK_INTERVAL_MIN, MAX_UPDATE_CHECK_INTERVAL_MIN)
     : DEFAULTS.updateCheckIntervalMin
 
+  const desktopCodexPaneWidth = typeof config.desktopCodexPaneWidth === 'number'
+    ? clamp(Math.round(config.desktopCodexPaneWidth), MIN_DESKTOP_CODEX_PANE_WIDTH, MAX_DESKTOP_CODEX_PANE_WIDTH)
+    : DEFAULTS.desktopCodexPaneWidth
+
   const mobileBridgeInput = config.mobileBridge
   const mobileBridge: MobileBridgeConfig = {
     enabled: typeof mobileBridgeInput?.enabled === 'boolean' ? mobileBridgeInput.enabled : DEFAULTS.mobileBridge.enabled,
@@ -60,6 +67,7 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
     codexServerEnabled: typeof config.codexServerEnabled === 'boolean' ? config.codexServerEnabled : DEFAULTS.codexServerEnabled,
+    desktopCodexPaneWidth,
     mobileBridge
   }
 }

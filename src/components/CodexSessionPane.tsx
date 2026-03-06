@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActionIcon,
   Alert,
   Box,
   Button,
   Group,
   Loader,
-  Modal,
   Paper,
   ScrollArea,
   Stack,
   Text,
   Textarea
 } from '@mantine/core'
-import { IconAlertCircle } from '@tabler/icons-react'
+import { IconAlertCircle, IconX } from '@tabler/icons-react'
 import { rpc } from '../rpc'
 import type {
   CodexConversationItem,
@@ -22,11 +22,10 @@ import type {
   CodexSessionStatus
 } from '../shared/types'
 
-interface CodexSessionModalProps {
-  opened: boolean
-  onClose: () => void
+interface CodexSessionPaneProps {
   worktreePath: string
   branch: string
+  onClose: () => void
 }
 
 const SESSION_RECOVERY_POLL_INTERVAL_MS = 15000
@@ -37,7 +36,7 @@ function formatTime(value: string): string {
   return date.toLocaleTimeString()
 }
 
-export function CodexSessionModal({ opened, onClose, worktreePath, branch }: CodexSessionModalProps) {
+export function CodexSessionPane({ worktreePath, branch, onClose }: CodexSessionPaneProps) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,8 +65,6 @@ export function CodexSessionModal({ opened, onClose, worktreePath, branch }: Cod
   ])
 
   useEffect(() => {
-    if (!opened) return
-
     let cancelled = false
 
     const syncSession = async (resume: boolean) => {
@@ -122,11 +119,9 @@ export function CodexSessionModal({ opened, onClose, worktreePath, branch }: Cod
       window.removeEventListener('treebeard:codex-conversation-update', handleConversationUpdate as EventListener)
       clearInterval(interval)
     }
-  }, [opened, worktreePath])
+  }, [worktreePath])
 
   useEffect(() => {
-    if (!opened) return
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (!status?.running || loading) return
@@ -139,7 +134,7 @@ export function CodexSessionModal({ opened, onClose, worktreePath, branch }: Cod
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [opened, status?.running, loading])
+  }, [status?.running, loading])
 
   const handleStartOrSteer = async () => {
     const nextPrompt = prompt.trim()
@@ -245,83 +240,88 @@ export function CodexSessionModal({ opened, onClose, worktreePath, branch }: Cod
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} size="lg" title={`Codex Session: ${branch}`}>
-      <Stack gap="sm">
-        {error && (
-          <Alert color="pink" variant="light" icon={<IconAlertCircle size={16} />}>
-            {error}
-          </Alert>
-        )}
+    <Stack gap="sm" h="100%">
+      <Group justify="space-between" align="center">
+        <Text fw={700} size="sm" truncate>Codex: {branch}</Text>
+        <ActionIcon variant="subtle" color="gray" onClick={onClose} aria-label="Close Codex pane">
+          <IconX size={16} />
+        </ActionIcon>
+      </Group>
 
-        {pendingActions.length > 0 && (
-          <Stack gap="xs">
-            <Text size="sm" fw={600}>Pending actions</Text>
-            {pendingActions.map((action) => {
-              const options = action.options.length > 0
-                ? action.options
-                : ['approve', 'deny']
+      {error && (
+        <Alert color="pink" variant="light" icon={<IconAlertCircle size={16} />}>
+          {error}
+        </Alert>
+      )}
 
-              return (
-                <Paper key={action.id} withBorder p="sm" radius="md">
-                  <Stack gap="xs">
-                    <Text size="sm">{action.prompt}</Text>
-                    <Group gap="xs">
-                      {options.map((option) => (
-                        <Button
-                          key={`${action.id}-${option}`}
-                          size="xs"
-                          variant={option.toLowerCase().includes('deny') ? 'light' : 'filled'}
-                          color={option.toLowerCase().includes('deny') ? 'gray' : 'blue'}
-                          onClick={() => { void handleResolveAction(action.id, option) }}
-                          disabled={loading}
-                        >
-                          {option}
-                        </Button>
-                      ))}
-                    </Group>
-                  </Stack>
-                </Paper>
-              )
-            })}
-          </Stack>
-        )}
+      {pendingActions.length > 0 && (
+        <Stack gap="xs">
+          <Text size="sm" fw={600}>Pending actions</Text>
+          {pendingActions.map((action) => {
+            const options = action.options.length > 0
+              ? action.options
+              : ['approve', 'deny']
 
-        <ScrollArea h={260} offsetScrollbars viewportRef={viewportRef}>
-          <Stack gap="xs" p={2}>
-            {conversationItems.length === 0 && (
-              <Text size="sm" c="dimmed">No messages yet. Start with a prompt.</Text>
-            )}
-            {conversationItems.map((item) => renderConversationItem(item))}
-            {status?.running && (
-              <Group key="running-indicator" gap="xs" align="center">
-                <Loader size="xs" color="blue" />
-                <Text size="sm" c="dimmed">Codex is working…</Text>
-              </Group>
-            )}
-          </Stack>
-        </ScrollArea>
+            return (
+              <Paper key={action.id} withBorder p="sm" radius="md">
+                <Stack gap="xs">
+                  <Text size="sm">{action.prompt}</Text>
+                  <Group gap="xs">
+                    {options.map((option) => (
+                      <Button
+                        key={`${action.id}-${option}`}
+                        size="xs"
+                        variant={option.toLowerCase().includes('deny') ? 'light' : 'filled'}
+                        color={option.toLowerCase().includes('deny') ? 'gray' : 'blue'}
+                        onClick={() => { void handleResolveAction(action.id, option) }}
+                        disabled={loading}
+                      >
+                        {option}
+                      </Button>
+                    ))}
+                  </Group>
+                </Stack>
+              </Paper>
+            )
+          })}
+        </Stack>
+      )}
 
-        <Group align="flex-end" gap="xs" wrap="nowrap">
-          <Textarea
-            value={prompt}
-            onChange={(event) => setPrompt(event.currentTarget.value)}
-            onKeyDown={handlePromptKeyDown}
-            autosize
-            minRows={2}
-            maxRows={5}
-            placeholder="Ask Codex..."
-            style={{ flex: 1 }}
-          />
-          <Button
-            onClick={() => { void handleStartOrSteer() }}
-            loading={loading}
-            disabled={prompt.trim().length === 0}
-          >
-            {status?.running ? 'Send' : 'Start'}
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
+      <ScrollArea style={{ flex: 1 }} offsetScrollbars viewportRef={viewportRef}>
+        <Stack gap="xs" p={2}>
+          {conversationItems.length === 0 && (
+            <Text size="sm" c="dimmed">No messages yet. Start with a prompt.</Text>
+          )}
+          {conversationItems.map((item) => renderConversationItem(item))}
+          {status?.running && (
+            <Group key="running-indicator" gap="xs" align="center">
+              <Loader size="xs" color="blue" />
+              <Text size="sm" c="dimmed">Codex is working…</Text>
+            </Group>
+          )}
+        </Stack>
+      </ScrollArea>
+
+      <Group align="flex-end" gap="xs" wrap="nowrap">
+        <Textarea
+          value={prompt}
+          onChange={(event) => setPrompt(event.currentTarget.value)}
+          onKeyDown={handlePromptKeyDown}
+          autosize
+          minRows={2}
+          maxRows={5}
+          placeholder="Ask Codex..."
+          style={{ flex: 1 }}
+        />
+        <Button
+          onClick={() => { void handleStartOrSteer() }}
+          loading={loading}
+          disabled={prompt.trim().length === 0}
+        >
+          {status?.running ? 'Send' : 'Start'}
+        </Button>
+      </Group>
+    </Stack>
   )
 }
 

@@ -81,6 +81,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:codexDesktop': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string }
+      }
       'launch:url': {
         params: { url: string }
         response: { success: boolean; error?: string }

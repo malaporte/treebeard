@@ -30,6 +30,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -55,6 +56,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',
@@ -108,6 +110,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
+      desktopCodexPaneWidth: 420,
       mobileBridge: {
         enabled: false,
         host: '0.0.0.0',

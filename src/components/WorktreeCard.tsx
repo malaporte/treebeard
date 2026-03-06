@@ -6,7 +6,6 @@ import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
 import { DeleteWorktreeModal } from './DeleteWorktreeModal'
-import { CodexSessionModal } from './CodexSessionModal'
 import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
@@ -18,6 +17,7 @@ interface WorktreeCardProps {
   worktree: Worktree
   repoPath: string
   onDelete: () => void
+  onOpenCodex: (worktree: Worktree) => void
 }
 
 const JIRA_KEY_REGEX = /([a-zA-Z][a-zA-Z0-9]+-\d+)/i
@@ -27,9 +27,8 @@ function extractJiraKey(branch: string): string | null {
   return match ? match[1].toUpperCase() : null
 }
 
-export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps) {
+export function WorktreeCard({ worktree, repoPath, onDelete, onOpenCodex }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
-  const [codexOpened, setCodexOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
   const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey)
@@ -92,7 +91,7 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
               variant="subtle"
               color="blue"
               size="sm"
-              onClick={() => setCodexOpened(true)}
+              onClick={() => onOpenCodex(worktree)}
             >
               <IconExternalLink size={15} />
             </ActionIcon>
@@ -118,12 +117,6 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
         opened={deleteOpened}
         onClose={() => setDeleteOpened(false)}
         onSuccess={onDelete}
-      />
-      <CodexSessionModal
-        opened={codexOpened}
-        onClose={() => setCodexOpened(false)}
-        worktreePath={worktree.path}
-        branch={worktree.branch}
       />
     </Card>
   )
