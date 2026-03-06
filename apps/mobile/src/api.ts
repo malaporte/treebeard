@@ -1,4 +1,6 @@
 import type {
+  CodexConversationUpdate,
+  CodexConversationSnapshot,
   CodexPendingAction,
   CodexSessionEvent,
   CodexSessionStatus,
@@ -17,8 +19,31 @@ export interface PairExchangeResult {
   bridgeUrl: string
 }
 
+const REQUEST_TIMEOUT_MS = 6000
+
+async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort()
+  }, timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    })
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`)
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function request<T>(connection: BridgeConnection, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${connection.baseUrl}${path}`, {
+  const response = await fetchWithTimeout(`${connection.baseUrl}${path}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
@@ -36,7 +61,7 @@ async function request<T>(connection: BridgeConnection, path: string, init?: Req
 }
 
 export async function getHealth(baseUrl: string): Promise<{ ok: boolean }> {
-  const response = await fetch(`${baseUrl}/bridge/health`)
+  const response = await fetchWithTimeout(`${baseUrl}/bridge/health`)
   if (!response.ok) {
     throw new Error(`Health check failed with status ${response.status}`)
   }
@@ -44,7 +69,7 @@ export async function getHealth(baseUrl: string): Promise<{ ok: boolean }> {
 }
 
 export async function exchangePairingToken(baseUrl: string, token: string): Promise<PairExchangeResult> {
-  const response = await fetch(`${baseUrl}/bridge/pair/exchange`, {
+  const response = await fetchWithTimeout(`${baseUrl}/bridge/pair/exchange`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ token })
@@ -113,6 +138,33 @@ export function getCodexSessionEvents(
 ): Promise<{ events: CodexSessionEvent[]; nextCursor: number }> {
   const query = new URLSearchParams({ worktreePath, cursor: String(cursor) })
   return request(connection, `/bridge/codex/session/events?${query.toString()}`)
+}
+
+export function getCodexConversation(
+  connection: BridgeConnection,
+  worktreePath: string
+): Promise<{ status: CodexSessionStatus; snapshot: CodexConversationSnapshot }> {
+  const query = new URLSearchParams({ worktreePath })
+  return request(connection, `/bridge/codex/session/conversation?${query.toString()}`)
+}
+
+export function resumeCodexConversation(
+  connection: BridgeConnection,
+  worktreePath: string
+): Promise<{ status: CodexSessionStatus; snapshot: CodexConversationSnapshot }> {
+  return request(connection, '/bridge/codex/session/conversation/resume', {
+    method: 'POST',
+    body: JSON.stringify({ worktreePath })
+  })
+}
+
+export function waitForCodexConversationUpdate(
+  connection: BridgeConnection,
+  worktreePath: string,
+  revision: number
+): Promise<{ update: CodexConversationUpdate | null }> {
+  const query = new URLSearchParams({ worktreePath, revision: String(revision) })
+  return request(connection, `/bridge/codex/session/conversation/updates?${query.toString()}`, undefined)
 }
 
 export function getCodexPendingActions(

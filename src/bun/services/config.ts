@@ -79,8 +79,23 @@ function readConfig(): AppConfig {
 }
 
 function writeConfig(config: AppConfig): void {
-  fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true })
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  const serialized = JSON.stringify(config, null, 2)
+  try {
+    fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true })
+    fs.writeFileSync(CONFIG_PATH, serialized)
+  } catch (err) {
+    // New schema stores config at ~/.config/treebeard/treebeard-config.json.
+    // If ~/.config/treebeard exists as a file, move it aside and retry.
+    if (!(err && typeof err === 'object' && 'code' in err && err.code === 'EEXIST')) {
+      throw err
+    }
+
+    const configDir = path.dirname(CONFIG_PATH)
+    const backupPath = `${configDir}.legacy-${Date.now()}.bak`
+    fs.renameSync(configDir, backupPath)
+    fs.mkdirSync(configDir, { recursive: true })
+    fs.writeFileSync(CONFIG_PATH, serialized)
+  }
 }
 
 export function getConfig(): AppConfig {

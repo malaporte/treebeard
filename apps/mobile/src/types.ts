@@ -49,11 +49,114 @@ export interface CodexSessionStatus {
   error: string | null
 }
 
+export type CodexConversationItemStatus = 'streaming' | 'completed' | 'pending'
+
+export interface CodexConversationItemBase {
+  id: string
+  threadId: string
+  turnId: string
+  itemId: string
+  status: CodexConversationItemStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CodexUserMessageItem extends CodexConversationItemBase {
+  type: 'user_message'
+  text: string
+}
+
+export interface CodexAssistantMessageItem extends CodexConversationItemBase {
+  type: 'assistant_message'
+  text: string
+  phase: string | null
+}
+
+export interface CodexReasoningItem extends CodexConversationItemBase {
+  type: 'reasoning'
+  summary: string[]
+  content: string[]
+}
+
+export interface CodexPlanItem extends CodexConversationItemBase {
+  type: 'plan'
+  text: string
+}
+
+export interface CodexCommandExecutionItem extends CodexConversationItemBase {
+  type: 'command_execution'
+  command: string
+  cwd: string
+  processId: string | null
+  executionStatus: string
+  output: string | null
+  exitCode: number | null
+  durationMs: number | null
+}
+
+export interface CodexFileChangeItem extends CodexConversationItemBase {
+  type: 'file_change'
+  changeCount: number
+  patchStatus: string
+}
+
+export interface CodexMcpToolCallItem extends CodexConversationItemBase {
+  type: 'mcp_tool_call'
+  server: string
+  tool: string
+  toolStatus: string
+  resultSummary: string | null
+  errorSummary: string | null
+  durationMs: number | null
+}
+
+export interface CodexStatusItem extends CodexConversationItemBase {
+  type: 'status'
+  title: string
+  text: string
+}
+
+export type CodexConversationItem =
+  | CodexUserMessageItem
+  | CodexAssistantMessageItem
+  | CodexReasoningItem
+  | CodexPlanItem
+  | CodexCommandExecutionItem
+  | CodexFileChangeItem
+  | CodexMcpToolCallItem
+  | CodexStatusItem
+
+export interface CodexConversationTurn {
+  id: string
+  status: string
+  error: string | null
+  items: CodexConversationItem[]
+}
+
+export interface CodexConversationSnapshot {
+  threadId: string
+  revision: number
+  turns: CodexConversationTurn[]
+}
+
+export interface CodexConversationUpdate {
+  worktreePath: string
+  status: CodexSessionStatus
+  snapshot: CodexConversationSnapshot
+  pendingActions: CodexPendingAction[]
+}
+
 export interface CodexSessionEvent {
   id: number
   at: string
   worktreePath: string
+  turnId?: string
+  itemId?: string
+  phase?: 'streaming' | 'completed'
   kind: 'status' | 'message' | 'reasoning' | 'command' | 'error'
+  actor: 'user' | 'assistant' | 'system'
+  channel: 'chat' | 'diagnostic'
+  title: string | null
   message: string
   rawType: string | null
 }

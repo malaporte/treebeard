@@ -3,11 +3,19 @@ import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'ele
 import Electrobun from 'electrobun/bun'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
 import {
+  getCodexConversation,
   forceStopAllCodexSessions,
+  getCodexPendingActions,
+  getCodexSessionEvents,
+  getCodexSessionStatus,
   getCodexStatus,
   interruptCodexSession,
+  resumeCodexConversation,
+  respondCodexPendingAction,
   setCodexStatusEnabled,
   startCodexSession,
+  subscribeCodexConversation,
+  steerCodexSession,
   stopAllCodexSessions
 } from './services/codex'
 import { checkDependencies } from './services/dependencies'
@@ -47,6 +55,7 @@ let isUpdatePromptOpen = false
 let dependencyStatus: DependencyStatus | null = null
 let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
 let shutdownInFlight: Promise<void> | null = null
+const codexConversationForwarders = new Map<string, () => void>()
 
 interface UpdateCheckResult {
   success: boolean
@@ -74,6 +83,23 @@ function configureAutoUpdateSchedule(config: AppConfig): void {
   autoUpdateInterval = setInterval(() => {
     void checkForAppUpdate()
   }, intervalMin * 60_000)
+}
+
+function ensureCodexConversationForwarding(worktreePath: string): void {
+  const key = worktreePath.trim()
+  if (codexConversationForwarders.has(key)) return
+
+  const unsubscribe = subscribeCodexConversation(key, (update) => {
+    try {
+      const webviewRpc = win.webview.rpc
+      if (!webviewRpc) return
+      webviewRpc.send['codex:conversationUpdate'](update)
+    } catch {
+      // Window may not be ready yet.
+    }
+  })
+
+  codexConversationForwarders.set(key, unsubscribe)
 }
 
 async function promptToRestartForUpdate(): Promise<void> {
@@ -252,6 +278,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'codex:startSession': async ({ worktreePath, prompt }) => {
         try {
+          ensureCodexConversationForwarding(worktreePath)
           const status = await startCodexSession(worktreePath, prompt)
           return { success: true, status }
         } catch (err) {
@@ -271,6 +298,78 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         }
 
         return { success: true, status }
+      },
+      'codex:steerSession': async ({ worktreePath, prompt }) => {
+        try {
+          ensureCodexConversationForwarding(worktreePath)
+          const status = await steerCodexSession(worktreePath, prompt)
+          return { success: true, status }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:getSessionStatus': ({ worktreePath }) => {
+        const status = getCodexSessionStatus(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status
+        }
+      },
+      'codex:getSessionEvents': ({ worktreePath, cursor }) => {
+        const result = getCodexSessionEvents(worktreePath, cursor)
+        return {
+          success: true,
+          events: result.events,
+          nextCursor: result.nextCursor
+        }
+      },
+      'codex:getConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await getCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:resumeConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await resumeCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:getPendingActions': ({ worktreePath }) => {
+        return {
+          success: true,
+          actions: getCodexPendingActions(worktreePath)
+        }
+      },
+      'codex:respondPendingAction': ({ worktreePath, actionId, response }) => {
+        return respondCodexPendingAction(worktreePath, actionId, response)
       },
       'mobile:getStatus': () => {
         return getMobileBridgeStatus()

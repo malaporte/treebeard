@@ -8,17 +8,22 @@ import {
   setMobileBridgeEnabled
 } from './config'
 import {
+  getCodexConversation,
   getCodexPendingActions,
   getCodexSessionEvents,
   getCodexSessionStatus,
   getCodexStatus,
   interruptCodexSession,
+  resumeCodexConversation,
   respondCodexPendingAction,
   startCodexSession,
-  steerCodexSession
+  steerCodexSession,
+  waitForCodexConversationUpdate
 } from './codex'
 import { getWorktrees } from './git'
 import type {
+  CodexConversationUpdate,
+  CodexConversationSnapshot,
   CodexPendingAction,
   CodexSessionEvent,
   CodexSessionStatus,
@@ -60,6 +65,11 @@ interface WorktreeRequestBody {
 interface EventsQuery {
   worktreePath: string
   cursor: number
+}
+
+interface ConversationUpdateQuery {
+  worktreePath: string
+  revision: number
 }
 
 interface RespondActionRequestBody {
@@ -328,6 +338,44 @@ async function handleRequest(request: Request): Promise<Response> {
     return json(200, result)
   }
 
+  if (request.method === 'GET' && path === '/codex/session/conversation') {
+    const worktreePath = url.searchParams.get('worktreePath')
+    if (!worktreePath || worktreePath.trim().length === 0) {
+      return json(400, { error: 'worktreePath is required' })
+    }
+
+    const result = await getCodexConversation(worktreePath.trim())
+    if (!result) {
+      return json(404, { error: 'Session not found' })
+    }
+
+    return json(200, result)
+  }
+
+  if (request.method === 'POST' && path === '/codex/session/conversation/resume') {
+    const body = await readJson<WorktreeRequestBody>(request)
+    if (!body || typeof body.worktreePath !== 'string') {
+      return json(400, { error: 'Invalid payload' })
+    }
+
+    const result = await resumeCodexConversation(body.worktreePath.trim())
+    if (!result) {
+      return json(404, { error: 'Session not found' })
+    }
+
+    return json(200, result)
+  }
+
+  if (request.method === 'GET' && path === '/codex/session/conversation/updates') {
+    const query = parseConversationUpdateQuery(url)
+    if (!query) {
+      return json(400, { error: 'Invalid query' })
+    }
+
+    const update = await waitForCodexConversationUpdate(query.worktreePath, query.revision, 30_000)
+    return json(200, { update })
+  }
+
   if (request.method === 'GET' && path === '/codex/session/pending-actions') {
     const worktreePath = url.searchParams.get('worktreePath')
     if (!worktreePath || worktreePath.trim().length === 0) {
@@ -396,6 +444,20 @@ function parseEventsQuery(url: URL): EventsQuery | null {
   return {
     worktreePath: worktreePath.trim(),
     cursor
+  }
+}
+
+function parseConversationUpdateQuery(url: URL): ConversationUpdateQuery | null {
+  const worktreePath = url.searchParams.get('worktreePath')
+  if (!worktreePath || worktreePath.trim().length === 0) return null
+
+  const revisionRaw = url.searchParams.get('revision')
+  const revision = revisionRaw ? Number.parseInt(revisionRaw, 10) : 0
+  if (!Number.isFinite(revision) || revision < 0) return null
+
+  return {
+    worktreePath: worktreePath.trim(),
+    revision
   }
 }
 
@@ -507,6 +569,15 @@ export interface MobileWorktreesResponse {
 
 export interface MobileSessionStatusResponse {
   status: CodexSessionStatus
+}
+
+export interface MobileConversationResponse {
+  status: CodexSessionStatus
+  snapshot: CodexConversationSnapshot
+}
+
+export interface MobileConversationUpdateResponse {
+  update: CodexConversationUpdate | null
 }
 
 export interface MobileSessionEventsResponse {

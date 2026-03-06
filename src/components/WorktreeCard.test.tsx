@@ -4,7 +4,6 @@ import { WorktreeCard } from './WorktreeCard'
 import { renderWithMantine } from '../test/render'
 
 const launchVSCodeRequest = vi.fn()
-const codexOpenProxyUIRequest = vi.fn()
 const useJiraIssueMock = vi.fn()
 const usePRMock = vi.fn()
 const useWorktreeStatusMock = vi.fn()
@@ -12,8 +11,7 @@ const useWorktreeStatusMock = vi.fn()
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
-      'launch:vscode': launchVSCodeRequest,
-      'codex:startSession': codexOpenProxyUIRequest
+      'launch:vscode': launchVSCodeRequest
     }
   })
 }))
@@ -76,6 +74,16 @@ vi.mock('./DeleteWorktreeModal', () => ({
   DeleteWorktreeModal: () => <div data-testid="delete-modal" />
 }))
 
+interface CodexSessionModalProps {
+  opened: boolean
+}
+
+vi.mock('./CodexSessionModal', () => ({
+  CodexSessionModal: ({ opened }: CodexSessionModalProps) => (
+    <div data-testid="codex-session-modal">{opened ? 'open' : 'closed'}</div>
+  )
+}))
+
 describe('WorktreeCard', () => {
   beforeEach(() => {
     vi.stubGlobal('alert', vi.fn())
@@ -83,12 +91,10 @@ describe('WorktreeCard', () => {
     useJiraIssueMock.mockReset()
     usePRMock.mockReset()
     useWorktreeStatusMock.mockReset()
-    codexOpenProxyUIRequest.mockReset()
 
     useJiraIssueMock.mockReturnValue({ issue: null, loading: false })
     usePRMock.mockReturnValue({ pr: null, loading: false })
     useWorktreeStatusMock.mockReturnValue({ status: null, loading: false })
-    codexOpenProxyUIRequest.mockResolvedValue({ success: true, status: null })
   })
 
   it('extracts and normalizes jira key from branch name', () => {
@@ -143,7 +149,7 @@ describe('WorktreeCard', () => {
     expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
   })
 
-  it('starts codex session when button is clicked', async () => {
+  it('opens codex session modal when button is clicked', async () => {
     renderWithMantine(
       <WorktreeCard
         worktree={{
@@ -157,11 +163,9 @@ describe('WorktreeCard', () => {
       />
     )
 
+    expect(screen.getByTestId('codex-session-modal').textContent).toBe('closed')
     const openButton = screen.getByRole('button')
     fireEvent.click(openButton)
-    expect(codexOpenProxyUIRequest).toHaveBeenCalledWith({
-      worktreePath: '/repo/worktrees/main',
-      prompt: 'Summarize current branch status and next engineering step.'
-    })
+    expect(screen.getByTestId('codex-session-modal').textContent).toBe('open')
   })
 })

@@ -1,7 +1,11 @@
 import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
+  CodexConversationUpdate,
+  CodexConversationSnapshot,
+  CodexPendingAction,
   CodexRuntimeStatus,
+  CodexSessionEvent,
   CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
@@ -97,6 +101,34 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: { success: boolean; error?: string; status?: CodexSessionStatus }
       }
+      'codex:steerSession': {
+        params: { worktreePath: string; prompt: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:getSessionStatus': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus }
+      }
+      'codex:getSessionEvents': {
+        params: { worktreePath: string; cursor: number }
+        response: { success: boolean; error?: string; events: CodexSessionEvent[]; nextCursor: number }
+      }
+      'codex:getConversation': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
+      }
+      'codex:resumeConversation': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
+      }
+      'codex:getPendingActions': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string; actions: CodexPendingAction[] }
+      }
+      'codex:respondPendingAction': {
+        params: { worktreePath: string; actionId: string; response: string }
+        response: { success: boolean; error?: string }
+      }
       'mobile:getStatus': {
         params: Record<string, never>
         response: MobileBridgeStatus
@@ -152,6 +184,7 @@ export type TreebeardRPC = {
     requests: Record<string, never>
     messages: {
       'ui:openSettings': void
+      'codex:conversationUpdate': CodexConversationUpdate
     }
   }>
 }

@@ -15,20 +15,27 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import {
   exchangePairingToken,
+  getCodexConversation,
   getCodexPendingActions,
-  getCodexSessionEvents,
-  getCodexSessionStatus,
   getHealth,
   getStatus,
   getWorktrees,
   interruptCodexSession,
+  resumeCodexConversation,
   respondCodexPendingAction,
   startCodexSession,
-  steerCodexSession
+  steerCodexSession,
+  waitForCodexConversationUpdate
 } from './src/api'
 import { handleScannedPairing, resolvePairingCredentials } from './src/pairing'
 import type { BridgeConnection } from './src/api'
-import type { CodexPendingAction, CodexSessionEvent, CodexSessionStatus, MobileWorktree } from './src/types'
+import type {
+  CodexConversationItem,
+  CodexConversationSnapshot,
+  CodexPendingAction,
+  CodexSessionStatus,
+  MobileWorktree
+} from './src/types'
 
 const BRIDGE_CONNECTION_STORAGE_KEY = 'treebeard.bridgeConnection'
 
@@ -72,11 +79,10 @@ async function clearStoredConnection(): Promise<void> {
   }
 }
 
-function formatEvent(event: CodexSessionEvent): string {
-  if (event.rawType) {
-    return `[${event.kind}] ${event.message} (${event.rawType})`
-  }
-  return `[${event.kind}] ${event.message}`
+function formatSessionTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleTimeString()
 }
 
 export default function App() {
@@ -94,11 +100,12 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedWorktree, setSelectedWorktree] = useState<MobileWorktree | null>(null)
   const [sessionStatus, setSessionStatus] = useState<CodexSessionStatus | null>(null)
-  const [sessionEvents, setSessionEvents] = useState<CodexSessionEvent[]>([])
-  const [sessionCursor, setSessionCursor] = useState(0)
+  const [conversation, setConversation] = useState<CodexConversationSnapshot | null>(null)
   const [pendingActions, setPendingActions] = useState<CodexPendingAction[]>([])
   const [promptInput, setPromptInput] = useState('')
   const connectInFlightRef = useRef(false)
+  const chatListRef = useRef<FlatList<CodexConversationItem> | null>(null)
+  const conversationRevisionRef = useRef(0)
 
   const grouped = useMemo(() => {
     const map = new Map<string, MobileWorktree[]>()
@@ -111,6 +118,32 @@ export default function App() {
     return [...map.entries()]
   }, [worktrees])
 
+  const conversationItems = useMemo(() => {
+    if (!conversation) return []
+    return conversation.turns.flatMap((turn) => turn.items)
+  }, [conversation])
+
+  useEffect(() => {
+    conversationRevisionRef.current = conversation?.revision ?? 0
+  }, [conversation])
+
+  useEffect(() => {
+    if (!selectedWorktree) return
+
+    const timeout = setTimeout(() => {
+      chatListRef.current?.scrollToEnd({ animated: true })
+    }, 50)
+
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [
+    selectedWorktree,
+    conversationItems.length,
+    conversationItems[conversationItems.length - 1]?.updatedAt,
+    pendingActions.length
+  ])
+
   const shortenPath = useCallback(
     (filepath: string): string => {
       if (!homedir || !filepath.startsWith(homedir)) return filepath
@@ -119,20 +152,35 @@ export default function App() {
     [homedir]
   )
 
-  const refreshSessionState = useCallback(async (currentConnection: BridgeConnection, worktreePath: string) => {
-    const [statusResponse, eventsResponse, actionsResponse] = await Promise.all([
-      getCodexSessionStatus(currentConnection, worktreePath),
-      getCodexSessionEvents(currentConnection, worktreePath, sessionCursor),
-      getCodexPendingActions(currentConnection, worktreePath)
-    ])
+  const refreshSessionState = useCallback(async (
+    currentConnection: BridgeConnection,
+    worktreePath: string,
+    resume = false
+  ) => {
+    try {
+      const [conversationResponse, actionsResponse] = await Promise.all([
+        resume
+          ? resumeCodexConversation(currentConnection, worktreePath)
+          : getCodexConversation(currentConnection, worktreePath),
+        getCodexPendingActions(currentConnection, worktreePath)
+      ])
 
-    setSessionStatus(statusResponse.status)
-    setPendingActions(actionsResponse.actions)
-    if (eventsResponse.events.length > 0) {
-      setSessionEvents((existing) => [...existing, ...eventsResponse.events])
-      setSessionCursor(eventsResponse.nextCursor)
+      setSessionStatus(conversationResponse.status)
+      conversationRevisionRef.current = conversationResponse.snapshot.revision
+      setConversation(conversationResponse.snapshot)
+      setPendingActions(actionsResponse.actions)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to refresh session'
+      if (message.includes('Session not found')) {
+        setSessionStatus(null)
+        conversationRevisionRef.current = 0
+        setConversation(null)
+        setPendingActions([])
+        return
+      }
+      throw err
     }
-  }, [sessionCursor])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -187,12 +235,32 @@ export default function App() {
   useEffect(() => {
     if (!connection || !selectedWorktree) return
 
-    const interval = setInterval(() => {
-      void refreshSessionState(connection, selectedWorktree.worktree.path)
-    }, 2000)
+    let cancelled = false
 
+    const followConversation = async () => {
+      let revision = conversationRevisionRef.current
+
+      while (!cancelled) {
+        try {
+          const response = await waitForCodexConversationUpdate(connection, selectedWorktree.worktree.path, revision)
+          if (cancelled) return
+          if (!response.update) continue
+          revision = response.update.snapshot.revision
+          conversationRevisionRef.current = revision
+          setSessionStatus(response.update.status)
+          setConversation(response.update.snapshot)
+          setPendingActions(response.update.pendingActions)
+        } catch {
+          if (cancelled) return
+          await refreshSessionState(connection, selectedWorktree.worktree.path)
+          revision = conversationRevisionRef.current
+        }
+      }
+    }
+
+    void followConversation()
     return () => {
-      clearInterval(interval)
+      cancelled = true
     }
   }, [connection, selectedWorktree, refreshSessionState])
 
@@ -264,8 +332,8 @@ export default function App() {
     setHomedir(null)
     setSelectedWorktree(null)
     setSessionStatus(null)
-    setSessionEvents([])
-    setSessionCursor(0)
+    conversationRevisionRef.current = 0
+    setConversation(null)
     setPendingActions([])
     setPromptInput('')
     setError(null)
@@ -286,13 +354,13 @@ export default function App() {
     if (!connection) return
     setSelectedWorktree(item)
     setSessionStatus(null)
-    setSessionEvents([])
-    setSessionCursor(0)
+    conversationRevisionRef.current = 0
+    setConversation(null)
     setPendingActions([])
     setError(null)
 
     try {
-      await refreshSessionState(connection, item.worktree.path)
+      await refreshSessionState(connection, item.worktree.path, true)
     } catch {
       // No existing session yet.
     }
@@ -479,8 +547,45 @@ export default function App() {
 
         <View style={styles.sessionInfo}>
           <Text style={styles.path}>{shortenPath(selectedWorktree.worktree.path)}</Text>
-          <Text style={styles.statusText}>Status: {sessionStatus?.running ? 'Running' : 'Idle'}</Text>
         </View>
+
+        {pendingActions.length > 0 && (
+          <View style={styles.pendingActions}>
+            <Text style={styles.repoTitle}>Pending actions</Text>
+            {pendingActions.map((action) => (
+              <View key={action.id} style={styles.pendingCard}>
+                <Text style={styles.branch}>{action.prompt}</Text>
+                <View style={styles.pendingButtons}>
+                  {(action.options.length > 0 ? action.options : ['approve', 'deny']).map((option) => (
+                    <Pressable
+                      key={`${action.id}-${option}`}
+                      style={option.toLowerCase().includes('deny') ? styles.secondaryButton : styles.primaryButton}
+                      onPress={() => { void handleResolveAction(action.id, option) }}
+                    >
+                      <Text style={styles.buttonText}>{option}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <FlatList
+          ref={chatListRef}
+          data={conversationItems}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          style={styles.chatList}
+          ListEmptyComponent={<Text style={styles.statusText}>No messages yet. Start with a prompt.</Text>}
+          ListFooterComponent={sessionStatus?.running ? (
+            <View style={styles.runningIndicator}>
+              <ActivityIndicator color="#58a6ff" />
+              <Text style={styles.statusText}>Codex is working...</Text>
+            </View>
+          ) : null}
+          renderItem={({ item }) => renderConversationItem(item)}
+        />
 
         <View style={styles.promptRow}>
           <TextInput
@@ -498,37 +603,6 @@ export default function App() {
             <Text style={styles.buttonText}>Stop</Text>
           </Pressable>
         </View>
-
-        {pendingActions.length > 0 && (
-          <View style={styles.pendingActions}>
-            <Text style={styles.repoTitle}>Pending actions</Text>
-            {pendingActions.map((action) => (
-              <View key={action.id} style={styles.pendingCard}>
-                <Text style={styles.branch}>{action.prompt}</Text>
-                <View style={styles.pendingButtons}>
-                  <Pressable style={styles.secondaryButton} onPress={() => { void handleResolveAction(action.id, 'deny') }}>
-                    <Text style={styles.buttonText}>Deny</Text>
-                  </Pressable>
-                  <Pressable style={styles.primaryButton} onPress={() => { void handleResolveAction(action.id, 'approve') }}>
-                    <Text style={styles.buttonText}>Approve</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <FlatList
-          data={sessionEvents}
-          keyExtractor={(item) => `${item.id}`}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.branch}>{formatEvent(item)}</Text>
-              <Text style={styles.path}>{new Date(item.at).toLocaleTimeString()}</Text>
-            </View>
-          )}
-        />
       </SafeAreaView>
     )
   }
@@ -734,10 +808,14 @@ const styles = StyleSheet.create({
   },
   promptRow: {
     paddingHorizontal: 12,
+    paddingTop: 8,
     paddingBottom: 8,
     gap: 8,
     flexDirection: 'row',
     alignItems: 'flex-end'
+  },
+  chatList: {
+    flex: 1
   },
   pendingActions: {
     paddingHorizontal: 12,
@@ -755,5 +833,104 @@ const styles = StyleSheet.create({
   pendingButtons: {
     flexDirection: 'row',
     gap: 8
+  },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: '#2d333b',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#11161d',
+    gap: 6
+  },
+  activityTitle: {
+    color: '#9fb3c8',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase'
+  },
+  runningIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 8
+  },
+  chatBubbleAssistant: {
+    borderWidth: 1,
+    borderColor: '#30363d',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#161b22',
+    gap: 6,
+    alignSelf: 'flex-start',
+    maxWidth: '88%'
+  },
+  chatBubbleUser: {
+    borderWidth: 1,
+    borderColor: '#1f6feb',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: 'rgba(31, 111, 235, 0.18)',
+    gap: 6,
+    alignSelf: 'flex-end',
+    maxWidth: '88%'
   }
 })
+
+function renderConversationItem(item: CodexConversationItem) {
+  if (item.type === 'user_message' || item.type === 'assistant_message') {
+    return (
+      <View style={item.type === 'user_message' ? styles.chatBubbleUser : styles.chatBubbleAssistant}>
+        <Text style={styles.branch}>{item.text || ' '}</Text>
+        <Text style={styles.path}>{formatSessionTime(item.updatedAt)}</Text>
+      </View>
+    )
+  }
+
+  const card = summarizeConversationItem(item)
+  if (!card) return null
+
+  return (
+    <View style={styles.activityCard}>
+      <Text style={styles.activityTitle}>{card.title}</Text>
+      <Text style={styles.statusText}>{card.body}</Text>
+    </View>
+  )
+}
+
+function summarizeConversationItem(item: CodexConversationItem): { title: string; body: string } | null {
+  if (item.type === 'reasoning') {
+    const text = item.summary.join('\n').trim() || item.content.join('\n').trim()
+    return text.length > 0 ? { title: 'Reasoning', body: text } : null
+  }
+  if (item.type === 'plan') {
+    return item.text.trim().length > 0 ? { title: 'Plan', body: item.text } : null
+  }
+  if (item.type === 'command_execution') {
+    const details = [
+      item.command.trim(),
+      item.executionStatus,
+      item.exitCode !== null ? `exit ${item.exitCode}` : null
+    ].filter((value): value is string => value !== null && value.length > 0)
+    return { title: 'Command', body: details.join(' • ') }
+  }
+  if (item.type === 'file_change') {
+    return {
+      title: 'File change',
+      body: `${item.changeCount} file change${item.changeCount === 1 ? '' : 's'} • ${item.patchStatus}`
+    }
+  }
+  if (item.type === 'mcp_tool_call') {
+    const details = [
+      `${item.server}:${item.tool}`,
+      item.toolStatus,
+      item.errorSummary,
+      item.resultSummary
+    ].filter((value): value is string => value !== null && value.length > 0)
+    return { title: 'MCP tool', body: details.join(' • ') }
+  }
+  if (item.type === 'status') {
+    return { title: item.title, body: item.text }
+  }
+  return null
+}

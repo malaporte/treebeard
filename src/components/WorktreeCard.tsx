@@ -6,6 +6,7 @@ import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
 import { DeleteWorktreeModal } from './DeleteWorktreeModal'
+import { CodexSessionModal } from './CodexSessionModal'
 import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
@@ -28,6 +29,7 @@ function extractJiraKey(branch: string): string | null {
 
 export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
+  const [codexOpened, setCodexOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
   const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey)
@@ -37,18 +39,6 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
 
   const handleDoubleClick = () => {
     rpc().request['launch:vscode']({ worktreePath: worktree.path })
-  }
-
-  const handleOpenProxyUi = async () => {
-    try {
-      const result = await rpc().request['codex:startSession']({
-        worktreePath: worktree.path,
-        prompt: 'Summarize current branch status and next engineering step.'
-      })
-      if (!result.success) return
-    } catch {
-      // Silently fail — no alert support in Electrobun webview
-    }
   }
 
   return (
@@ -102,7 +92,7 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
               variant="subtle"
               color="blue"
               size="sm"
-              onClick={handleOpenProxyUi}
+              onClick={() => setCodexOpened(true)}
             >
               <IconExternalLink size={15} />
             </ActionIcon>
@@ -128,6 +118,12 @@ export function WorktreeCard({ worktree, repoPath, onDelete }: WorktreeCardProps
         opened={deleteOpened}
         onClose={() => setDeleteOpened(false)}
         onSuccess={onDelete}
+      />
+      <CodexSessionModal
+        opened={codexOpened}
+        onClose={() => setCodexOpened(false)}
+        worktreePath={worktree.path}
+        branch={worktree.branch}
       />
     </Card>
   )

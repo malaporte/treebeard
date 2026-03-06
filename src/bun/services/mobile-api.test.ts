@@ -14,6 +14,9 @@ const mockSteerCodexSession = vi.fn()
 const mockInterruptCodexSession = vi.fn()
 const mockGetCodexSessionStatus = vi.fn()
 const mockGetCodexSessionEvents = vi.fn()
+const mockGetCodexConversation = vi.fn()
+const mockResumeCodexConversation = vi.fn()
+const mockWaitForCodexConversationUpdate = vi.fn()
 const mockGetCodexPendingActions = vi.fn()
 const mockRespondCodexPendingAction = vi.fn()
 
@@ -36,6 +39,10 @@ vi.mock('./codex', () => ({
   interruptCodexSession: (worktreePath: string) => mockInterruptCodexSession(worktreePath),
   getCodexSessionStatus: (worktreePath: string) => mockGetCodexSessionStatus(worktreePath),
   getCodexSessionEvents: (worktreePath: string, cursor: number) => mockGetCodexSessionEvents(worktreePath, cursor),
+  getCodexConversation: (worktreePath: string) => mockGetCodexConversation(worktreePath),
+  resumeCodexConversation: (worktreePath: string) => mockResumeCodexConversation(worktreePath),
+  waitForCodexConversationUpdate: (worktreePath: string, revision: number, timeoutMs: number) =>
+    mockWaitForCodexConversationUpdate(worktreePath, revision, timeoutMs),
   getCodexPendingActions: (worktreePath: string) => mockGetCodexPendingActions(worktreePath),
   respondCodexPendingAction: (worktreePath: string, actionId: string, response: string) =>
     mockRespondCodexPendingAction(worktreePath, actionId, response)
@@ -110,6 +117,20 @@ describe('mobile api service', () => {
     mockInterruptCodexSession.mockResolvedValue({ worktreePath: '/repo/a', threadId: 't1', running: false, startedAt: '', updatedAt: '', lastEventId: 3, error: null })
     mockGetCodexSessionStatus.mockReturnValue({ worktreePath: '/repo/a', threadId: 't1', running: true, startedAt: '', updatedAt: '', lastEventId: 1, error: null })
     mockGetCodexSessionEvents.mockReturnValue({ events: [], nextCursor: 0 })
+    mockGetCodexConversation.mockResolvedValue({
+      status: { worktreePath: '/repo/a', threadId: 't1', running: true, startedAt: '', updatedAt: '', lastEventId: 1, error: null },
+      snapshot: { threadId: 't1', revision: 1, turns: [] }
+    })
+    mockResumeCodexConversation.mockResolvedValue({
+      status: { worktreePath: '/repo/a', threadId: 't1', running: true, startedAt: '', updatedAt: '', lastEventId: 1, error: null },
+      snapshot: { threadId: 't1', revision: 2, turns: [] }
+    })
+    mockWaitForCodexConversationUpdate.mockResolvedValue({
+      worktreePath: '/repo/a',
+      status: { worktreePath: '/repo/a', threadId: 't1', running: true, startedAt: '', updatedAt: '', lastEventId: 1, error: null },
+      snapshot: { threadId: 't1', revision: 3, turns: [] },
+      pendingActions: []
+    })
     mockGetCodexPendingActions.mockReturnValue([])
     mockRespondCodexPendingAction.mockReturnValue({ success: true })
 
@@ -219,7 +240,17 @@ describe('mobile api service', () => {
     const token = await pair()
 
     mockGetCodexSessionEvents.mockReturnValue({
-      events: [{ id: 1, at: '', worktreePath: '/repo/a', kind: 'message', message: 'hello', rawType: null }],
+      events: [{
+        id: 1,
+        at: '',
+        worktreePath: '/repo/a',
+        kind: 'message',
+        actor: 'assistant',
+        channel: 'chat',
+        title: null,
+        message: 'hello',
+        rawType: null
+      }],
       nextCursor: 1
     })
     mockGetCodexPendingActions.mockReturnValue([
@@ -241,5 +272,47 @@ describe('mobile api service', () => {
     )
 
     expect(actionsResponse?.status).toBe(200)
+  })
+
+  it('returns and resumes normalized conversation snapshots', async () => {
+    await setMobileBridgeEnabledState(true)
+    const token = await pair()
+
+    const conversationResponse = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/codex/session/conversation?worktreePath=%2Frepo%2Fa', {
+        headers: { authorization: `Bearer ${token}` }
+      })
+    )
+
+    expect(conversationResponse?.status).toBe(200)
+    expect(mockGetCodexConversation).toHaveBeenCalledWith('/repo/a')
+
+    const resumeResponse = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/codex/session/conversation/resume', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ worktreePath: '/repo/a' })
+      })
+    )
+
+    expect(resumeResponse?.status).toBe(200)
+    expect(mockResumeCodexConversation).toHaveBeenCalledWith('/repo/a')
+  })
+
+  it('waits for the next mobile conversation update', async () => {
+    await setMobileBridgeEnabledState(true)
+    const token = await pair()
+
+    const response = await serveHandler?.(
+      new Request('http://127.0.0.1:8787/bridge/codex/session/conversation/updates?worktreePath=%2Frepo%2Fa&revision=2', {
+        headers: { authorization: `Bearer ${token}` }
+      })
+    )
+
+    expect(response?.status).toBe(200)
+    expect(mockWaitForCodexConversationUpdate).toHaveBeenCalledWith('/repo/a', 2, 30000)
   })
 })
