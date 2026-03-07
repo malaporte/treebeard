@@ -38,29 +38,30 @@ Treebeard works without optional CLIs, but related badges/actions are unavailabl
 ### To develop Treebeard
 
 - [Bun](https://bun.sh/)
-- [pnpm](https://pnpm.io/)
 
 ## Getting Started
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
+
+The root desktop app uses Bun only. The Expo mobile app under `apps/mobile` remains a separate setup for now.
 
 ## Scripts
 
 | Command               | Description                                                         |
 | --------------------- | ------------------------------------------------------------------- |
-| `pnpm dev`            | Run Treebeard in development mode                                   |
-| `pnpm build`          | Build a packaged app via Electrobun                                 |
-| `pnpm test`           | Run the Vitest suite once                                           |
-| `pnpm test:watch`     | Run Vitest in watch mode                                             |
-| `pnpm test:coverage`  | Run Vitest with V8 coverage output                                  |
-| `pnpm typecheck`      | Run TypeScript type-checking (`tsc --noEmit`)                       |
-| `pnpm start:packaged` | Open the packaged app from `build/stable-macos-arm64/Treebeard.app` |
-| `pnpm screenshot`     | Launch packaged app and capture `treebeard-current.png`             |
+| `bun run dev`            | Run Treebeard in development mode                                |
+| `bun run build`          | Build a packaged app via Electrobun                              |
+| `bun run test`           | Run the Vitest suite once                                        |
+| `bun run test:watch`     | Run Vitest in watch mode                                         |
+| `bun run test:coverage`  | Run Vitest with V8 coverage output                               |
+| `bun run typecheck`      | Run TypeScript type-checking (`tsc --noEmit`)                    |
+| `bun run start:packaged` | Open the packaged app from `build/stable-macos-arm64/Treebeard.app` |
+| `bun run screenshot`     | Launch packaged app and capture `treebeard-current.png`          |
 
-`pnpm screenshot` auto-captures the Treebeard window when Accessibility permissions are available, and falls back to manual window selection when they are not.
+`bun run screenshot` auto-captures the Treebeard window when Accessibility permissions are available, and falls back to manual window selection when they are not.
 
 ## Architecture
 

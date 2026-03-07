@@ -41,7 +41,7 @@ function writeTextArtifact(fileName: string, value: string): void {
 }
 
 function runUrlCommand(targetWorktree: string): string {
-  const proc = Bun.spawnSync(['pnpm', '-s', 'ui:opencode:url', targetWorktree], {
+  const proc = Bun.spawnSync(['bun', 'run', 'ui:opencode:url', targetWorktree], {
     stdout: 'pipe',
     stderr: 'pipe'
   })

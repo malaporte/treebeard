@@ -7,28 +7,29 @@ Thanks for helping improve Treebeard.
 1. Install prerequisites:
    - macOS
    - [Bun](https://bun.sh/)
-   - [pnpm](https://pnpm.io/)
    - Git
 2. Install dependencies:
 
 ```bash
-pnpm install
+bun install
 ```
 
 3. Run the app in development mode:
 
 ```bash
-pnpm dev
+bun run dev
 ```
+
+The desktop/root project uses Bun only. `apps/mobile` remains a separate Expo app with its own setup.
 
 ## Before You Open a PR
 
 Run these checks locally:
 
 ```bash
-pnpm test
-pnpm typecheck
-pnpm build
+bun run test
+bun run typecheck
+bun run build
 ```
 
 ## Coding Guidelines
@@ -67,4 +68,4 @@ If you found a bug or have an idea, open an issue with:
 - expected behavior
 - actual behavior
 - reproduction steps
-- environment details (macOS version, Bun, pnpm)
+- environment details (macOS version, Bun)

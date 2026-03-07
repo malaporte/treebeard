@@ -21,10 +21,10 @@ Ghostty, and OpenCode, plus a mobile companion app that connects through a local
 
 | Command            | Description                                      |
 | ------------------ | ------------------------------------------------ |
-| `pnpm dev`         | Start in development mode with hot-reload        |
-| `pnpm build`       | Production build via Electrobun                  |
-| `pnpm typecheck`   | Type-check only (`tsc --noEmit`)                 |
-| `pnpm test`        | Run Vitest test suite                            |
+| `bun run dev`         | Start in development mode with hot-reload     |
+| `bun run build`       | Production build via Electrobun               |
+| `bun run typecheck`   | Type-check only (`tsc --noEmit`)              |
+| `bun run test`        | Run Vitest test suite                         |
 | `pnpm dev` (mobile, in `apps/mobile`) | Start Expo dev server        |
 
 Vitest is configured for the desktop/bun codebase. Mobile currently relies on type-checking and manual verification.

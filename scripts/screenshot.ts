@@ -32,7 +32,7 @@ if (!Number.isFinite(delayMs) || delayMs < 1000) {
 }
 
 if (!Bun.file(APP_PATH).exists()) {
-  process.stderr.write('Packaged app not found. Run "pnpm build" first.\n')
+  process.stderr.write('Packaged app not found. Run "bun run build" first.\n')
   process.exit(1)
 }
 
