@@ -39,8 +39,15 @@ jobs:
           echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
           security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
-          security find-identity -v -p codesigning | tail -1
+          echo "=== Valid signing identities ==="
+          security find-identity -v -p codesigning
+          echo "=== Test direct codesign ==="
+          cp /bin/ls /tmp/test_bin
+          codesign --force --sign "$ELECTROBUN_DEVELOPER_ID" /tmp/test_bin \
+            && echo "DIRECT CODESIGN: PASSED" \
+            || echo "DIRECT CODESIGN: FAILED"
           bun run build
 
       - name: Upload artifacts
