@@ -41,11 +41,16 @@ jobs:
           security list-keychain -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning | tail -1
+          # Persist for use in subsequent steps
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "KEYCHAIN_PWD=$KEYCHAIN_PWD" >> $GITHUB_ENV
 
       - name: Build and package
         env:
           ELECTROBUN_DEVELOPER_ID: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-        run: bun run build
+        run: |
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          bun run build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
