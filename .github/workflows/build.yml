@@ -31,10 +31,16 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          # Import Apple WWDR intermediate certs to complete the trust chain
+          for cert in AppleWWDRCAG3 AppleWWDRCAG6 AppleWWDRCAG7; do
+            curl -fsSL "https://www.apple.com/certificateauthority/${cert}.cer" \
+              | security import /dev/stdin -k "$KEYCHAIN_PATH" 2>/dev/null || true
+          done
           echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
           security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security list-keychain -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning | tail -1
 
       - name: Build and package
         env:
