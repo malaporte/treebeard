@@ -48,6 +48,13 @@ bun install
 bun run dev
 ```
 
+## Using Codex
+
+Enable Codex in Settings to turn on Treebeard's worktree-level Codex actions.
+
+- Use the Codex button on a worktree card to open an embedded Codex session for that specific worktree inside Treebeard.
+- Use the launch buttons on a worktree card to open that worktree in Codex Desktop, VS Code, or Ghostty.
+
 ## Scripts
 
 | Command               | Description                                                         |
