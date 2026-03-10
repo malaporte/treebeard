@@ -9,9 +9,6 @@ import type {
   CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
-  MobileBridgeStatus,
-  MobilePairingInfo,
-  MobileProxyTraceEntry,
   PRInfo,
   Worktree,
   WorktreeStatus
@@ -132,30 +129,6 @@ export type TreebeardRPC = {
       'codex:respondPendingAction': {
         params: { worktreePath: string; actionId: string; response: string }
         response: { success: boolean; error?: string }
-      }
-      'mobile:getStatus': {
-        params: Record<string, never>
-        response: MobileBridgeStatus
-      }
-      'mobile:setEnabled': {
-        params: { enabled: boolean }
-        response: MobileBridgeStatus
-      }
-      'mobile:rotatePairingCode': {
-        params: Record<string, never>
-        response: MobileBridgeStatus
-      }
-      'mobile:createPairingToken': {
-        params: Record<string, never>
-        response: MobilePairingInfo
-      }
-      'mobile:getProxyTrace': {
-        params: Record<string, never>
-        response: MobileProxyTraceEntry[]
-      }
-      'mobile:clearProxyTrace': {
-        params: Record<string, never>
-        response: void
       }
       'system:homedir': {
         params: Record<string, never>

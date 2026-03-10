@@ -173,7 +173,7 @@ describe('WorktreeCard', () => {
     })
   })
 
-  it('hides the embedded codex button when mobile bridge support is disabled', () => {
+  it('hides the embedded codex button when codex support is disabled', () => {
     renderWithMantine(
       <WorktreeCard
         worktree={{

@@ -46,8 +46,6 @@ bun install
 bun run dev
 ```
 
-The root desktop app uses Bun only. The Expo mobile app under `apps/mobile` remains a separate setup for now.
-
 ## Scripts
 
 | Command               | Description                                                         |
@@ -89,7 +87,7 @@ App settings are persisted at:
 
 `~/.config/treebeard`
 
-This file stores repository paths, polling interval, update settings, and collapsed repo state.
+This file stores repository paths, polling interval, update settings, Codex settings, and collapsed repo state.
 
 ## Contributing
 

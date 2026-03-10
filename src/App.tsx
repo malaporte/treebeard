@@ -68,8 +68,7 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth,
-    setMobileBridgeEnabled
+    setDesktopCodexPaneWidth
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
@@ -77,7 +76,7 @@ export default function App() {
   const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
   const [codexPaneWidth, setCodexPaneWidth] = useState(420)
   const [resizingCodexPane, setResizingCodexPane] = useState(false)
-  const embeddedCodexEnabled = config?.mobileBridge.enabled === true
+  const embeddedCodexEnabled = config?.codexServerEnabled === true
   const codexPaneOpened = embeddedCodexEnabled && selectedCodexWorktree !== null
 
   const handleOpenCodex = useCallback((worktree: Worktree) => {
@@ -321,7 +320,6 @@ export default function App() {
         onSetPollInterval={setPollInterval}
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
-        onSetMobileBridgeEnabled={setMobileBridgeEnabled}
       />
     </MantineProvider>
   )

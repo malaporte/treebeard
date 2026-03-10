@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import QRCode from 'qrcode'
 import {
   Modal,
   TextInput,
@@ -14,18 +13,10 @@ import {
   Switch,
   Alert
 } from '@mantine/core'
-import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX, IconRefresh } from '@tabler/icons-react'
+import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type {
-  AppConfig,
-  CodexRuntimeStatus,
-  DependencyStatus,
-  MobileBridgeStatus,
-  MobileProxyTraceEntry,
-  MobilePairingInfo,
-  RepoConfig
-} from '../shared/types'
+import type { AppConfig, CodexRuntimeStatus, DependencyStatus, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -37,10 +28,9 @@ interface SettingsModalProps {
   onSetPollInterval: (sec: number) => Promise<void>
   onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
   onSetUpdateCheckInterval: (minutes: number) => Promise<void>
-  onSetMobileBridgeEnabled: (enabled: boolean) => Promise<void>
 }
 
-type SettingsSection = 'general' | 'mobile' | 'updates' | 'dependencies'
+type SettingsSection = 'general' | 'updates' | 'dependencies'
 
 export function SettingsModal({
   opened,
@@ -51,8 +41,7 @@ export function SettingsModal({
   onRemoveRepo,
   onSetPollInterval,
   onSetAutoUpdateEnabled,
-  onSetUpdateCheckInterval,
-  onSetMobileBridgeEnabled
+  onSetUpdateCheckInterval
 }: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
@@ -61,11 +50,6 @@ export function SettingsModal({
   const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null)
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [checkingDependencies, setCheckingDependencies] = useState(false)
-  const [mobileBridgeStatus, setMobileBridgeStatus] = useState<MobileBridgeStatus | null>(null)
-  const [mobileBridgeBusy, setMobileBridgeBusy] = useState(false)
-  const [mobilePairingInfo, setMobilePairingInfo] = useState<MobilePairingInfo | null>(null)
-  const [mobilePairingQr, setMobilePairingQr] = useState<string | null>(null)
-  const [mobileProxyTrace, setMobileProxyTrace] = useState<MobileProxyTraceEntry[]>([])
   const [codexStatus, setCodexStatus] = useState<CodexRuntimeStatus | null>(null)
   const [codexBusy, setCodexBusy] = useState(false)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -85,18 +69,6 @@ export function SettingsModal({
     }
   }
 
-  const loadMobileBridgeStatus = async () => {
-    setMobileBridgeBusy(true)
-    try {
-      const status = await rpc().request['mobile:getStatus']({})
-      setMobileBridgeStatus(status)
-    } catch {
-      setMobileBridgeStatus(null)
-    } finally {
-      setMobileBridgeBusy(false)
-    }
-  }
-
   const loadCodexStatus = async () => {
     setCodexBusy(true)
     try {
@@ -112,9 +84,8 @@ export function SettingsModal({
   useEffect(() => {
     if (!opened) return
     setActiveSection('general')
-    loadDependencies(false)
-    loadMobileBridgeStatus()
-    loadCodexStatus()
+    void loadDependencies(false)
+    void loadCodexStatus()
   }, [opened])
 
   const handleCodexEnabledChange = async (enabled: boolean) => {
@@ -126,81 +97,6 @@ export function SettingsModal({
       // Keep existing status if RPC fails
     } finally {
       setCodexBusy(false)
-    }
-  }
-
-  const handleMobileBridgeEnabledChange = async (enabled: boolean) => {
-    setMobileBridgeBusy(true)
-    try {
-      const status = await rpc().request['mobile:setEnabled']({ enabled })
-      setMobileBridgeStatus(status)
-      await onSetMobileBridgeEnabled(enabled)
-      if (!enabled) {
-        setMobilePairingInfo(null)
-        setMobilePairingQr(null)
-      }
-    } catch {
-      // Keep existing status if RPC fails
-    } finally {
-      setMobileBridgeBusy(false)
-    }
-  }
-
-  const handleRotatePairingCode = async () => {
-    setMobileBridgeBusy(true)
-    try {
-      const status = await rpc().request['mobile:rotatePairingCode']({})
-      setMobileBridgeStatus(status)
-    } catch {
-      // Keep existing status if RPC fails
-    } finally {
-      setMobileBridgeBusy(false)
-    }
-  }
-
-  const handleCreatePairingQr = async () => {
-    setMobileBridgeBusy(true)
-    try {
-      const pairingInfo = await rpc().request['mobile:createPairingToken']({})
-      setMobilePairingInfo(pairingInfo)
-      const qrDataUrl = await QRCode.toDataURL(pairingInfo.deepLink, {
-        margin: 1,
-        scale: 5,
-        color: {
-          dark: '#0f1115',
-          light: '#f8fafc'
-        }
-      })
-      setMobilePairingQr(qrDataUrl)
-    } catch {
-      setMobilePairingInfo(null)
-      setMobilePairingQr(null)
-    } finally {
-      setMobileBridgeBusy(false)
-    }
-  }
-
-  const loadMobileProxyTrace = async () => {
-    setMobileBridgeBusy(true)
-    try {
-      const trace = await rpc().request['mobile:getProxyTrace']({})
-      setMobileProxyTrace(trace)
-    } catch {
-      setMobileProxyTrace([])
-    } finally {
-      setMobileBridgeBusy(false)
-    }
-  }
-
-  const clearMobileProxyTrace = async () => {
-    setMobileBridgeBusy(true)
-    try {
-      await rpc().request['mobile:clearProxyTrace']({})
-      setMobileProxyTrace([])
-    } catch {
-      // Ignore clear failures.
-    } finally {
-      setMobileBridgeBusy(false)
     }
   }
 
@@ -225,7 +121,6 @@ export function SettingsModal({
       const selected = await rpc().request['dialog:openDirectory']({})
       if (!selected) return
       setPath(selected)
-      // Auto-fill name from directory basename if empty
       if (!name.trim()) {
         const basename = selected.split('/').filter(Boolean).pop() ?? ''
         setName(basename)
@@ -283,11 +178,8 @@ export function SettingsModal({
         .join(' | ')
     : 'Unable to read dependency status.'
 
-  const mobileBridgeEnabled = mobileBridgeStatus?.enabled ?? config.mobileBridge.enabled
-
   const sectionItems: Array<{ key: SettingsSection; label: string }> = [
     { key: 'general', label: 'General' },
-    { key: 'mobile', label: 'Mobile' },
     { key: 'updates', label: 'Updates' },
     { key: 'dependencies', label: 'Dependencies' }
   ]
@@ -417,7 +309,7 @@ export function SettingsModal({
                   label="Enable Codex sessions from Treebeard"
                   checked={codexStatus?.enabled ?? config.codexServerEnabled}
                   onChange={(e) => {
-                    handleCodexEnabledChange(e.currentTarget.checked)
+                    void handleCodexEnabledChange(e.currentTarget.checked)
                   }}
                   disabled={codexBusy}
                   size="sm"
@@ -427,12 +319,7 @@ export function SettingsModal({
                     Status: {codexStatus?.running ? 'Running' : 'Stopped'}
                     {codexStatus?.pid ? ` (pid ${codexStatus.pid})` : ''}
                   </Text>
-                  <Button
-                    size="xs"
-                    variant="subtle"
-                    onClick={loadCodexStatus}
-                    loading={codexBusy}
-                  >
+                  <Button size="xs" variant="subtle" onClick={() => void loadCodexStatus()} loading={codexBusy}>
                     Refresh Codex status
                   </Button>
                 </Group>
@@ -450,7 +337,7 @@ export function SettingsModal({
                   value={config.pollIntervalSec}
                   onChange={(val) => {
                     if (typeof val === 'number' && val >= 10) {
-                      onSetPollInterval(val)
+                      void onSetPollInterval(val)
                     }
                   }}
                   min={10}
@@ -463,123 +350,6 @@ export function SettingsModal({
             </Stack>
           )}
 
-          {activeSection === 'mobile' && (
-            <Stack gap="sm">
-              <Text fw={600} size="sm">Mobile Bridge</Text>
-              <Switch
-                label="Enable LAN bridge for mobile app"
-                checked={mobileBridgeEnabled}
-                onChange={(e) => {
-                  handleMobileBridgeEnabledChange(e.currentTarget.checked)
-                }}
-                disabled={mobileBridgeBusy}
-                size="sm"
-              />
-              {mobileBridgeEnabled && (
-                <>
-                  <Group gap="sm" align="center">
-                    <Button
-                      size="xs"
-                      variant="filled"
-                      onClick={handleCreatePairingQr}
-                      loading={mobileBridgeBusy}
-                    >
-                      Generate pairing QR
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconRefresh size={12} />}
-                      onClick={handleRotatePairingCode}
-                      loading={mobileBridgeBusy}
-                    >
-                      Rotate pairing code
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="subtle"
-                      onClick={loadMobileBridgeStatus}
-                      loading={mobileBridgeBusy}
-                    >
-                      Refresh bridge status
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="subtle"
-                      onClick={loadMobileProxyTrace}
-                      loading={mobileBridgeBusy}
-                    >
-                      Refresh proxy trace
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="subtle"
-                      color="gray"
-                      onClick={clearMobileProxyTrace}
-                      loading={mobileBridgeBusy}
-                    >
-                      Clear proxy trace
-                    </Button>
-                  </Group>
-                  <Text size="xs" c="dimmed">
-                    Pairing code: <Text span c="white" style={{ fontFamily: 'monospace' }}>{mobileBridgeStatus?.pairingCode || 'Unavailable'}</Text>
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    Status: {mobileBridgeStatus?.running ? 'Running' : 'Stopped'}
-                    {mobileBridgeStatus ? ` on ${mobileBridgeStatus.host}:${mobileBridgeStatus.port}` : ''}
-                  </Text>
-                  {mobilePairingInfo && (
-                    <Text size="xs" c="dimmed">
-                      Pairing token expires at {new Date(mobilePairingInfo.expiresAt).toLocaleTimeString()}
-                    </Text>
-                  )}
-                  {mobilePairingQr && (
-                    <img
-                      src={mobilePairingQr}
-                      alt="Mobile pairing QR"
-                      style={{ width: 180, height: 180, borderRadius: 8 }}
-                    />
-                  )}
-                  {(mobileBridgeStatus?.urls.length ?? 0) > 0 && (
-                    <Stack gap={2}>
-                      <Text size="xs" c="dimmed">Connect from mobile:</Text>
-                      {mobileBridgeStatus?.urls.map((url) => (
-                        <Text key={url} size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
-                          {url}
-                        </Text>
-                      ))}
-                    </Stack>
-                  )}
-                  {mobileProxyTrace.length > 0 && (
-                    <Stack gap={4}>
-                      <Text size="xs" c="dimmed">Proxy trace:</Text>
-                      <div
-                        style={{
-                          maxHeight: 180,
-                          overflow: 'auto',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: 6,
-                          padding: '6px 8px'
-                        }}
-                      >
-                        {mobileProxyTrace.map((entry, index) => (
-                          <Text
-                            key={`${entry.at}-${index}`}
-                            size="xs"
-                            c="dimmed"
-                            style={{ fontFamily: 'monospace' }}
-                          >
-                            [{entry.source}] {entry.at} {entry.message}
-                          </Text>
-                        ))}
-                      </div>
-                    </Stack>
-                  )}
-                </>
-              )}
-            </Stack>
-          )}
-
           {activeSection === 'updates' && (
             <Stack gap="sm">
               <Text fw={600} size="sm">Updates</Text>
@@ -587,7 +357,7 @@ export function SettingsModal({
                 label="Automatically check for updates"
                 checked={config.autoUpdateEnabled}
                 onChange={(e) => {
-                  onSetAutoUpdateEnabled(e.currentTarget.checked)
+                  void onSetAutoUpdateEnabled(e.currentTarget.checked)
                 }}
                 size="sm"
               />
@@ -596,7 +366,7 @@ export function SettingsModal({
                 value={config.updateCheckIntervalMin}
                 onChange={(val) => {
                   if (typeof val === 'number' && val >= 5) {
-                    onSetUpdateCheckInterval(val)
+                    void onSetUpdateCheckInterval(val)
                   }
                 }}
                 min={5}
@@ -607,7 +377,7 @@ export function SettingsModal({
                 disabled={!config.autoUpdateEnabled}
               />
               <Group gap="sm">
-                <Button size="xs" variant="light" onClick={handleCheckForUpdates} loading={checkingForUpdates}>
+                <Button size="xs" variant="light" onClick={() => void handleCheckForUpdates()} loading={checkingForUpdates}>
                   Check for updates now
                 </Button>
                 {updateCheckMessage && (
@@ -621,39 +391,46 @@ export function SettingsModal({
 
           {activeSection === 'dependencies' && (
             <Stack gap="sm">
-              <Text fw={600} size="sm">Dependencies</Text>
-              {missingDependencies.length > 0 ? (
+              <Group justify="space-between" align="center">
+                <Text fw={600} size="sm">Dependencies</Text>
+                <Button size="xs" variant="subtle" onClick={() => void loadDependencies(true)} loading={checkingDependencies}>
+                  Refresh
+                </Button>
+              </Group>
+
+              <Text size="xs" c="dimmed">
+                {dependencySummary}
+              </Text>
+
+              {missingDependencies.length > 0 && (
                 <Alert color="yellow" variant="light" title="Missing required CLIs">
-                  {missingDependencies.map((check) => check.name).join(', ')}
-                </Alert>
-              ) : unauthenticatedDependencies.length > 0 ? (
-                <Alert color="orange" variant="light" title="CLI authentication required">
-                  {unauthenticatedDependencies.map((check) => check.name).join(', ')}
-                </Alert>
-              ) : unknownAuthDependencies.length > 0 ? (
-                <Alert color="blue" variant="light" title="Auth check unavailable for some CLIs">
-                  {unknownAuthDependencies.map((check) => check.name).join(', ')}
-                </Alert>
-              ) : (
-                <Alert color="teal" variant="light" title="All required CLIs are available">
-                  Treebeard can reach required CLIs and auth checks are passing.
+                  <Stack gap={4}>
+                    {missingDependencies.map((check) => (
+                      <Text key={check.name} size="sm">{check.name}</Text>
+                    ))}
+                  </Stack>
                 </Alert>
               )}
-              <Group gap="sm">
-                <Button
-                  size="xs"
-                  variant="light"
-                  onClick={() => {
-                    loadDependencies(true)
-                  }}
-                  loading={checkingDependencies}
-                >
-                  Re-check dependencies
-                </Button>
-                <Text size="xs" c="dimmed">
-                  {dependencySummary}
-                </Text>
-              </Group>
+
+              {unauthenticatedDependencies.length > 0 && (
+                <Alert color="orange" variant="light" title="Authentication required">
+                  <Stack gap={4}>
+                    {unauthenticatedDependencies.map((check) => (
+                      <Text key={check.name} size="sm">{check.name}</Text>
+                    ))}
+                  </Stack>
+                </Alert>
+              )}
+
+              {unknownAuthDependencies.length > 0 && (
+                <Alert color="blue" variant="light" title="Authentication not verified">
+                  <Stack gap={4}>
+                    {unknownAuthDependencies.map((check) => (
+                      <Text key={check.name} size="sm">{check.name}</Text>
+                    ))}
+                  </Stack>
+                </Alert>
+              )}
             </Stack>
           )}
         </div>

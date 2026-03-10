@@ -68,13 +68,7 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
-  desktopCodexPaneWidth: 420,
-  mobileBridge: {
-    enabled: false,
-    host: '0.0.0.0',
-    port: 8787,
-    pairingCode: '123456'
-  }
+  desktopCodexPaneWidth: 420
 }
 
 describe('App', () => {
@@ -93,8 +87,7 @@ describe('App', () => {
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
       reorderRepos: vi.fn(async () => {}),
-      setDesktopCodexPaneWidth: vi.fn(async () => {}),
-      setMobileBridgeEnabled: vi.fn(async () => {})
+      setDesktopCodexPaneWidth: vi.fn(async () => {})
     })
   })
 
@@ -153,10 +146,7 @@ describe('App', () => {
     useConfigMock.mockReturnValue({
       config: {
         ...config,
-        mobileBridge: {
-          ...config.mobileBridge,
-          enabled: true
-        }
+        codexServerEnabled: true
       },
       loading: false,
       addRepo: vi.fn(async () => {}),
@@ -165,8 +155,7 @@ describe('App', () => {
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
       reorderRepos: vi.fn(async () => {}),
-      setDesktopCodexPaneWidth: vi.fn(async () => {}),
-      setMobileBridgeEnabled: vi.fn(async () => {})
+      setDesktopCodexPaneWidth: vi.fn(async () => {})
     })
 
     systemDependenciesRequest.mockResolvedValue({
@@ -191,7 +180,7 @@ describe('App', () => {
     })
   })
 
-  it('disables embedded codex when the mobile bridge is disabled', async () => {
+  it('disables embedded codex when codex support is disabled', async () => {
     systemDependenciesRequest.mockResolvedValue({
       checkedAt: new Date().toISOString(),
       checks: []

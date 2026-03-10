@@ -4,7 +4,7 @@ export default {
   app: {
     name: 'Treebeard',
     identifier: 'com.treebeard.app',
-    version: '1.0.2'
+    version: '1.1.3'
   },
   runtime: {
     exitOnLastWindowClosed: true

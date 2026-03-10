@@ -14,14 +14,6 @@ export interface AppConfig {
   collapsedRepos: string[]
   codexServerEnabled: boolean
   desktopCodexPaneWidth: number
-  mobileBridge: MobileBridgeConfig
-}
-
-export interface MobileBridgeConfig {
-  enabled: boolean
-  host: string
-  port: number
-  pairingCode: string
 }
 
 export interface Worktree {
@@ -194,33 +186,6 @@ export interface CodexPendingAction {
   kind: 'approval' | 'user_input'
   prompt: string
   options: string[]
-}
-
-export interface MobileWorktree {
-  repo: RepoConfig
-  worktree: Worktree
-}
-
-export interface MobileBridgeStatus {
-  enabled: boolean
-  running: boolean
-  host: string
-  port: number
-  pairingCode: string
-  urls: string[]
-}
-
-export interface MobilePairingInfo {
-  token: string
-  expiresAt: string
-  bridgeUrl: string
-  deepLink: string
-}
-
-export interface MobileProxyTraceEntry {
-  at: string
-  source: 'http' | 'codex'
-  message: string
 }
 
 export interface DependencyCheck {

@@ -32,16 +32,6 @@ import {
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
 import { launchVSCode, launchGhostty, launchCodexDesktop, launchURL } from './services/launcher'
-import {
-  clearMobileProxyTrace,
-  createMobilePairingToken,
-  getMobileProxyTrace,
-  getMobileBridgeStatus,
-  rotateMobileBridgePairingCodeStatus,
-  setMobileBridgeEnabledState,
-  stopMobileBridge,
-  syncMobileBridgeFromConfig
-} from './services/mobile-api'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -192,7 +182,6 @@ async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
   }
 
   shutdownInFlight = (async () => {
-    stopMobileBridge()
     await stopAllCodexSessions()
     if (quitAfterCleanup) {
       Utils.quit()
@@ -214,7 +203,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'config:set': ({ config }) => {
         setConfig(config)
         configureAutoUpdateSchedule(getConfig())
-        void syncMobileBridgeFromConfig()
       },
       'config:getCollapsed': () => {
         return getCollapsedRepos()
@@ -382,24 +370,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'codex:respondPendingAction': ({ worktreePath, actionId, response }) => {
         return respondCodexPendingAction(worktreePath, actionId, response)
       },
-      'mobile:getStatus': () => {
-        return getMobileBridgeStatus()
-      },
-      'mobile:setEnabled': async ({ enabled }) => {
-        return setMobileBridgeEnabledState(enabled)
-      },
-      'mobile:rotatePairingCode': () => {
-        return rotateMobileBridgePairingCodeStatus()
-      },
-      'mobile:createPairingToken': () => {
-        return createMobilePairingToken()
-      },
-      'mobile:getProxyTrace': () => {
-        return getMobileProxyTrace()
-      },
-      'mobile:clearProxyTrace': () => {
-        clearMobileProxyTrace()
-      },
       'system:homedir': () => {
         return os.homedir()
       },
@@ -511,7 +481,6 @@ void getDependencyStatus()
 if (getConfig().codexServerEnabled) {
   void setCodexStatusEnabled(true)
 }
-void syncMobileBridgeFromConfig()
 
 // --- Shutdown Cleanup ---
 
@@ -523,5 +492,4 @@ process.on('SIGINT', handleShutdown)
 process.on('SIGTERM', handleShutdown)
 process.on('exit', () => {
   forceStopAllCodexSessions()
-  stopMobileBridge()
 })

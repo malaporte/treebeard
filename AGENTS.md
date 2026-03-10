@@ -3,19 +3,18 @@
 ## Project Overview
 
 Treebeard is an **Electrobun** desktop app for managing Git worktrees across repositories,
-with Jira issue badges, GitHub PR/CI status, quick-launch buttons for VS Code,
-Ghostty, and OpenCode, plus a mobile companion app that connects through a local bridge.
+with Jira issue badges, GitHub PR/CI status, and quick-launch buttons for VS Code,
+Ghostty, and OpenCode.
 
-**Stack:** TypeScript (strict), React 18, Mantine v7, Electrobun, Bun, Expo (React Native)
+**Stack:** TypeScript (strict), React 18, Mantine v7, Electrobun, Bun
 
 **Structure:**
 - `src/bun/` — Main process entry (`index.ts`), shared types (`../shared/types.ts`)
-- `src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `opencode.ts`, `mobile-api.ts`, `dependencies.ts`
+- `src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `opencode.ts`, `dependencies.ts`
 - `src/shared/` — Shared types and RPC schema (`types.ts`, `rpc-types.ts`)
 - `src/` — Renderer process (React app)
 - `src/components/` — Flat directory of single-purpose React components
 - `src/hooks/` — Custom hooks (`useWorktrees`, `usePR`, `useJiraIssue`, `useConfig`)
-- `apps/mobile/` — Expo app for pairing, worktree listing, and proxied OpenCode WebView access
 
 ## Build / Run Commands
 
@@ -25,9 +24,8 @@ Ghostty, and OpenCode, plus a mobile companion app that connects through a local
 | `bun run build`       | Production build via Electrobun               |
 | `bun run typecheck`   | Type-check only (`tsc --noEmit`)              |
 | `bun run test`        | Run Vitest test suite                         |
-| `pnpm dev` (mobile, in `apps/mobile`) | Start Expo dev server        |
 
-Vitest is configured for the desktop/bun codebase. Mobile currently relies on type-checking and manual verification.
+Vitest is configured for the desktop/bun codebase.
 
 For targeted tests:
 ```bash
@@ -175,11 +173,5 @@ Zero logging in the codebase. No `console.log`, `console.error`, or logging libr
 - **State management:** Local `useState` + custom hooks only. No external state library.
 - **External CLIs:** GitHub data via `gh` CLI, Jira data via `jira` CLI, both called from
   the bun process via `child_process.execFile`. Failures return `null` silently.
-- **OpenCode runtime:** `src/bun/services/opencode.ts` manages one global OpenCode server lifecycle
+- **OpenCode runtime:** Treebeard manages one global OpenCode server lifecycle
   (start/stop/restart, stale process cleanup, health/status reporting).
-- **Mobile bridge:** `src/bun/services/mobile-api.ts` exposes `/bridge/*` endpoints for pairing,
-  authenticated worktree/status reads, and OpenCode web-session ticket exchange.
-- **Pairing/security:** QR deep links carry one-time pairing tokens; bridge API uses bearer session
-  tokens with TTL; mobile app persists bridge session locally and revalidates on startup.
-- **OpenCode UI routing:** Mobile and desktop OpenCode UI access should go through Treebeard's proxy
-  bridge routes instead of direct LAN exposure of `opencode serve`.

@@ -7,20 +7,8 @@ import type { AppConfig, DependencyStatus } from '../shared/types'
 const systemDependenciesRequest = vi.fn()
 const openDirectoryRequest = vi.fn()
 const checkForUpdatesRequest = vi.fn()
-const mobileGetStatusRequest = vi.fn()
-const mobileSetEnabledRequest = vi.fn()
-const mobileRotatePairingCodeRequest = vi.fn()
-const mobileCreatePairingTokenRequest = vi.fn()
 const codexGetStatusRequest = vi.fn()
 const codexSetEnabledRequest = vi.fn()
-
-const qrcodeToDataUrl = vi.fn()
-
-vi.mock('qrcode', () => ({
-  default: {
-    toDataURL: (...args: unknown[]) => qrcodeToDataUrl(...args)
-  }
-}))
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
@@ -28,10 +16,6 @@ vi.mock('../rpc', () => ({
       'system:dependencies': systemDependenciesRequest,
       'dialog:openDirectory': openDirectoryRequest,
       'app:checkForUpdates': checkForUpdatesRequest,
-      'mobile:getStatus': mobileGetStatusRequest,
-      'mobile:setEnabled': mobileSetEnabledRequest,
-      'mobile:rotatePairingCode': mobileRotatePairingCodeRequest,
-      'mobile:createPairingToken': mobileCreatePairingTokenRequest,
       'codex:getStatus': codexGetStatusRequest,
       'codex:setEnabled': codexSetEnabledRequest
     }
@@ -51,13 +35,7 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
-  desktopCodexPaneWidth: 420,
-  mobileBridge: {
-    enabled: false,
-    host: '0.0.0.0',
-    port: 8787,
-    pairingCode: '123456'
-  }
+  desktopCodexPaneWidth: 420
 }
 
 describe('SettingsModal', () => {
@@ -65,60 +43,21 @@ describe('SettingsModal', () => {
     systemDependenciesRequest.mockReset()
     openDirectoryRequest.mockReset()
     checkForUpdatesRequest.mockReset()
-    mobileGetStatusRequest.mockReset()
-    mobileSetEnabledRequest.mockReset()
-    mobileRotatePairingCodeRequest.mockReset()
-    mobileCreatePairingTokenRequest.mockReset()
     codexGetStatusRequest.mockReset()
     codexSetEnabledRequest.mockReset()
-    qrcodeToDataUrl.mockReset()
 
     codexGetStatusRequest.mockResolvedValue({
       enabled: false,
       running: false,
-      url: null,
       pid: null,
       error: null
     })
     codexSetEnabledRequest.mockResolvedValue({
       enabled: true,
       running: true,
-      url: 'http://127.0.0.1:4096',
       pid: 4096,
       error: null
     })
-
-    mobileGetStatusRequest.mockResolvedValue({
-      enabled: false,
-      running: false,
-      host: '0.0.0.0',
-      port: 8787,
-      pairingCode: '123456',
-      urls: ['http://localhost:8787']
-    })
-    mobileSetEnabledRequest.mockImplementation(async ({ enabled }: { enabled: boolean }) => ({
-      enabled,
-      running: enabled,
-      host: '0.0.0.0',
-      port: 8787,
-      pairingCode: '123456',
-      urls: enabled ? ['http://localhost:8787'] : []
-    }))
-    mobileRotatePairingCodeRequest.mockResolvedValue({
-      enabled: true,
-      running: true,
-      host: '0.0.0.0',
-      port: 8787,
-      pairingCode: '654321',
-      urls: ['http://localhost:8787']
-    })
-    mobileCreatePairingTokenRequest.mockResolvedValue({
-      token: 'token-1',
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      bridgeUrl: 'http://localhost:8787',
-      deepLink: 'treebeard://pair?data=test'
-    })
-    qrcodeToDataUrl.mockResolvedValue('data:image/png;base64,abc123')
   })
 
   it('loads dependency status and notifies parent', async () => {
@@ -160,7 +99,6 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetMobileBridgeEnabled={async () => {}}
       />
     )
 
@@ -196,7 +134,6 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetMobileBridgeEnabled={async () => {}}
       />
     )
 
@@ -209,7 +146,6 @@ describe('SettingsModal', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Updates' }))
-
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates now' }))
 
     await waitFor(() => {
@@ -217,8 +153,11 @@ describe('SettingsModal', () => {
     })
   })
 
-  it('shows and updates mobile bridge controls', async () => {
-    const onSetMobileBridgeEnabled = vi.fn(async () => {})
+  it('shows and updates codex controls', async () => {
+    systemDependenciesRequest.mockResolvedValue({
+      checkedAt: new Date().toISOString(),
+      checks: []
+    })
 
     renderWithMantine(
       <SettingsModal
@@ -231,49 +170,18 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetMobileBridgeEnabled={onSetMobileBridgeEnabled}
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mobile' }))
-
-    expect(screen.queryByText(/Pairing code:/)).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Generate pairing QR' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Rotate pairing code' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Refresh bridge status' })).toBeNull()
-
-    fireEvent.click(screen.getByLabelText('Enable LAN bridge for mobile app'))
-
     await waitFor(() => {
-      expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
-      expect(onSetMobileBridgeEnabled).toHaveBeenCalledWith(true)
-      expect(screen.getByText(/Pairing code:/)).toBeTruthy()
-      expect(screen.getByText('123456')).toBeTruthy()
+      expect(screen.getByLabelText('Enable Codex sessions from Treebeard')).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rotate pairing code' }))
+    fireEvent.click(screen.getByLabelText('Enable Codex sessions from Treebeard'))
 
     await waitFor(() => {
-      expect(mobileRotatePairingCodeRequest).toHaveBeenCalledWith({})
-      expect(screen.getByText('654321')).toBeTruthy()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Generate pairing QR' }))
-
-    await waitFor(() => {
-      expect(mobileCreatePairingTokenRequest).toHaveBeenCalledWith({})
-      expect(qrcodeToDataUrl).toHaveBeenCalled()
-      expect(screen.getByAltText('Mobile pairing QR')).toBeTruthy()
-    })
-
-    fireEvent.click(screen.getByLabelText('Enable LAN bridge for mobile app'))
-
-    await waitFor(() => {
-      expect(mobileSetEnabledRequest).toHaveBeenCalledWith({ enabled: false })
-      expect(onSetMobileBridgeEnabled).toHaveBeenCalledWith(false)
-      expect(screen.queryByText(/Pairing code:/)).toBeNull()
-      expect(screen.queryByRole('button', { name: 'Generate pairing QR' })).toBeNull()
-      expect(screen.queryByAltText('Mobile pairing QR')).toBeNull()
+      expect(codexSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
+      expect(screen.getByText(/Status: Running/)).toBeTruthy()
     })
   })
 })

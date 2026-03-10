@@ -20,8 +20,6 @@ bun install
 bun run dev
 ```
 
-The desktop/root project uses Bun only. `apps/mobile` remains a separate Expo app with its own setup.
-
 ## Before You Open a PR
 
 Run these checks locally:

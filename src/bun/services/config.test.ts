@@ -3,10 +3,7 @@ import {
   getCodexEnabled,
   getCollapsedRepos,
   getConfig,
-  getMobileBridgeConfig,
-  rotateMobileBridgePairingCode,
   setCodexEnabled,
-  setMobileBridgeEnabled,
   setCollapsedRepos,
   setConfig
 } from './config'
@@ -58,13 +55,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 420,
-      mobileBridge: {
-        enabled: false,
-        host: '0.0.0.0',
-        port: 8787,
-        pairingCode: ''
-      }
+      desktopCodexPaneWidth: 420
     })
   })
 
@@ -76,13 +67,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 99999,
-      mobileBridge: {
-        enabled: true,
-        host: '10.0.0.5',
-        port: 99999,
-        pairingCode: '123456'
-      }
+      desktopCodexPaneWidth: 99999
     })
 
     expect(getConfig()).toEqual({
@@ -92,13 +77,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 4096,
-      mobileBridge: {
-        enabled: true,
-        host: '10.0.0.5',
-        port: 65535,
-        pairingCode: '123456'
-      }
+      desktopCodexPaneWidth: 4096
     })
   })
 
@@ -136,13 +115,7 @@ describe('codex server config helpers', () => {
       updateCheckIntervalMin: 45,
       collapsedRepos: ['repo-1'],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 480,
-      mobileBridge: {
-        enabled: false,
-        host: '0.0.0.0',
-        port: 8787,
-        pairingCode: ''
-      }
+      desktopCodexPaneWidth: 480
     })
 
     setCodexEnabled(true)
@@ -168,36 +141,5 @@ describe('codex server config helpers', () => {
     const config = getConfig()
     expect(config.codexServerEnabled).toBe(false)
     expect(config.desktopCodexPaneWidth).toBe(420)
-  })
-})
-
-describe('mobile bridge config helpers', () => {
-  beforeEach(() => {
-    setupStore()
-  })
-
-  it('returns default mobile bridge config', () => {
-    expect(getMobileBridgeConfig()).toEqual({
-      enabled: false,
-      host: '0.0.0.0',
-      port: 8787,
-      pairingCode: ''
-    })
-  })
-
-  it('enables and disables mobile bridge', () => {
-    expect(setMobileBridgeEnabled(true).enabled).toBe(true)
-    expect(getMobileBridgeConfig().enabled).toBe(true)
-
-    expect(setMobileBridgeEnabled(false).enabled).toBe(false)
-    expect(getMobileBridgeConfig().enabled).toBe(false)
-  })
-
-  it('rotates pairing code', () => {
-    const first = rotateMobileBridgePairingCode()
-    const second = rotateMobileBridgePairingCode()
-    expect(first).toHaveLength(6)
-    expect(second).toHaveLength(6)
-    expect(first).not.toBe(second)
   })
 })
