@@ -11,7 +11,8 @@ export default {
   },
   build: {
     mac: {
-      icons: 'AppIcon.iconset'
+      icons: 'AppIcon.iconset',
+      codesign: true
     },
     bun: {
       entrypoint: 'src/bun/index.ts'
