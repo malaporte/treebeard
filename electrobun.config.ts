@@ -4,7 +4,7 @@ export default {
   app: {
     name: 'Treebeard',
     identifier: 'com.treebeard.app',
-    version: '1.1.3'
+    version: '1.1.4'
   },
   runtime: {
     exitOnLastWindowClosed: true
@@ -27,7 +27,8 @@ export default {
     }
   },
   scripts: {
-    preBuild: './scripts/build-css.ts'
+    preBuild: './scripts/build-css.ts',
+    postBuild: './scripts/copy-macos-icon.ts'
   },
   release: {
     baseUrl: 'https://github.com/malaporte/treebeard/releases/latest/download'
