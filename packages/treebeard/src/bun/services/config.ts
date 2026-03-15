@@ -21,7 +21,8 @@ const DEFAULTS: AppConfig = {
   collapsedRepos: [],
   codexServerEnabled: false,
   desktopCodexPaneWidth: 420,
-  sandboxEnabled: false
+  sandboxEnabled: false,
+  sandboxMountPath: null
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -49,7 +50,10 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
     codexServerEnabled: typeof config.codexServerEnabled === 'boolean' ? config.codexServerEnabled : DEFAULTS.codexServerEnabled,
     desktopCodexPaneWidth,
-    sandboxEnabled: typeof config.sandboxEnabled === 'boolean' ? config.sandboxEnabled : DEFAULTS.sandboxEnabled
+    sandboxEnabled: typeof config.sandboxEnabled === 'boolean' ? config.sandboxEnabled : DEFAULTS.sandboxEnabled,
+    sandboxMountPath: typeof config.sandboxMountPath === 'string' && config.sandboxMountPath.trim() !== ''
+      ? config.sandboxMountPath.trim()
+      : null
   }
 }
 
@@ -122,5 +126,15 @@ export function getSandboxEnabled(): boolean {
 export function setSandboxEnabled(enabled: boolean): void {
   const config = readConfig()
   config.sandboxEnabled = enabled
+  writeConfig(config)
+}
+
+export function getSandboxMountPath(): string | null {
+  return readConfig().sandboxMountPath
+}
+
+export function setSandboxMountPath(mountPath: string | null): void {
+  const config = readConfig()
+  config.sandboxMountPath = mountPath && mountPath.trim() !== '' ? mountPath.trim() : null
   writeConfig(config)
 }

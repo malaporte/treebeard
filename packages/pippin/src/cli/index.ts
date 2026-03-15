@@ -1,4 +1,5 @@
 import { DEFAULT_PORT, EXEC_PATH, HEALTH_PATH } from '../shared/types'
+import { readMountConfig, translateCwd } from './resolve-cwd'
 import type { ClientMessage, ServerMessage } from '../shared/types'
 
 const port = parseInt(process.env.PIPPIN_PORT || String(DEFAULT_PORT), 10)
@@ -32,7 +33,22 @@ if (!cmd) {
 
 const params = new URLSearchParams({ cmd })
 
-if (process.env.PIPPIN_CWD) {
+// Resolve the working directory for the command inside the container.
+// If a sandboxMountPath is configured in Treebeard, translate the host
+// CWD to the corresponding /workspace path inside the container.
+const hostCwd = process.env.PIPPIN_CWD || process.cwd()
+const { sandboxMountPath } = readMountConfig()
+const cwdResult = translateCwd(hostCwd, sandboxMountPath)
+
+if (cwdResult && 'error' in cwdResult) {
+  process.stderr.write(`pippin: ${cwdResult.error}\n`)
+  process.exit(1)
+}
+
+if (cwdResult) {
+  params.set('cwd', cwdResult.containerCwd)
+} else if (process.env.PIPPIN_CWD) {
+  // No mount path configured — pass through PIPPIN_CWD as-is (legacy behavior)
   params.set('cwd', process.env.PIPPIN_CWD)
 }
 

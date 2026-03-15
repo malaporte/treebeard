@@ -15,6 +15,7 @@ export interface AppConfig {
   codexServerEnabled: boolean
   desktopCodexPaneWidth: number
   sandboxEnabled: boolean
+  sandboxMountPath: string | null
 }
 
 export interface Worktree {

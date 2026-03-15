@@ -3,6 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { getShellEnv } from './shell-env'
 import { getBundledBinaryPath } from './paths'
+import { getSandboxMountPath } from './config'
 import type { Subprocess } from 'bun'
 
 const PIPPIN_SERVER_PORT = 9111
@@ -11,6 +12,7 @@ const HEALTH_CHECK_INTERVAL_MS = 1000
 const HEALTH_CHECK_MAX_ATTEMPTS = 60
 const SHARE_DIR_NAME = 'leash-share'
 const APP_SUPPORT_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'Treebeard')
+export const CONTAINER_MOUNT_DEST = '/workspace'
 
 // Leash creates two containers from these images
 const LEASH_CONTAINER_IMAGES = [
@@ -157,21 +159,27 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
     // Start leash with:
     //   -p 9111:9111  -- publish pippin-server port to host
+    //   -v src:dst     -- bind-mount configured host directory into the container
     //   -I            -- non-interactive (Treebeard manages the lifecycle)
     //   The command /leash/pippin-server runs inside the container
-    leashProcess = Bun.spawn(
-      [
-        'leash',
-        '-p', `${PIPPIN_SERVER_PORT}:${PIPPIN_SERVER_PORT}`,
-        '-I',
-        '--', '/leash/pippin-server',
-      ],
-      {
-        env: leashEnv,
-        stdout: 'pipe',
-        stderr: 'pipe',
-      },
-    )
+    const leashArgs = [
+      'leash',
+      '-p', `${PIPPIN_SERVER_PORT}:${PIPPIN_SERVER_PORT}`,
+    ]
+
+    // Bind-mount the configured host directory into the container at /workspace
+    const mountPath = getSandboxMountPath()
+    if (mountPath) {
+      leashArgs.push('-v', `${mountPath}:${CONTAINER_MOUNT_DEST}`)
+    }
+
+    leashArgs.push('-I', '--', '/leash/pippin-server')
+
+    leashProcess = Bun.spawn(leashArgs, {
+      env: leashEnv,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
 
     // Monitor leash process exit
     leashProcess.exited.then((code) => {

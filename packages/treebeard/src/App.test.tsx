@@ -69,7 +69,8 @@ const config: AppConfig = {
   collapsedRepos: [],
   codexServerEnabled: false,
   desktopCodexPaneWidth: 420,
-  sandboxEnabled: false
+  sandboxEnabled: false,
+  sandboxMountPath: null
 }
 
 describe('App', () => {

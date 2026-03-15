@@ -4,10 +4,12 @@ import {
   getCollapsedRepos,
   getConfig,
   getSandboxEnabled,
+  getSandboxMountPath,
   setCodexEnabled,
   setCollapsedRepos,
   setConfig,
-  setSandboxEnabled
+  setSandboxEnabled,
+  setSandboxMountPath
 } from './config'
 
 vi.mock('node:os', () => ({
@@ -58,7 +60,8 @@ describe('config service', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 420,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     })
   })
 
@@ -71,7 +74,8 @@ describe('config service', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 99999,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     })
 
     expect(getConfig()).toEqual({
@@ -82,7 +86,8 @@ describe('config service', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 4096,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     })
   })
 
@@ -121,7 +126,8 @@ describe('codex server config helpers', () => {
       collapsedRepos: ['repo-1'],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 480,
-      sandboxEnabled: true
+      sandboxEnabled: true,
+      sandboxMountPath: null
     })
 
     setCodexEnabled(true)
@@ -182,5 +188,52 @@ describe('sandbox config helpers', () => {
     }))
 
     expect(getSandboxEnabled()).toBe(false)
+  })
+})
+
+describe('sandbox mount path config helpers', () => {
+  beforeEach(() => {
+    setupStore()
+  })
+
+  it('returns null by default', () => {
+    expect(getSandboxMountPath()).toBeNull()
+  })
+
+  it('persists mount path', () => {
+    setSandboxMountPath('/Users/test/Developer')
+    expect(getSandboxMountPath()).toBe('/Users/test/Developer')
+  })
+
+  it('clears mount path when set to null', () => {
+    setSandboxMountPath('/Users/test/Developer')
+    setSandboxMountPath(null)
+    expect(getSandboxMountPath()).toBeNull()
+  })
+
+  it('clears mount path when set to empty string', () => {
+    setSandboxMountPath('/Users/test/Developer')
+    setSandboxMountPath('')
+    expect(getSandboxMountPath()).toBeNull()
+  })
+
+  it('trims whitespace from mount path', () => {
+    setSandboxMountPath('  /Users/test/Developer  ')
+    expect(getSandboxMountPath()).toBe('/Users/test/Developer')
+  })
+
+  it('sanitizes non-string sandboxMountPath to null', () => {
+    store.set('/Users/test/.config/treebeard/treebeard-config.json', JSON.stringify({
+      repositories: [],
+      pollIntervalSec: 60,
+      autoUpdateEnabled: true,
+      updateCheckIntervalMin: 30,
+      collapsedRepos: [],
+      codexServerEnabled: false,
+      sandboxEnabled: false,
+      sandboxMountPath: 42
+    }))
+
+    expect(getSandboxMountPath()).toBeNull()
   })
 })

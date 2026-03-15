@@ -31,7 +31,8 @@ describe('useConfig', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 420,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     }
     getConfigRequest.mockResolvedValue(initial)
 
@@ -52,7 +53,8 @@ describe('useConfig', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 420,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -101,7 +103,8 @@ describe('useConfig', () => {
       collapsedRepos: [],
       codexServerEnabled: false,
       desktopCodexPaneWidth: 420,
-      sandboxEnabled: false
+      sandboxEnabled: false,
+      sandboxMountPath: null
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)

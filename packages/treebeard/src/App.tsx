@@ -70,7 +70,8 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth
+    setDesktopCodexPaneWidth,
+    setSandboxMountPath
   } = useConfig()
   const { status: sandboxStatus, loading: sandboxLoading, start: startSandbox, stop: stopSandbox } = useSandbox()
   const [settingsOpened, setSettingsOpened] = useState(false)
@@ -329,6 +330,7 @@ export default function App() {
         onSetPollInterval={setPollInterval}
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
+        onSetSandboxMountPath={setSandboxMountPath}
       />
     </MantineProvider>
   )

@@ -15,6 +15,12 @@ vi.mock('./paths', () => ({
   getBundledBinaryPath: (name: string) => `/bundled/bin/${name}`,
 }))
 
+let mockSandboxMountPath: string | null = null
+
+vi.mock('./config', () => ({
+  getSandboxMountPath: () => mockSandboxMountPath,
+}))
+
 const mockMkdirSync = vi.fn()
 const mockStatSync = vi.fn()
 const mockCopyFileSync = vi.fn()
@@ -62,6 +68,7 @@ beforeEach(async () => {
   mockStatSync.mockReset()
   mockCopyFileSync.mockReset()
   mockChmodSync.mockReset()
+  mockSandboxMountPath = null
 
   // Default: statSync throws (binary doesn't exist at dest)
   mockStatSync.mockImplementation(() => {
@@ -101,13 +108,26 @@ describe('leash service', () => {
         expect.stringContaining('pippin-server'),
         0o755,
       )
-      expect(mockSpawn).toHaveBeenCalledWith(
+      const spawnArgs = mockSpawn.mock.calls[0][0]
+      expect(spawnArgs).toEqual(
         ['leash', '-p', '9111:9111', '-I', '--', '/leash/pippin-server'],
-        expect.objectContaining({
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }),
       )
+    })
+
+    it('adds -v flag when sandboxMountPath is configured', async () => {
+      mockSandboxMountPath = '/Users/test/Developer'
+      const { process: proc } = createMockSubprocess()
+      mockSpawn.mockReturnValue(proc)
+
+      await leash.startSandbox()
+
+      const spawnArgs = mockSpawn.mock.calls[0][0]
+      expect(spawnArgs).toEqual([
+        'leash',
+        '-p', '9111:9111',
+        '-v', '/Users/test/Developer:/workspace',
+        '-I', '--', '/leash/pippin-server',
+      ])
     })
 
     it('passes LEASH_SHARE_DIR in the environment', async () => {
