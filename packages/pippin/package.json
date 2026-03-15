@@ -1,0 +1,20 @@
+{
+  "name": "pippin",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "pippin": "src/cli/index.ts"
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "build:server": "bun run scripts/build.ts --server",
+    "build:cli": "bun run scripts/build.ts --cli",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "bun-types": "^1.2.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  }
+}

@@ -5,8 +5,8 @@
       "name": "Treebeard: Dev",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm dev",
-      "cwd": "${workspaceFolder}",
+      "command": "bun run dev",
+      "cwd": "${workspaceFolder}/packages/treebeard",
       "env": {
         "PATH": "${env:PATH}:/Users/martin/.nvm/versions/node/v22.14.0/bin"
       }
@@ -15,8 +15,8 @@
       "name": "Treebeard: Packaged",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm start:packaged",
-      "cwd": "${workspaceFolder}",
+      "command": "bun run start:packaged",
+      "cwd": "${workspaceFolder}/packages/treebeard",
       "env": {
         "PATH": "${env:PATH}:/Users/martin/.nvm/versions/node/v22.14.0/bin"
       }

@@ -20,12 +20,14 @@ jobs:
 
       - name: Run tests
         run: bun run test
+        working-directory: packages/treebeard
 
       - name: Build and package
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           ELECTROBUN_DEVELOPER_ID: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        working-directory: packages/treebeard
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PWD=$(openssl rand -base64 32)
@@ -48,9 +50,9 @@ jobs:
         with:
           name: Treebeard-mac
           path: |
-            artifacts/*.dmg
-            artifacts/*.tar.zst
-            artifacts/*-update.json
+            packages/treebeard/artifacts/*.dmg
+            packages/treebeard/artifacts/*.tar.zst
+            packages/treebeard/artifacts/*-update.json
           retention-days: 30
 
       - name: Create GitHub release assets
@@ -58,6 +60,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/*.dmg
-            artifacts/*.tar.zst
-            artifacts/*-update.json
+            packages/treebeard/artifacts/*.dmg
+            packages/treebeard/artifacts/*.tar.zst
+            packages/treebeard/artifacts/*-update.json

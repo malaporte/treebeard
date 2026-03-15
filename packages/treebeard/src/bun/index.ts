@@ -1,0 +1,523 @@
+import os from 'node:os'
+import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
+import Electrobun from 'electrobun/bun'
+import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos, setSandboxEnabled } from './services/config'
+import {
+  getCodexConversation,
+  forceStopAllCodexSessions,
+  getCodexPendingActions,
+  getCodexSessionEvents,
+  getCodexSessionStatus,
+  getCodexStatus,
+  interruptCodexSession,
+  resumeCodexConversation,
+  respondCodexPendingAction,
+  setCodexStatusEnabled,
+  startCodexSession,
+  subscribeCodexConversation,
+  steerCodexSession,
+  stopAllCodexSessions
+} from './services/codex'
+import { checkDependencies } from './services/dependencies'
+import {
+  getWorktrees,
+  getGitHubRepo,
+  getDefaultBranch,
+  addWorktree,
+  buildWorktreePath,
+  getRemoteBranches,
+  getWorktreeStatus,
+  removeWorktree
+} from './services/git'
+import { getPRForBranch } from './services/github'
+import { getJiraIssue } from './services/jira'
+import { launchVSCode, launchGhostty, launchCodexDesktop, launchURL } from './services/launcher'
+import { startSandbox, stopSandbox, getSandboxStatus, forceStopSandbox } from './services/leash'
+import { installPippinCli, getPippinCliStatus } from './services/pippin-cli'
+import type { TreebeardRPC } from '../shared/rpc-types'
+import type { AppConfig, DependencyStatus } from '../shared/types'
+
+const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
+const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
+const STARTUP_UPDATE_CHECK_DELAY_MS = 15000
+
+let autoUpdateInterval: ReturnType<typeof setInterval> | null = null
+let isUpdateCheckInFlight = false
+let isUpdatePromptOpen = false
+let dependencyStatus: DependencyStatus | null = null
+let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
+let shutdownInFlight: Promise<void> | null = null
+const codexConversationForwarders = new Map<string, () => void>()
+
+interface UpdateCheckResult {
+  success: boolean
+  updateAvailable: boolean
+  error?: string
+}
+
+function normalizeUpdateIntervalMin(intervalMin: number): number {
+  return Math.min(Math.max(Math.round(intervalMin), MIN_UPDATE_CHECK_INTERVAL_MIN), MAX_UPDATE_CHECK_INTERVAL_MIN)
+}
+
+function autoUpdateEnabled(config: AppConfig): boolean {
+  return config.autoUpdateEnabled
+}
+
+function configureAutoUpdateSchedule(config: AppConfig): void {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval)
+    autoUpdateInterval = null
+  }
+
+  if (!autoUpdateEnabled(config)) return
+
+  const intervalMin = normalizeUpdateIntervalMin(config.updateCheckIntervalMin)
+  autoUpdateInterval = setInterval(() => {
+    void checkForAppUpdate()
+  }, intervalMin * 60_000)
+}
+
+function ensureCodexConversationForwarding(worktreePath: string): void {
+  const key = worktreePath.trim()
+  if (codexConversationForwarders.has(key)) return
+
+  const unsubscribe = subscribeCodexConversation(key, (update) => {
+    try {
+      const webviewRpc = win.webview.rpc
+      if (!webviewRpc) return
+      webviewRpc.send['codex:conversationUpdate'](update)
+    } catch {
+      // Window may not be ready yet.
+    }
+  })
+
+  codexConversationForwarders.set(key, unsubscribe)
+}
+
+async function promptToRestartForUpdate(): Promise<void> {
+  if (isUpdatePromptOpen) return
+
+  isUpdatePromptOpen = true
+  try {
+    const { response } = await Utils.showMessageBox({
+      type: 'info',
+      title: 'Update ready',
+      message: 'A new version of Treebeard is ready to install.',
+      detail: 'Restart now to apply the update.',
+      buttons: ['Restart now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    })
+
+    if (response === 0) {
+      await Updater.applyUpdate()
+    }
+  } finally {
+    isUpdatePromptOpen = false
+  }
+}
+
+async function checkForAppUpdate(): Promise<UpdateCheckResult> {
+  if (isUpdateCheckInFlight) {
+    return { success: true, updateAvailable: false }
+  }
+
+  isUpdateCheckInFlight = true
+  try {
+    const info = await Updater.checkForUpdate()
+
+    if (!info.updateAvailable) {
+      return { success: true, updateAvailable: false }
+    }
+
+    await Updater.downloadUpdate()
+    const postDownloadInfo = Updater.updateInfo()
+
+    if (!postDownloadInfo?.updateReady) {
+      return {
+        success: false,
+        updateAvailable: true,
+        error: postDownloadInfo?.error || 'Update download failed'
+      }
+    }
+
+    await promptToRestartForUpdate()
+    return { success: true, updateAvailable: true }
+  } catch {
+    return { success: false, updateAvailable: false, error: 'Failed to check for updates' }
+  } finally {
+    isUpdateCheckInFlight = false
+  }
+}
+
+function startAutoUpdateScheduler(): void {
+  const config = getConfig()
+  configureAutoUpdateSchedule(config)
+
+  setTimeout(() => {
+    if (!autoUpdateEnabled(getConfig())) return
+    void checkForAppUpdate()
+  }, STARTUP_UPDATE_CHECK_DELAY_MS)
+}
+
+async function getDependencyStatus(forceRefresh = false): Promise<DependencyStatus> {
+  if (!forceRefresh && dependencyStatus) return dependencyStatus
+
+  if (!dependencyCheckInFlight) {
+    dependencyCheckInFlight = checkDependencies()
+      .then((status) => {
+        dependencyStatus = status
+        return status
+      })
+      .finally(() => {
+        dependencyCheckInFlight = null
+      })
+  }
+
+  return dependencyCheckInFlight
+}
+
+async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
+  if (shutdownInFlight) {
+    await shutdownInFlight
+    return
+  }
+
+  shutdownInFlight = (async () => {
+    await stopAllCodexSessions()
+    await stopSandbox()
+    if (quitAfterCleanup) {
+      Utils.quit()
+    }
+  })()
+
+  await shutdownInFlight
+}
+
+// --- Main RPC Handlers ---
+
+const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
+  maxRequestTime: 30000,
+  handlers: {
+    requests: {
+      'config:get': () => {
+        return getConfig()
+      },
+      'config:set': ({ config }) => {
+        setConfig(config)
+        configureAutoUpdateSchedule(getConfig())
+      },
+      'config:getCollapsed': () => {
+        return getCollapsedRepos()
+      },
+      'config:setCollapsed': ({ ids }) => {
+        setCollapsedRepos(ids)
+      },
+      'git:worktrees': async ({ repoPath }) => {
+        return getWorktrees(repoPath)
+      },
+      'git:defaultBranch': async ({ repoPath }) => {
+        return getDefaultBranch(repoPath)
+      },
+      'git:remoteBranches': async ({ repoPath }) => {
+        return getRemoteBranches(repoPath)
+      },
+      'git:addWorktree': async ({ repoPath, repoName, branch, isNewBranch }) => {
+        const baseBranch = isNewBranch ? await getDefaultBranch(repoPath) : undefined
+        const worktreePath = buildWorktreePath(repoName, branch)
+        return addWorktree(repoPath, branch, worktreePath, isNewBranch, baseBranch)
+      },
+      'git:worktreeStatus': async ({ worktreePath }) => {
+        return getWorktreeStatus(worktreePath)
+      },
+      'git:removeWorktree': async ({ repoPath, worktreePath, force }) => {
+        return removeWorktree(repoPath, worktreePath, force)
+      },
+      'jira:issue': async ({ issueKey }) => {
+        return getJiraIssue(issueKey)
+      },
+      'gh:pr': async ({ repoPath, branch }) => {
+        const ghRepo = await getGitHubRepo(repoPath)
+        if (!ghRepo) return null
+        return getPRForBranch(repoPath, branch, ghRepo)
+      },
+      'launch:vscode': async ({ worktreePath }) => {
+        await launchVSCode(worktreePath)
+      },
+      'launch:ghostty': ({ worktreePath }) => {
+        launchGhostty(worktreePath)
+      },
+      'launch:codexDesktop': async ({ worktreePath }) => {
+        try {
+          await launchCodexDesktop(worktreePath)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'launch:url': async ({ url }) => {
+        if (Utils.openExternal(url)) {
+          return { success: true }
+        }
+        try {
+          await launchURL(url)
+          return { success: true }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:getStatus': () => {
+        return getCodexStatus()
+      },
+      'codex:setEnabled': async ({ enabled }) => {
+        return setCodexStatusEnabled(enabled)
+      },
+      'codex:startSession': async ({ worktreePath, prompt }) => {
+        try {
+          ensureCodexConversationForwarding(worktreePath)
+          const status = await startCodexSession(worktreePath, prompt)
+          return { success: true, status }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:interruptSession': async ({ worktreePath }) => {
+        const status = await interruptCodexSession(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+
+        return { success: true, status }
+      },
+      'codex:steerSession': async ({ worktreePath, prompt }) => {
+        try {
+          ensureCodexConversationForwarding(worktreePath)
+          const status = await steerCodexSession(worktreePath, prompt)
+          return { success: true, status }
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err)
+          }
+        }
+      },
+      'codex:getSessionStatus': ({ worktreePath }) => {
+        const status = getCodexSessionStatus(worktreePath)
+        if (!status) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status
+        }
+      },
+      'codex:getSessionEvents': ({ worktreePath, cursor }) => {
+        const result = getCodexSessionEvents(worktreePath, cursor)
+        return {
+          success: true,
+          events: result.events,
+          nextCursor: result.nextCursor
+        }
+      },
+      'codex:getConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await getCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:resumeConversation': async ({ worktreePath }) => {
+        ensureCodexConversationForwarding(worktreePath)
+        const result = await resumeCodexConversation(worktreePath)
+        if (!result) {
+          return {
+            success: false,
+            error: 'Session not found'
+          }
+        }
+        return {
+          success: true,
+          status: result.status,
+          snapshot: result.snapshot
+        }
+      },
+      'codex:getPendingActions': ({ worktreePath }) => {
+        return {
+          success: true,
+          actions: getCodexPendingActions(worktreePath)
+        }
+      },
+      'codex:respondPendingAction': ({ worktreePath, actionId, response }) => {
+        return respondCodexPendingAction(worktreePath, actionId, response)
+      },
+      'system:homedir': () => {
+        return os.homedir()
+      },
+      'dialog:openDirectory': async () => {
+        const paths = await Utils.openFileDialog({
+          startingFolder: os.homedir(),
+          allowedFileTypes: '*',
+          canChooseFiles: false,
+          canChooseDirectory: true,
+          allowsMultipleSelection: false
+        })
+        if (!paths || paths.length === 0) return null
+        return paths[0]
+      },
+      'system:dependencies': async ({ refresh }) => {
+        return getDependencyStatus(Boolean(refresh))
+      },
+      'leash:start': async () => {
+        const status = await startSandbox()
+        if (status.state === 'running') {
+          setSandboxEnabled(true)
+        }
+        return status
+      },
+      'leash:stop': async () => {
+        setSandboxEnabled(false)
+        return stopSandbox()
+      },
+      'leash:status': () => {
+        return getSandboxStatus()
+      },
+      'pippin:installCli': async () => {
+        return installPippinCli()
+      },
+      'pippin:cliStatus': async () => {
+        return getPippinCliStatus()
+      },
+      'app:quit': () => {
+        return gracefulShutdown(true)
+      },
+      'app:closeWindow': () => {
+        win.close()
+      },
+      'app:checkForUpdates': async () => {
+        return checkForAppUpdate()
+      }
+    },
+    messages: {}
+  }
+})
+
+function openSettingsFromMenu() {
+  try {
+    win.focus()
+    const webviewRpc = win.webview.rpc
+    if (!webviewRpc) return
+    webviewRpc.send['ui:openSettings']()
+  } catch {
+    // Window may not be fully ready yet
+  }
+}
+
+// --- Application Menu ---
+
+ApplicationMenu.setApplicationMenu([
+  {
+    label: 'Treebeard',
+    submenu: [
+      { role: 'about' },
+      { type: 'separator' },
+      { label: 'Settings...', action: 'open-settings', accelerator: 'CmdOrCtrl+,' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'showAll' },
+      { type: 'separator' },
+      { label: 'Quit Treebeard', action: 'quit-treebeard', accelerator: 'CmdOrCtrl+Q' }
+    ]
+  },
+  {
+    label: 'Window',
+    submenu: [
+      { role: 'minimize' },
+      { role: 'zoom' },
+      { role: 'close' }
+    ]
+  }
+])
+
+ApplicationMenu.on('application-menu-clicked', (event) => {
+  const payload = event as { action?: string; data?: { action?: string } }
+  const action = payload.data?.action ?? payload.action
+  if (action === 'open-settings') {
+    openSettingsFromMenu()
+    return
+  }
+
+  if (action === 'quit-treebeard') {
+    void gracefulShutdown(true)
+  }
+})
+
+// --- Main Window ---
+
+const win = new BrowserWindow({
+  title: 'Treebeard',
+  url: 'views://mainview/index.html',
+  titleBarStyle: 'hiddenInset',
+  frame: {
+    width: 1200,
+    height: 800,
+    x: 200,
+    y: 200
+  },
+  rpc: mainviewRPC
+})
+
+// Open window.open() / target="_blank" links in the system browser
+Electrobun.events.on(`new-window-open-${win.webview.id}`, (event: { data?: { detail?: string | { url?: string } } }) => {
+  const detail = event.data?.detail
+  const url = typeof detail === 'string' ? detail : detail?.url
+  if (url) {
+    Utils.openExternal(url)
+  }
+})
+
+startAutoUpdateScheduler()
+void getDependencyStatus()
+void installPippinCli()
+if (getConfig().codexServerEnabled) {
+  void setCodexStatusEnabled(true)
+}
+if (getConfig().sandboxEnabled) {
+  void startSandbox()
+}
+
+// --- Shutdown Cleanup ---
+
+function handleShutdown() {
+  void gracefulShutdown(false)
+}
+
+process.on('SIGINT', handleShutdown)
+process.on('SIGTERM', handleShutdown)
+process.on('exit', () => {
+  forceStopAllCodexSessions()
+  forceStopSandbox()
+})

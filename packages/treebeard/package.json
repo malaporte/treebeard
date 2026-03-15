@@ -1,0 +1,42 @@
+{
+  "name": "treebeard",
+  "version": "1.1.4",
+  "scripts": {
+    "dev": "electrobun dev",
+    "build": "electrobun build --env=stable",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "start:packaged": "open build/stable-macos-arm64/Treebeard.app",
+    "screenshot": "bun run scripts/screenshot.ts",
+    "typecheck": "bun run scripts/typecheck.ts",
+    "postcss": "bun run scripts/build-css.ts"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@mantine/core": "^7.17.0",
+    "@mantine/hooks": "^7.17.0",
+    "electrobun": "^1.14.4",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@tabler/icons-react": "^3.31.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "bun-types": "^1.2.0",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.4.0",
+    "postcss-preset-mantine": "^1.17.0",
+    "postcss-simple-vars": "^7.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  },
+  "packageManager": "bun@1.3.10"
+}

@@ -4,9 +4,10 @@
     {
       "label": "typecheck",
       "type": "shell",
-      "command": "pnpm",
-      "args": ["typecheck"],
+      "command": "bun",
+      "args": ["run", "typecheck"],
       "options": {
+        "cwd": "${workspaceFolder}/packages/treebeard",
         "env": {
           "PATH": "${env:PATH}:/Users/martin/.nvm/versions/node/v22.14.0/bin"
         }

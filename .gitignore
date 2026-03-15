@@ -2,7 +2,9 @@ node_modules/
 coverage/
 build/
 artifacts/
+dist/
+*.bun-build
 AppIcon.iconset/
 .DS_Store
-src/mainview/styles.css
+packages/treebeard/src/mainview/styles.css
 apps/mobile/.expo/

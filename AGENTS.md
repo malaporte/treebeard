@@ -9,12 +9,13 @@ Ghostty, and OpenCode.
 **Stack:** TypeScript (strict), React 18, Mantine v7, Electrobun, Bun
 
 **Structure:**
-- `src/bun/` — Main process entry (`index.ts`), shared types (`../shared/types.ts`)
-- `src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `opencode.ts`, `dependencies.ts`
-- `src/shared/` — Shared types and RPC schema (`types.ts`, `rpc-types.ts`)
-- `src/` — Renderer process (React app)
-- `src/components/` — Flat directory of single-purpose React components
-- `src/hooks/` — Custom hooks (`useWorktrees`, `usePR`, `useJiraIssue`, `useConfig`)
+- `packages/treebeard/` — The Electrobun desktop app package
+- `packages/treebeard/src/bun/` — Main process entry (`index.ts`), shared types (`../shared/types.ts`)
+- `packages/treebeard/src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `opencode.ts`, `dependencies.ts`
+- `packages/treebeard/src/shared/` — Shared types and RPC schema (`types.ts`, `rpc-types.ts`)
+- `packages/treebeard/src/` — Renderer process (React app)
+- `packages/treebeard/src/components/` — Flat directory of single-purpose React components
+- `packages/treebeard/src/hooks/` — Custom hooks (`useWorktrees`, `usePR`, `useJiraIssue`, `useConfig`)
 
 ## Build / Run Commands
 
