@@ -1,20 +1,22 @@
 import path from 'node:path'
-import fs from 'node:fs'
 
 /**
  * Resolve the path to a bundled pippin binary, handling both dev and production layouts.
  *
- * Production: __dirname is inside Contents/Resources/app/bun/,
+ * Production: process.execPath is Contents/MacOS/bun,
  * binaries are at Contents/Resources/app/bin/<name>.
  *
- * Dev: __dirname is packages/treebeard/src/bun/services/,
- * binaries are at packages/pippin/dist/<name>.
+ * Dev: falls back from __dirname (packages/treebeard/src/bun/services/)
+ * to packages/pippin/dist/<name>.
+ *
+ * Note: __dirname is baked at compile time by bun's bundler and cannot be used
+ * for production path resolution — it retains the CI build agent's filesystem path.
  */
 export function getBundledBinaryPath(name: string): string {
-  // Production: check for the binary next to the bun directory
-  const productionPath = path.join(__dirname, '..', 'bin', name)
-  if (fs.existsSync(productionPath)) {
-    return productionPath
+  // Production: derive from process.execPath (Contents/MacOS/bun)
+  const execDir = path.dirname(process.execPath)
+  if (execDir.endsWith(path.join('Contents', 'MacOS'))) {
+    return path.join(execDir, '..', 'Resources', 'app', 'bin', name)
   }
 
   // Dev: traverse from packages/treebeard/src/bun/services/ to packages/pippin/dist/

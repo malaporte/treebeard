@@ -1,29 +1,27 @@
-import { describe, expect, it, vi } from 'vitest'
-
-const mockExistsSync = vi.fn()
-
-vi.mock('node:fs', () => ({
-  default: {
-    existsSync: (p: string) => mockExistsSync(p),
-  },
-}))
-
-// Dynamic import so the fs mock is in place before the module loads
-const { getBundledBinaryPath } = await import('./paths')
+import path from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getBundledBinaryPath } from './paths'
 
 describe('paths', () => {
+  const originalExecPath = process.execPath
+
+  afterEach(() => {
+    process.execPath = originalExecPath
+  })
+
   describe('getBundledBinaryPath', () => {
-    it('returns production path when binary exists next to bun directory', () => {
-      mockExistsSync.mockReturnValue(true)
+    it('returns production path when running inside a .app bundle', () => {
+      process.execPath = '/Applications/Treebeard.app/Contents/MacOS/bun'
 
       const result = getBundledBinaryPath('pippin')
 
-      expect(result).toContain('bin/pippin')
-      expect(mockExistsSync).toHaveBeenCalledWith(expect.stringContaining('bin/pippin'))
+      expect(result).toBe(
+        path.join('/Applications/Treebeard.app/Contents/MacOS', '..', 'Resources', 'app', 'bin', 'pippin')
+      )
     })
 
-    it('falls back to dev workspace path when production binary does not exist', () => {
-      mockExistsSync.mockReturnValue(false)
+    it('returns dev workspace path when not running inside a .app bundle', () => {
+      process.execPath = '/usr/local/bin/bun'
 
       const result = getBundledBinaryPath('pippin-server-linux-arm64')
 
