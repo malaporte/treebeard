@@ -279,6 +279,7 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
     log(`spawning: ${leashArgs.join(' ')}`)
     leashProcess = Bun.spawn(leashArgs, {
+      cwd: os.homedir(),
       env: leashEnv,
       stdout: 'ignore',
       stderr: 'pipe',
