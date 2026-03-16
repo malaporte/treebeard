@@ -17,10 +17,10 @@ vi.mock('../rpc', () => ({
   })
 }))
 
-const STOPPED: SandboxStatus = { state: 'stopped', port: null, controlUiPort: null, error: null }
-const RUNNING: SandboxStatus = { state: 'running', port: 9111, controlUiPort: 18080, error: null }
-const STARTING: SandboxStatus = { state: 'starting', port: null, controlUiPort: null, error: null }
-const ERROR_STATUS: SandboxStatus = { state: 'error', port: null, controlUiPort: null, error: 'leash exited unexpectedly' }
+const STOPPED: SandboxStatus = { state: 'stopped', port: null, controlUiPort: null, error: null, log: [] }
+const RUNNING: SandboxStatus = { state: 'running', port: 9111, controlUiPort: 18080, error: null, log: [] }
+const STARTING: SandboxStatus = { state: 'starting', port: null, controlUiPort: null, error: null, log: [] }
+const ERROR_STATUS: SandboxStatus = { state: 'error', port: null, controlUiPort: null, error: 'leash exited unexpectedly', log: [] }
 
 describe('useSandbox', () => {
   beforeEach(() => {

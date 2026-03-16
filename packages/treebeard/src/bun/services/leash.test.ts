@@ -25,6 +25,8 @@ const mockMkdirSync = vi.fn()
 const mockStatSync = vi.fn()
 const mockCopyFileSync = vi.fn()
 const mockChmodSync = vi.fn()
+const mockReaddirSync = vi.fn().mockReturnValue([])
+const mockRmSync = vi.fn()
 
 vi.mock('node:fs', () => ({
   default: {
@@ -32,6 +34,8 @@ vi.mock('node:fs', () => ({
     statSync: (...args: unknown[]) => mockStatSync(...args),
     copyFileSync: (...args: unknown[]) => mockCopyFileSync(...args),
     chmodSync: (...args: unknown[]) => mockChmodSync(...args),
+    readdirSync: (...args: unknown[]) => mockReaddirSync(...args),
+    rmSync: (...args: unknown[]) => mockRmSync(...args),
   },
 }))
 
@@ -44,6 +48,7 @@ let mockSpawn: ReturnType<typeof vi.fn>
 let mockSpawnSync: ReturnType<typeof vi.fn>
 let mockFetch: ReturnType<typeof vi.fn>
 
+/** Wraps createSpawnProcess with a manually-resolvable exited promise for async tests */
 function createMockSubprocess(exitCode: number = 0) {
   let resolveExited: (code: number) => void
   const exited = new Promise<number>((resolve) => {
@@ -60,6 +65,26 @@ function createMockSubprocess(exitCode: number = 0) {
   }
 }
 
+/** Immediate-resolve docker process — no exit gating needed for container cleanup calls */
+function createDockerProcess() {
+  return {
+    stdout: new Response('').body,
+    stderr: new Response('').body,
+    exited: Promise.resolve(0),
+    kill: vi.fn(),
+  }
+}
+
+/**
+ * Find the spawn call that started leash (not docker).
+ * removeContainers() calls docker ps/rm before the leash spawn.
+ */
+function findLeashSpawnCall(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls.find(
+    (call: unknown[]) => Array.isArray(call[0]) && call[0][0] === 'leash',
+  )
+}
+
 beforeEach(async () => {
   vi.restoreAllMocks()
   vi.resetModules()
@@ -68,6 +93,8 @@ beforeEach(async () => {
   mockStatSync.mockReset()
   mockCopyFileSync.mockReset()
   mockChmodSync.mockReset()
+  mockReaddirSync.mockReset().mockReturnValue([])
+  mockRmSync.mockReset()
   mockSandboxMountPath = null
 
   // Default: statSync throws (binary doesn't exist at dest)
@@ -75,7 +102,8 @@ beforeEach(async () => {
     throw new Error('ENOENT')
   })
 
-  // Set up Bun.spawn mock
+  // Set up Bun.spawn mock — command-aware so removeContainers (docker)
+  // and startSandbox (leash) each get the right kind of mock process.
   mockSpawn = vi.fn()
   mockSpawnSync = vi.fn().mockReturnValue({ stdout: { toString: () => '' } })
   vi.stubGlobal('Bun', {
@@ -91,11 +119,23 @@ beforeEach(async () => {
   leash = await import('./leash')
 })
 
+/**
+ * Set up mockSpawn to return a docker process for docker commands and
+ * the given leash process for the leash spawn. This handles the
+ * removeContainers() call that precedes startSandbox().
+ */
+function setupSpawnForStart(leashProc: ReturnType<typeof createMockSubprocess>['process']) {
+  mockSpawn.mockImplementation((cmd: string[]) => {
+    if (cmd[0] === 'docker') return createDockerProcess()
+    return leashProc
+  })
+}
+
 describe('leash service', () => {
   describe('startSandbox', () => {
     it('copies binary and spawns leash with correct arguments', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -108,8 +148,9 @@ describe('leash service', () => {
         expect.stringContaining('pippin-server'),
         0o755,
       )
-      const spawnArgs = mockSpawn.mock.calls[0][0]
-      expect(spawnArgs).toEqual(
+      const leashCall = findLeashSpawnCall(mockSpawn)
+      expect(leashCall).toBeTruthy()
+      expect(leashCall![0]).toEqual(
         ['leash', '-p', '9111:9111', '-I', '--', '/leash/pippin-server'],
       )
     })
@@ -117,12 +158,13 @@ describe('leash service', () => {
     it('adds -v flag when sandboxMountPath is configured', async () => {
       mockSandboxMountPath = '/Users/test/Developer'
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
-      const spawnArgs = mockSpawn.mock.calls[0][0]
-      expect(spawnArgs).toEqual([
+      const leashCall = findLeashSpawnCall(mockSpawn)
+      expect(leashCall).toBeTruthy()
+      expect(leashCall![0]).toEqual([
         'leash',
         '-p', '9111:9111',
         '-v', '/Users/test/Developer:/workspace',
@@ -132,17 +174,18 @@ describe('leash service', () => {
 
     it('passes LEASH_SHARE_DIR in the environment', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
-      const spawnOpts = mockSpawn.mock.calls[0][1]
-      expect(spawnOpts.env.LEASH_SHARE_DIR).toMatch(/leash-share$/)
+      const leashCall = findLeashSpawnCall(mockSpawn)
+      expect(leashCall).toBeTruthy()
+      expect(leashCall![1].env.LEASH_SHARE_DIR).toMatch(/leash-share$/)
     })
 
     it('transitions to running state after health check passes', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       const status = await leash.startSandbox()
 
@@ -154,7 +197,7 @@ describe('leash service', () => {
 
     it('returns current status when already running', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -162,13 +205,36 @@ describe('leash service', () => {
       const status = await leash.startSandbox()
 
       expect(status.state).toBe('running')
-      // spawn should only have been called once
-      expect(mockSpawn).toHaveBeenCalledTimes(1)
+      // Only one leash spawn call (docker calls are separate)
+      const leashCalls = mockSpawn.mock.calls.filter(
+        (call: unknown[]) => Array.isArray(call[0]) && call[0][0] === 'leash',
+      )
+      expect(leashCalls).toHaveLength(1)
+    })
+
+    it('removes stale files from share directory but keeps pippin-server', async () => {
+      const { process: proc } = createMockSubprocess()
+      setupSpawnForStart(proc)
+
+      mockReaddirSync.mockReturnValue(['ca-cert.pem', 'pippin-server', '.ready'])
+
+      await leash.startSandbox()
+
+      // Should remove ca-cert.pem and .ready, but not pippin-server
+      expect(mockRmSync).toHaveBeenCalledTimes(2)
+      expect(mockRmSync).toHaveBeenCalledWith(
+        expect.stringContaining('ca-cert.pem'),
+        { force: true },
+      )
+      expect(mockRmSync).toHaveBeenCalledWith(
+        expect.stringContaining('.ready'),
+        { force: true },
+      )
     })
 
     it('skips binary copy when destination is up to date', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       // Make statSync return matching stats for both src and dest
       mockStatSync.mockReturnValue({ size: 1000, mtimeMs: 100 })
@@ -181,7 +247,7 @@ describe('leash service', () => {
 
     it('copies binary when destination is outdated', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       let callCount = 0
       mockStatSync.mockImplementation(() => {
@@ -197,19 +263,10 @@ describe('leash service', () => {
 
     it('transitions to error state when health check times out', async () => {
       const { process: proc, resolveExited } = createMockSubprocess()
-      // Return mock leash process for the first spawn call
-      mockSpawn.mockReturnValueOnce(proc)
+      setupSpawnForStart(proc)
 
       // Health check always fails
       mockFetch.mockRejectedValue(new Error('connection refused'))
-
-      // Subsequent spawn calls (docker ps/rm from removeContainers) return
-      // a simple process with empty stdout
-      const dockerProcess = {
-        stdout: new Response('').body,
-        exited: Promise.resolve(0),
-      }
-      mockSpawn.mockReturnValue(dockerProcess)
 
       // Use fake timers to avoid waiting for real 60s timeout
       vi.useFakeTimers()
@@ -248,7 +305,7 @@ describe('leash service', () => {
   describe('stopSandbox', () => {
     it('sends SIGTERM, removes containers, and transitions to stopped', async () => {
       const { process: proc, resolveExited } = createMockSubprocess()
-      mockSpawn.mockReturnValueOnce(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -256,13 +313,6 @@ describe('leash service', () => {
       proc.kill.mockImplementation(() => {
         resolveExited(0)
       })
-
-      // Mock docker ps (returns no containers) and docker rm for removeContainers
-      const dockerPsProcess = {
-        stdout: new Response('').body,
-        exited: Promise.resolve(0),
-      }
-      mockSpawn.mockReturnValue(dockerPsProcess)
 
       const status = await leash.stopSandbox()
 
@@ -273,7 +323,7 @@ describe('leash service', () => {
 
     it('removes running Docker containers on stop', async () => {
       const { process: proc, resolveExited } = createMockSubprocess()
-      mockSpawn.mockReturnValueOnce(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -281,19 +331,22 @@ describe('leash service', () => {
         resolveExited(0)
       })
 
-      // First docker ps call returns container IDs
-      const dockerPsProcess = {
+      // After leash stops, removeContainers runs again during stopSandbox.
+      // Override mockSpawn to return container IDs for the docker ps call.
+      const dockerPsWithContainers = {
         stdout: new Response('abc123\ndef456\n').body,
+        stderr: new Response('').body,
         exited: Promise.resolve(0),
+        kill: vi.fn(),
       }
-      const dockerRmProcess = {
-        stdout: new Response('').body,
-        exited: Promise.resolve(0),
-      }
-      // docker ps for first image, docker rm, docker ps for second image (no results)
-      mockSpawn
-        .mockReturnValueOnce(dockerPsProcess)
-        .mockReturnValueOnce(dockerRmProcess)
+      let stopDockerPsReturned = false
+      mockSpawn.mockImplementation((cmd: string[]) => {
+        if (cmd[0] === 'docker' && cmd[1] === 'ps' && !stopDockerPsReturned) {
+          stopDockerPsReturned = true
+          return dockerPsWithContainers
+        }
+        return createDockerProcess()
+      })
 
       await leash.stopSandbox()
 
@@ -302,7 +355,7 @@ describe('leash service', () => {
         (call: unknown[]) => Array.isArray(call[0]) && call[0][0] === 'docker' && call[0][1] === 'rm',
       )
       expect(rmCall).toBeTruthy()
-      expect(rmCall![0]).toEqual(['docker', 'rm', '-f', 'abc123', 'def456'])
+      expect(rmCall![0]).toEqual(['docker', 'rm', '-fv', 'abc123', 'def456'])
     })
 
     it('returns current status when already stopped', async () => {
@@ -317,17 +370,18 @@ describe('leash service', () => {
     it('returns stopped state initially', () => {
       const status = leash.getSandboxStatus()
 
-      expect(status).toEqual({
+      expect(status).toMatchObject({
         state: 'stopped',
         port: null,
         controlUiPort: null,
         error: null,
       })
+      expect(Array.isArray(status.log)).toBe(true)
     })
 
     it('returns running state with ports after successful start', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -342,7 +396,7 @@ describe('leash service', () => {
   describe('forceStopSandbox', () => {
     it('sends SIGKILL, removes containers synchronously, and resets state', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -362,7 +416,7 @@ describe('leash service', () => {
 
     it('removes containers synchronously when docker ps returns IDs', async () => {
       const { process: proc } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
 
@@ -379,8 +433,8 @@ describe('leash service', () => {
         (call: unknown[]) => Array.isArray(call[0]) && call[0][0] === 'docker' && call[0][1] === 'rm',
       )
       expect(rmCalls.length).toBe(2)
-      expect(rmCalls[0][0]).toEqual(['docker', 'rm', '-f', 'abc123'])
-      expect(rmCalls[1][0]).toEqual(['docker', 'rm', '-f', 'def456'])
+      expect(rmCalls[0][0]).toEqual(['docker', 'rm', '-fv', 'abc123'])
+      expect(rmCalls[1][0]).toEqual(['docker', 'rm', '-fv', 'def456'])
     })
 
     it('is safe to call when no process exists', () => {
@@ -394,7 +448,7 @@ describe('leash service', () => {
   describe('unexpected process exit', () => {
     it('transitions to error state when leash exits while running', async () => {
       const { process: proc, resolveExited } = createMockSubprocess()
-      mockSpawn.mockReturnValue(proc)
+      setupSpawnForStart(proc)
 
       await leash.startSandbox()
       expect(leash.getSandboxStatus().state).toBe('running')

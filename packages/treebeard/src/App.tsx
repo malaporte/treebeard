@@ -17,18 +17,19 @@ import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
 import { CodexSessionPane } from './components/CodexSessionPane'
 import { RepoDashboard } from './components/RepoDashboard'
 import { SandboxIndicator } from './components/SandboxIndicator'
+import { SandboxPane } from './components/SandboxPane'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
 import { useSandbox } from './hooks/useSandbox'
 import { rpc } from './rpc'
 import type { DependencyStatus, Worktree } from './shared/types'
 
-const MIN_CODEX_PANE_WIDTH = 320
+const MIN_RIGHT_PANE_WIDTH = 320
 const MIN_DASHBOARD_WIDTH = 360
 
-function clampCodexPaneWidth(width: number): number {
-  const maxWidth = Math.max(MIN_CODEX_PANE_WIDTH, window.innerWidth - MIN_DASHBOARD_WIDTH)
-  return Math.min(Math.max(Math.round(width), MIN_CODEX_PANE_WIDTH), maxWidth)
+function clampRightPaneWidth(width: number): number {
+  const maxWidth = Math.max(MIN_RIGHT_PANE_WIDTH, window.innerWidth - MIN_DASHBOARD_WIDTH)
+  return Math.min(Math.max(Math.round(width), MIN_RIGHT_PANE_WIDTH), maxWidth)
 }
 
 // Neon-blue palette tuned for dark backgrounds
@@ -78,15 +79,26 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
-  const [codexPaneWidth, setCodexPaneWidth] = useState(420)
-  const [resizingCodexPane, setResizingCodexPane] = useState(false)
+  const [sandboxPaneOpened, setSandboxPaneOpened] = useState(false)
+  const [rightPaneWidth, setRightPaneWidth] = useState(420)
+  const [resizingRightPane, setResizingRightPane] = useState(false)
   const embeddedCodexEnabled = config?.codexServerEnabled === true
   const codexPaneOpened = embeddedCodexEnabled && selectedCodexWorktree !== null
+  const sandboxControlUiPort = sandboxStatus?.state === 'running' ? sandboxStatus.controlUiPort : null
+  const rightPaneOpened = codexPaneOpened || (sandboxPaneOpened && sandboxControlUiPort !== null)
 
   const handleOpenCodex = useCallback((worktree: Worktree) => {
     if (!embeddedCodexEnabled) return
+    setSandboxPaneOpened(false)
     setSelectedCodexWorktree(worktree)
   }, [embeddedCodexEnabled])
+
+  const handleToggleSandboxPane = useCallback(() => {
+    setSandboxPaneOpened((prev) => {
+      if (!prev) setSelectedCodexWorktree(null)
+      return !prev
+    })
+  }, [])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -126,7 +138,7 @@ export default function App() {
 
   useEffect(() => {
     if (!config) return
-    setCodexPaneWidth(clampCodexPaneWidth(config.desktopCodexPaneWidth))
+    setRightPaneWidth(clampRightPaneWidth(config.desktopCodexPaneWidth))
   }, [config])
 
   useEffect(() => {
@@ -134,9 +146,16 @@ export default function App() {
     setSelectedCodexWorktree(null)
   }, [embeddedCodexEnabled])
 
+  // Auto-close sandbox pane when sandbox stops running
+  useEffect(() => {
+    if (sandboxStatus?.state !== 'running') {
+      setSandboxPaneOpened(false)
+    }
+  }, [sandboxStatus?.state])
+
   useEffect(() => {
     const handleResize = () => {
-      setCodexPaneWidth((current) => clampCodexPaneWidth(current))
+      setRightPaneWidth((current) => clampRightPaneWidth(current))
     }
 
     window.addEventListener('resize', handleResize)
@@ -144,16 +163,16 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!resizingCodexPane) return
+    if (!resizingRightPane) return
 
     const handleMouseMove = (event: MouseEvent) => {
       const nextWidth = window.innerWidth - event.clientX
-      setCodexPaneWidth(clampCodexPaneWidth(nextWidth))
+      setRightPaneWidth(clampRightPaneWidth(nextWidth))
     }
 
     const handleMouseUp = () => {
-      setResizingCodexPane(false)
-      void setDesktopCodexPaneWidth(codexPaneWidth)
+      setResizingRightPane(false)
+      void setDesktopCodexPaneWidth(rightPaneWidth)
     }
 
     window.addEventListener('mousemove', handleMouseMove)
@@ -162,7 +181,7 @@ export default function App() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [codexPaneWidth, resizingCodexPane, setDesktopCodexPaneWidth])
+  }, [rightPaneWidth, resizingRightPane, setDesktopCodexPaneWidth])
 
   const missingDependencies = dependencyStatus
     ? dependencyStatus.checks.filter((check) => check.required && !check.installed)
@@ -234,6 +253,7 @@ export default function App() {
               loading={sandboxLoading}
               onStart={startSandbox}
               onStop={stopSandbox}
+              onOpenMonitor={handleToggleSandboxPane}
             />
             <ActionIcon
               variant="subtle"
@@ -253,7 +273,7 @@ export default function App() {
                 flex: 1,
                 minWidth: 0,
                 overflow: 'auto',
-                paddingRight: codexPaneOpened ? 16 : 0
+                paddingRight: rightPaneOpened ? 16 : 0
               }}
             >
               <Stack gap="md">
@@ -283,12 +303,12 @@ export default function App() {
                 <Box
                   role="separator"
                   aria-orientation="vertical"
-                  onMouseDown={() => setResizingCodexPane(true)}
+                  onMouseDown={() => setResizingRightPane(true)}
                   style={{
                     width: 10,
                     cursor: 'col-resize',
                     flexShrink: 0,
-                    background: resizingCodexPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
+                    background: resizingRightPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
                     borderLeft: '1px solid rgba(0, 136, 255, 0.08)',
                     borderRight: '1px solid rgba(0, 136, 255, 0.08)'
                   }}
@@ -299,8 +319,8 @@ export default function App() {
                   p="md"
                   radius="md"
                   style={{
-                    width: codexPaneWidth,
-                    minWidth: MIN_CODEX_PANE_WIDTH,
+                    width: rightPaneWidth,
+                    minWidth: MIN_RIGHT_PANE_WIDTH,
                     flexShrink: 0,
                     display: 'flex',
                     flexDirection: 'column',
@@ -314,6 +334,35 @@ export default function App() {
                   onClose={() => setSelectedCodexWorktree(null)}
                 />
                 </Paper>
+              </>
+            )}
+
+            {sandboxPaneOpened && sandboxControlUiPort !== null && (
+              <>
+                <Box
+                  role="separator"
+                  aria-orientation="vertical"
+                  onMouseDown={() => setResizingRightPane(true)}
+                  style={{
+                    width: 10,
+                    cursor: 'col-resize',
+                    flexShrink: 0,
+                    background: resizingRightPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
+                    borderLeft: '1px solid rgba(0, 136, 255, 0.08)',
+                    borderRight: '1px solid rgba(0, 136, 255, 0.08)'
+                  }}
+                />
+
+                <Box
+                  style={{
+                    width: rightPaneWidth,
+                    minWidth: MIN_RIGHT_PANE_WIDTH,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <SandboxPane controlUiPort={sandboxControlUiPort} />
+                </Box>
               </>
             )}
           </Group>

@@ -197,6 +197,7 @@ export interface SandboxStatus {
   port: number | null
   controlUiPort: number | null
   error: string | null
+  log: string[]
 }
 
 export interface DependencyCheck {

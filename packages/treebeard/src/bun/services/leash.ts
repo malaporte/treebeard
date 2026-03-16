@@ -13,6 +13,7 @@ const HEALTH_CHECK_MAX_ATTEMPTS = 60
 const SHARE_DIR_NAME = 'leash-share'
 const APP_SUPPORT_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'Treebeard')
 export const CONTAINER_MOUNT_DEST = '/workspace'
+const LOG_MAX_LINES = 200
 
 // Leash creates two containers from these images
 const LEASH_CONTAINER_IMAGES = [
@@ -27,11 +28,39 @@ export interface SandboxStatus {
   port: number | null
   controlUiPort: number | null
   error: string | null
+  log: string[]
 }
 
 let leashProcess: Subprocess | null = null
 let currentState: SandboxState = 'stopped'
 let currentError: string | null = null
+
+// --- Diagnostic Log ---
+
+const logBuffer: string[] = []
+
+/** Append a timestamped entry to the in-memory ring buffer */
+function log(message: string): void {
+  const ts = new Date().toISOString().slice(11, 23)
+  logBuffer.push(`[${ts}] ${message}`)
+  if (logBuffer.length > LOG_MAX_LINES) {
+    logBuffer.splice(0, logBuffer.length - LOG_MAX_LINES)
+  }
+}
+
+/** Append each non-empty line of multi-line text with a prefix */
+function logLines(prefix: string, text: string): void {
+  for (const line of text.split('\n')) {
+    const trimmed = line.trimEnd()
+    if (trimmed.length > 0) log(`${prefix} ${trimmed}`)
+  }
+}
+
+export function getSandboxLog(): string[] {
+  return [...logBuffer]
+}
+
+// --- Helpers ---
 
 function getShareDir(): string {
   return path.join(APP_SUPPORT_DIR, SHARE_DIR_NAME)
@@ -47,6 +76,21 @@ function getServerBinaryName(): string {
 function prepareBinary(shareDir: string): void {
   fs.mkdirSync(shareDir, { recursive: true })
 
+  // Remove stale leash state files from previous runs. Leash writes
+  // ca-cert.pem, cgroup-path, leash-entry-*, and .ready files into the
+  // share directory. If these survive across runs the container may fail
+  // to start (e.g. orphaned CA cert without its private key).
+  try {
+    for (const entry of fs.readdirSync(shareDir)) {
+      if (entry === 'pippin-server') continue
+      const filePath = path.join(shareDir, entry)
+      fs.rmSync(filePath, { force: true })
+      log(`removed stale file: ${entry}`)
+    }
+  } catch {
+    // Share dir may not exist yet on first run
+  }
+
   const binaryName = getServerBinaryName()
   const srcPath = getBundledBinaryPath(binaryName)
   const destPath = path.join(shareDir, 'pippin-server')
@@ -56,12 +100,14 @@ function prepareBinary(shareDir: string): void {
     const srcStat = fs.statSync(srcPath)
     const destStat = fs.statSync(destPath)
     if (srcStat.size === destStat.size && srcStat.mtimeMs <= destStat.mtimeMs) {
+      log(`binary up to date at ${destPath}`)
       return
     }
   } catch {
     // Destination doesn't exist or can't be stat'd; proceed with copy
   }
 
+  log(`copying binary ${srcPath} -> ${destPath}`)
   fs.copyFileSync(srcPath, destPath)
   fs.chmodSync(destPath, 0o755)
 }
@@ -71,12 +117,20 @@ async function waitForHealth(port: number): Promise<boolean> {
   for (let i = 0; i < HEALTH_CHECK_MAX_ATTEMPTS; i++) {
     try {
       const resp = await fetch(`http://127.0.0.1:${port}/health`)
-      if (resp.ok) return true
-    } catch {
-      // Server not ready yet
+      if (resp.ok) {
+        log(`health check passed on attempt ${i + 1}`)
+        return true
+      }
+      log(`health check attempt ${i + 1}: HTTP ${resp.status}`)
+    } catch (err) {
+      if (i === 0 || i % 10 === 0) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log(`health check attempt ${i + 1}: ${msg}`)
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS))
   }
+  log(`health check failed after ${HEALTH_CHECK_MAX_ATTEMPTS} attempts`)
   return false
 }
 
@@ -96,18 +150,59 @@ async function removeContainers(): Promise<void> {
       { stdout: 'pipe', stderr: 'pipe', env },
     )
     const output = await new Response(ps.stdout).text()
+    const psStderr = await new Response(ps.stderr).text()
     await ps.exited
 
-    const ids = output.trim().split('\n').filter(Boolean)
-    if (ids.length === 0) return
+    if (psStderr.trim()) logLines('docker ps stderr:', psStderr)
 
-    const rm = Bun.spawn(
-      ['docker', 'rm', '-f', ...ids],
+    const ids = output.trim().split('\n').filter(Boolean)
+    if (ids.length === 0) {
+      log('no stale containers found')
+    } else {
+      log(`removing ${ids.length} stale container(s) with volumes: ${ids.join(', ')}`)
+      const rm = Bun.spawn(
+        ['docker', 'rm', '-fv', ...ids],
+        { stdout: 'pipe', stderr: 'pipe', env },
+      )
+      const rmStderr = await new Response(rm.stderr).text()
+      await rm.exited
+      if (rmStderr.trim()) logLines('docker rm stderr:', rmStderr)
+    }
+
+    // Remove dangling anonymous volumes left by previous runs where
+    // containers were removed without the -v flag. These can contain
+    // stale CA certificates that cause leash startup failures.
+    await pruneDanglingVolumes(env)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    log(`removeContainers failed: ${msg}`)
+  }
+}
+
+/** Remove dangling anonymous volumes (not associated with any container) */
+async function pruneDanglingVolumes(env: Record<string, string>): Promise<void> {
+  try {
+    const prune = Bun.spawn(
+      ['docker', 'volume', 'ls', '-q', '--filter', 'dangling=true'],
       { stdout: 'pipe', stderr: 'pipe', env },
     )
+    const output = await new Response(prune.stdout).text()
+    await prune.exited
+
+    // Only remove anonymous volumes (64-char hex names), not named ones
+    const ids = output.trim().split('\n').filter((id) => /^[0-9a-f]{64}$/.test(id))
+    if (ids.length === 0) return
+
+    log(`pruning ${ids.length} dangling anonymous volume(s)`)
+    const rm = Bun.spawn(
+      ['docker', 'volume', 'rm', ...ids],
+      { stdout: 'pipe', stderr: 'pipe', env },
+    )
+    const rmStderr = await new Response(rm.stderr).text()
     await rm.exited
+    if (rmStderr.trim()) logLines('docker volume rm stderr:', rmStderr)
   } catch {
-    // Best-effort cleanup — docker may not be available
+    // Best-effort — don't fail container cleanup over volume pruning
   }
 }
 
@@ -126,7 +221,7 @@ function removeContainersSync(): void {
       if (ids.length === 0) continue
 
       Bun.spawnSync(
-        ['docker', 'rm', '-f', ...ids],
+        ['docker', 'rm', '-fv', ...ids],
         { stdout: 'pipe', stderr: 'pipe' },
       )
     }
@@ -143,12 +238,19 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
   currentState = 'starting'
   currentError = null
+  logBuffer.length = 0
+  log('starting sandbox')
 
   try {
+    // Clean up any stale containers from a previous run that wasn't shut down cleanly
+    log('cleaning up stale containers')
+    await removeContainers()
+
     const shareDir = getShareDir()
     prepareBinary(shareDir)
 
     const env = await getShellEnv()
+    log(`shell env PATH: ${env.PATH?.slice(0, 120) ?? '(unset)'}`)
 
     // Leash reads LEASH_SHARE_DIR to use our known directory instead of a
     // temporary one. This lets us inject the pippin-server binary.
@@ -175,11 +277,13 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
     leashArgs.push('-I', '--', '/leash/pippin-server')
 
+    log(`spawning: ${leashArgs.join(' ')}`)
     leashProcess = Bun.spawn(leashArgs, {
       env: leashEnv,
       stdout: 'ignore',
       stderr: 'pipe',
     })
+    log(`leash pid: ${leashProcess.pid}`)
 
     // Drain stderr to prevent pipe buffer deadlock (the OS pipe buffer is
     // ~64 KB on macOS — if leash or Docker fills it, the process stalls).
@@ -190,34 +294,48 @@ export async function startSandbox(): Promise<SandboxStatus> {
     })
 
     // Monitor leash process exit
-    leashProcess.exited.then((code) => {
+    leashProcess.exited.then(async (code) => {
+      // Collect any remaining stderr
+      await stderrReader.catch(() => {})
+      const stderr = stderrChunks.join('').trim()
+      if (stderr) logLines('leash stderr:', stderr)
+
       if (currentState !== 'stopping') {
         currentState = 'error'
-        currentError = `leash exited unexpectedly with code ${code}`
+        currentError = stderr
+          ? `leash exited with code ${code}: ${stderr}`
+          : `leash exited unexpectedly with code ${code}`
+        log(currentError)
       } else {
         currentState = 'stopped'
+        log(`leash exited with code ${code} (expected — stopping)`)
       }
       leashProcess = null
     })
 
     // Wait for pippin-server to become healthy inside the container
+    log('waiting for pippin-server health check')
     const healthy = await waitForHealth(PIPPIN_SERVER_PORT)
     if (!healthy) {
       await stopSandbox()
       await stderrReader
       const stderr = stderrChunks.join('').trim()
+      if (stderr) logLines('leash stderr:', stderr)
       currentState = 'error'
       currentError = stderr
         ? `pippin-server did not become healthy within timeout: ${stderr}`
         : 'pippin-server did not become healthy within timeout'
+      log(currentError)
       return getSandboxStatus()
     }
 
     currentState = 'running'
+    log('sandbox running')
     return getSandboxStatus()
   } catch (err) {
     currentState = 'error'
     currentError = err instanceof Error ? err.message : String(err)
+    log(`startup failed: ${currentError}`)
     return getSandboxStatus()
   }
 }
@@ -230,13 +348,16 @@ export async function stopSandbox(): Promise<SandboxStatus> {
 
   currentState = 'stopping'
   currentError = null
+  log('stopping sandbox')
 
   try {
     if (leashProcess) {
+      log(`sending SIGTERM to pid ${leashProcess.pid}`)
       leashProcess.kill('SIGTERM')
       // Wait up to 10 seconds for graceful exit
       const timeout = setTimeout(() => {
         try {
+          log('graceful shutdown timed out, sending SIGKILL')
           leashProcess?.kill('SIGKILL')
         } catch {
           // Already exited
@@ -245,16 +366,20 @@ export async function stopSandbox(): Promise<SandboxStatus> {
 
       await leashProcess.exited
       clearTimeout(timeout)
+      log('leash process exited')
     }
-  } catch {
-    // Best-effort cleanup
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    log(`error during stop: ${msg}`)
   }
 
   // Leash containers run detached and outlive the leash process
+  log('removing containers')
   await removeContainers()
 
   leashProcess = null
   currentState = 'stopped'
+  log('sandbox stopped')
   return getSandboxStatus()
 }
 
@@ -265,6 +390,7 @@ export function getSandboxStatus(): SandboxStatus {
     port: currentState === 'running' ? PIPPIN_SERVER_PORT : null,
     controlUiPort: currentState === 'running' ? LEASH_CONTROL_UI_PORT : null,
     error: currentError,
+    log: getSandboxLog(),
   }
 }
 
