@@ -34,6 +34,17 @@ bun vitest run path/to/file.test.ts          # single test file
 bun vitest run -t "test name pattern"         # single test by name
 ```
 
+## Releasing
+
+To publish a new version:
+
+1. Bump the version in `packages/treebeard/package.json`
+2. Commit the version bump (e.g., `chore: bump version to X.Y.Z`)
+3. Create a git tag: `git tag vX.Y.Z`
+4. Push the commit and tag: `git push && git push --tags`
+
+The tag push triggers the CI/CD pipeline that builds and publishes the release.
+
 ## Code Style
 
 ### Imports
