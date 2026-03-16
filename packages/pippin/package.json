@@ -9,6 +9,7 @@
     "build": "bun run scripts/build.ts",
     "build:server": "bun run scripts/build.ts --server",
     "build:cli": "bun run scripts/build.ts --cli",
+    "deploy:cli": "bun run scripts/deploy-cli.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "vitest run"
   },

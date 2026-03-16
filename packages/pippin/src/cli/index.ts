@@ -37,7 +37,7 @@ const params = new URLSearchParams({ cmd })
 // If a sandboxMountPath is configured in Treebeard, validate that the
 // host CWD is within the mount boundary. Paths are identical on both
 // sides since leash identity-mounts the home directory.
-const hostCwd = process.env.PIPPIN_CWD || process.cwd()
+const hostCwd = process.cwd()
 const { sandboxMountPath } = readMountConfig()
 const cwdResult = translateCwd(hostCwd, sandboxMountPath)
 
@@ -48,9 +48,6 @@ if (cwdResult && 'error' in cwdResult) {
 
 if (cwdResult) {
   params.set('cwd', cwdResult.containerCwd)
-} else if (process.env.PIPPIN_CWD) {
-  // No mount path configured — pass through PIPPIN_CWD as-is (legacy behavior)
-  params.set('cwd', process.env.PIPPIN_CWD)
 }
 
 // Forward terminal size if available
