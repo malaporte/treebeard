@@ -2,7 +2,6 @@ import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
 
-const CONTAINER_MOUNT_DEST = '/workspace'
 const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', 'treebeard-config.json')
 
 interface MountConfig {
@@ -24,12 +23,14 @@ export function readMountConfig(): MountConfig {
 }
 
 /**
- * Translate a host CWD to the corresponding path inside the container.
+ * Validate that a host CWD is within the configured sandbox mount path.
  *
- * Returns the translated container path, or an error string if the CWD
- * is outside the configured mount path.
+ * Leash identity-mounts the home directory into the container, so paths
+ * are the same on both sides. This function only validates that the CWD
+ * is within the mount boundary and returns it unchanged.
  *
- * When no mount path is configured, returns null (no translation needed).
+ * Returns the validated CWD, an error string if the CWD is outside the
+ * mount path, or null when no mount path is configured.
  */
 export function translateCwd(
   hostCwd: string,
@@ -57,14 +58,13 @@ export function translateCwd(
 
   // CWD is exactly the mount path
   if (resolvedCwd === resolvedMount) {
-    return { containerCwd: CONTAINER_MOUNT_DEST }
+    return { containerCwd: resolvedCwd }
   }
 
   // CWD is under the mount path
   const prefix = resolvedMount + path.sep
   if (resolvedCwd.startsWith(prefix)) {
-    const relative = resolvedCwd.slice(prefix.length)
-    return { containerCwd: `${CONTAINER_MOUNT_DEST}/${relative}` }
+    return { containerCwd: resolvedCwd }
   }
 
   return {

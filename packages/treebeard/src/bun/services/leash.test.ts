@@ -15,12 +15,6 @@ vi.mock('./paths', () => ({
   getBundledBinaryPath: (name: string) => `/bundled/bin/${name}`,
 }))
 
-let mockSandboxMountPath: string | null = null
-
-vi.mock('./config', () => ({
-  getSandboxMountPath: () => mockSandboxMountPath,
-}))
-
 const mockMkdirSync = vi.fn()
 const mockStatSync = vi.fn()
 const mockCopyFileSync = vi.fn()
@@ -95,7 +89,6 @@ beforeEach(async () => {
   mockChmodSync.mockReset()
   mockReaddirSync.mockReset().mockReturnValue([])
   mockRmSync.mockReset()
-  mockSandboxMountPath = null
 
   // Default: statSync throws (binary doesn't exist at dest)
   mockStatSync.mockImplementation(() => {
@@ -155,8 +148,7 @@ describe('leash service', () => {
       )
     })
 
-    it('adds -v flag when sandboxMountPath is configured', async () => {
-      mockSandboxMountPath = '/Users/test/Developer'
+    it('does not add -v flag (leash identity-mounts its CWD automatically)', async () => {
       const { process: proc } = createMockSubprocess()
       setupSpawnForStart(proc)
 
@@ -167,7 +159,6 @@ describe('leash service', () => {
       expect(leashCall![0]).toEqual([
         'leash',
         '-p', '9111:9111',
-        '-v', '/Users/test/Developer:/workspace',
         '-I', '--', '/leash/pippin-server',
       ])
     })

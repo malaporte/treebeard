@@ -40,25 +40,25 @@ describe('translateCwd', () => {
     expect(result).toBeNull()
   })
 
-  it('translates cwd at the root of the mount path', () => {
+  it('returns cwd unchanged when at the root of the mount path', () => {
     const result = translateCwd('/Users/test/Developer', '/Users/test/Developer')
-    expect(result).toEqual({ containerCwd: '/workspace' })
+    expect(result).toEqual({ containerCwd: '/Users/test/Developer' })
   })
 
-  it('translates cwd under the mount path', () => {
+  it('returns cwd unchanged when under the mount path', () => {
     const result = translateCwd(
       '/Users/test/Developer/my-project',
       '/Users/test/Developer',
     )
-    expect(result).toEqual({ containerCwd: '/workspace/my-project' })
+    expect(result).toEqual({ containerCwd: '/Users/test/Developer/my-project' })
   })
 
-  it('translates deeply nested cwd under the mount path', () => {
+  it('returns cwd unchanged for deeply nested paths under the mount path', () => {
     const result = translateCwd(
       '/Users/test/Developer/org/repo/packages/foo',
       '/Users/test/Developer',
     )
-    expect(result).toEqual({ containerCwd: '/workspace/org/repo/packages/foo' })
+    expect(result).toEqual({ containerCwd: '/Users/test/Developer/org/repo/packages/foo' })
   })
 
   it('returns error when cwd is outside the mount path', () => {
@@ -87,7 +87,7 @@ describe('translateCwd', () => {
     })
 
     const result = translateCwd('/home/link/project', '/home/link')
-    expect(result).toEqual({ containerCwd: '/workspace/project' })
+    expect(result).toEqual({ containerCwd: '/Users/test/Developer/project' })
   })
 
   it('returns error when mount path does not exist', () => {
@@ -120,7 +120,7 @@ describe('translateCwd', () => {
       '/Users/test/Developer/project',
       '/Users/test/Developer/',
     )
-    expect(result).toEqual({ containerCwd: '/workspace/project' })
+    expect(result).toEqual({ containerCwd: '/Users/test/Developer/project' })
   })
 })
 

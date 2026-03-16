@@ -360,8 +360,9 @@ export function SettingsModal({
                   Sandbox Mount Path
                 </Text>
                 <Text size="xs" c="dimmed" mb="sm">
-                  Host directory to mount into the sandbox at /workspace. Commands run via pippin
-                  will have their working directory translated relative to this path.
+                  Host directory accessible inside the sandbox. Paths are identical on
+                  both sides — the container sees the same absolute paths as the host.
+                  Commands run via pippin must have their working directory within this path.
                   Changing this requires a sandbox restart.
                 </Text>
                 <Group align="flex-end">

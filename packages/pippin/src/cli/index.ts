@@ -34,8 +34,9 @@ if (!cmd) {
 const params = new URLSearchParams({ cmd })
 
 // Resolve the working directory for the command inside the container.
-// If a sandboxMountPath is configured in Treebeard, translate the host
-// CWD to the corresponding /workspace path inside the container.
+// If a sandboxMountPath is configured in Treebeard, validate that the
+// host CWD is within the mount boundary. Paths are identical on both
+// sides since leash identity-mounts the home directory.
 const hostCwd = process.env.PIPPIN_CWD || process.cwd()
 const { sandboxMountPath } = readMountConfig()
 const cwdResult = translateCwd(hostCwd, sandboxMountPath)

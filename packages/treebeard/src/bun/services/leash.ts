@@ -3,7 +3,6 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { getShellEnv } from './shell-env'
 import { getBundledBinaryPath } from './paths'
-import { getSandboxMountPath } from './config'
 import type { Subprocess } from 'bun'
 
 const PIPPIN_SERVER_PORT = 9111
@@ -12,7 +11,6 @@ const HEALTH_CHECK_INTERVAL_MS = 1000
 const HEALTH_CHECK_MAX_ATTEMPTS = 60
 const SHARE_DIR_NAME = 'leash-share'
 const APP_SUPPORT_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'Treebeard')
-export const CONTAINER_MOUNT_DEST = '/workspace'
 const LOG_MAX_LINES = 200
 
 // Leash creates two containers from these images
@@ -261,19 +259,16 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
     // Start leash with:
     //   -p 9111:9111  -- publish pippin-server port to host
-    //   -v src:dst     -- bind-mount configured host directory into the container
     //   -I            -- non-interactive (Treebeard manages the lifecycle)
     //   The command /leash/pippin-server runs inside the container
+    //
+    // Leash identity-mounts its CWD (homedir) into the container, so all
+    // paths under ~ are accessible at the same absolute path inside the
+    // container. No explicit -v flag is needed.
     const leashArgs = [
       'leash',
       '-p', `${PIPPIN_SERVER_PORT}:${PIPPIN_SERVER_PORT}`,
     ]
-
-    // Bind-mount the configured host directory into the container at /workspace
-    const mountPath = getSandboxMountPath()
-    if (mountPath) {
-      leashArgs.push('-v', `${mountPath}:${CONTAINER_MOUNT_DEST}`)
-    }
 
     leashArgs.push('-I', '--', '/leash/pippin-server')
 
