@@ -177,8 +177,16 @@ export async function startSandbox(): Promise<SandboxStatus> {
 
     leashProcess = Bun.spawn(leashArgs, {
       env: leashEnv,
-      stdout: 'pipe',
+      stdout: 'ignore',
       stderr: 'pipe',
+    })
+
+    // Drain stderr to prevent pipe buffer deadlock (the OS pipe buffer is
+    // ~64 KB on macOS — if leash or Docker fills it, the process stalls).
+    // Capture the output so we can surface it when the health check fails.
+    const stderrChunks: string[] = []
+    const stderrReader = new Response(leashProcess.stderr).text().then((text) => {
+      stderrChunks.push(text)
     })
 
     // Monitor leash process exit
@@ -196,8 +204,12 @@ export async function startSandbox(): Promise<SandboxStatus> {
     const healthy = await waitForHealth(PIPPIN_SERVER_PORT)
     if (!healthy) {
       await stopSandbox()
+      await stderrReader
+      const stderr = stderrChunks.join('').trim()
       currentState = 'error'
-      currentError = 'pippin-server did not become healthy within timeout'
+      currentError = stderr
+        ? `pippin-server did not become healthy within timeout: ${stderr}`
+        : 'pippin-server did not become healthy within timeout'
       return getSandboxStatus()
     }
 
