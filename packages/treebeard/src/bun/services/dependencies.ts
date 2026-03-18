@@ -123,18 +123,6 @@ async function checkDependency(name: DependencyName, env: Record<string, string>
     }
   }
 
-  if (name === 'codex') {
-    return {
-      name,
-      required: true,
-      installed: true,
-      authenticated: null,
-      version: commandStatus.version,
-      error: null,
-      authError: null
-    }
-  }
-
   const authProbes = name === 'gh'
     ? [['auth', 'status']]
     : [['me', '--raw'], ['me']]
@@ -156,8 +144,7 @@ export async function checkDependencies(): Promise<DependencyStatus> {
   const env = await getShellEnv()
   const checks = await Promise.all([
     checkDependency('gh', env),
-    checkDependency('jira', env),
-    checkDependency('codex', env)
+    checkDependency('jira', env)
   ])
 
   return {

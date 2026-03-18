@@ -8,8 +8,6 @@ const MIN_POLL_INTERVAL_SEC = 10
 const MAX_POLL_INTERVAL_SEC = 600
 const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
 const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
-const MIN_DESKTOP_CODEX_PANE_WIDTH = 320
-const MAX_DESKTOP_CODEX_PANE_WIDTH = 4096
 
 const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', CONFIG_FILENAME)
 
@@ -18,9 +16,7 @@ const DEFAULTS: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: [],
-  codexServerEnabled: false,
-  desktopCodexPaneWidth: 420
+  collapsedRepos: []
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -36,18 +32,12 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     ? clamp(Math.round(config.updateCheckIntervalMin), MIN_UPDATE_CHECK_INTERVAL_MIN, MAX_UPDATE_CHECK_INTERVAL_MIN)
     : DEFAULTS.updateCheckIntervalMin
 
-  const desktopCodexPaneWidth = typeof config.desktopCodexPaneWidth === 'number'
-    ? clamp(Math.round(config.desktopCodexPaneWidth), MIN_DESKTOP_CODEX_PANE_WIDTH, MAX_DESKTOP_CODEX_PANE_WIDTH)
-    : DEFAULTS.desktopCodexPaneWidth
-
   return {
     repositories: Array.isArray(config.repositories) ? [...config.repositories] : [],
     pollIntervalSec,
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
-    collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
-    codexServerEnabled: typeof config.codexServerEnabled === 'boolean' ? config.codexServerEnabled : DEFAULTS.codexServerEnabled,
-    desktopCodexPaneWidth
+    collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : []
   }
 }
 
@@ -100,15 +90,5 @@ export function getCollapsedRepos(): string[] {
 export function setCollapsedRepos(ids: string[]): void {
   const config = readConfig()
   config.collapsedRepos = ids
-  writeConfig(config)
-}
-
-export function getCodexEnabled(): boolean {
-  return readConfig().codexServerEnabled === true
-}
-
-export function setCodexEnabled(enabled: boolean): void {
-  const config = readConfig()
-  config.codexServerEnabled = enabled
   writeConfig(config)
 }

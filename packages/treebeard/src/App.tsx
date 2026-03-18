@@ -10,24 +10,14 @@ import {
   Alert,
   Stack,
   Group,
-  Paper,
   createTheme
 } from '@mantine/core'
 import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
-import { CodexSessionPane } from './components/CodexSessionPane'
 import { RepoDashboard } from './components/RepoDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
 import { rpc } from './rpc'
-import type { DependencyStatus, Worktree } from './shared/types'
-
-const MIN_RIGHT_PANE_WIDTH = 320
-const MIN_DASHBOARD_WIDTH = 360
-
-function clampRightPaneWidth(width: number): number {
-  const maxWidth = Math.max(MIN_RIGHT_PANE_WIDTH, window.innerWidth - MIN_DASHBOARD_WIDTH)
-  return Math.min(Math.max(Math.round(width), MIN_RIGHT_PANE_WIDTH), maxWidth)
-}
+import type { DependencyStatus } from './shared/types'
 
 // Neon-blue palette tuned for dark backgrounds
 const neon: [string, string, string, string, string, string, string, string, string, string] = [
@@ -67,23 +57,11 @@ export default function App() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos,
-    setDesktopCodexPaneWidth
+    reorderRepos
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
-  const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
-  const [rightPaneWidth, setRightPaneWidth] = useState(420)
-  const [resizingRightPane, setResizingRightPane] = useState(false)
-  const embeddedCodexEnabled = config?.codexServerEnabled === true
-  const codexPaneOpened = embeddedCodexEnabled && selectedCodexWorktree !== null
-  const rightPaneOpened = codexPaneOpened
-
-  const handleOpenCodex = useCallback((worktree: Worktree) => {
-    if (!embeddedCodexEnabled) return
-    setSelectedCodexWorktree(worktree)
-  }, [embeddedCodexEnabled])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -120,46 +98,6 @@ export default function App() {
   useEffect(() => {
     loadDependencies()
   }, [loadDependencies])
-
-  useEffect(() => {
-    if (!config) return
-    setRightPaneWidth(clampRightPaneWidth(config.desktopCodexPaneWidth))
-  }, [config])
-
-  useEffect(() => {
-    if (embeddedCodexEnabled) return
-    setSelectedCodexWorktree(null)
-  }, [embeddedCodexEnabled])
-
-  useEffect(() => {
-    const handleResize = () => {
-      setRightPaneWidth((current) => clampRightPaneWidth(current))
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  useEffect(() => {
-    if (!resizingRightPane) return
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const nextWidth = window.innerWidth - event.clientX
-      setRightPaneWidth(clampRightPaneWidth(nextWidth))
-    }
-
-    const handleMouseUp = () => {
-      setResizingRightPane(false)
-      void setDesktopCodexPaneWidth(rightPaneWidth)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [rightPaneWidth, resizingRightPane, setDesktopCodexPaneWidth])
 
   const missingDependencies = dependencyStatus
     ? dependencyStatus.checks.filter((check) => check.required && !check.installed)
@@ -238,76 +176,26 @@ export default function App() {
         </AppShell.Header>
 
         <AppShell.Main>
-          <Group gap={0} align="stretch" wrap="nowrap" style={{ height: 'calc(100vh - 70px)' }}>
-            <Box
-              style={{
-                flex: 1,
-                minWidth: 0,
-                overflow: 'auto',
-                paddingRight: rightPaneOpened ? 16 : 0
-              }}
-            >
-              <Stack gap="md">
-                {missingDependencies.length > 0 && (
-                  <Alert color="yellow" variant="light" title="Missing CLI dependencies">
-                    {missingDependencyMessage}
-                  </Alert>
-                )}
-                {unauthenticatedDependencies.length > 0 && (
-                  <Alert color="orange" variant="light" title="CLI authentication required">
-                    {authDependencyMessage}
-                  </Alert>
-                )}
-                <RepoDashboard
-                  repos={config.repositories}
-                  pollIntervalSec={config.pollIntervalSec}
-                  search={search}
-                  embeddedCodexEnabled={embeddedCodexEnabled}
-                  onReorder={reorderRepos}
-                  onOpenCodex={handleOpenCodex}
-                />
-              </Stack>
-            </Box>
-
-            {selectedCodexWorktree && (
-              <>
-                <Box
-                  role="separator"
-                  aria-orientation="vertical"
-                  onMouseDown={() => setResizingRightPane(true)}
-                  style={{
-                    width: 10,
-                    cursor: 'col-resize',
-                    flexShrink: 0,
-                    background: resizingRightPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
-                    borderLeft: '1px solid rgba(0, 136, 255, 0.08)',
-                    borderRight: '1px solid rgba(0, 136, 255, 0.08)'
-                  }}
-                />
-
-                <Paper
-                  withBorder
-                  p="md"
-                  radius="md"
-                  style={{
-                    width: rightPaneWidth,
-                    minWidth: MIN_RIGHT_PANE_WIDTH,
-                    flexShrink: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    background: 'linear-gradient(180deg, rgba(0, 136, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-                    borderColor: 'rgba(0, 136, 255, 0.18)'
-                  }}
-                >
-                <CodexSessionPane
-                  worktreePath={selectedCodexWorktree.path}
-                  branch={selectedCodexWorktree.branch}
-                  onClose={() => setSelectedCodexWorktree(null)}
-                />
-                </Paper>
-              </>
-            )}
-          </Group>
+          <Box style={{ height: 'calc(100vh - 70px)', overflow: 'auto' }}>
+            <Stack gap="md">
+              {missingDependencies.length > 0 && (
+                <Alert color="yellow" variant="light" title="Missing CLI dependencies">
+                  {missingDependencyMessage}
+                </Alert>
+              )}
+              {unauthenticatedDependencies.length > 0 && (
+                <Alert color="orange" variant="light" title="CLI authentication required">
+                  {authDependencyMessage}
+                </Alert>
+              )}
+              <RepoDashboard
+                repos={config.repositories}
+                pollIntervalSec={config.pollIntervalSec}
+                search={search}
+                onReorder={reorderRepos}
+              />
+            </Stack>
+          </Box>
         </AppShell.Main>
       </AppShell>
 

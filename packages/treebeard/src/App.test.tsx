@@ -25,8 +25,6 @@ vi.mock('./rpc', () => ({
 
 interface RepoDashboardProps {
   search: string
-  embeddedCodexEnabled: boolean
-  onOpenCodex: (worktree: { path: string; branch: string }) => void
 }
 
 interface SettingsModalProps {
@@ -34,11 +32,9 @@ interface SettingsModalProps {
 }
 
 vi.mock('./components/RepoDashboard', () => ({
-  RepoDashboard: ({ search, embeddedCodexEnabled, onOpenCodex }: RepoDashboardProps) => (
+  RepoDashboard: ({ search }: RepoDashboardProps) => (
     <div>
       <div data-testid="repo-dashboard">search:{search}</div>
-      <div data-testid="embedded-codex-enabled">{String(embeddedCodexEnabled)}</div>
-      <button onClick={() => onOpenCodex({ path: '/repo/worktrees/main', branch: 'main' })}>open-codex</button>
     </div>
   )
 }))
@@ -47,28 +43,12 @@ vi.mock('./components/SettingsModal', () => ({
   SettingsModal: ({ opened }: SettingsModalProps) => <div data-testid="settings-modal">{String(opened)}</div>
 }))
 
-interface CodexSessionPaneProps {
-  branch: string
-  onClose: () => void
-}
-
-vi.mock('./components/CodexSessionPane', () => ({
-  CodexSessionPane: ({ branch, onClose }: CodexSessionPaneProps) => (
-    <div>
-      <div data-testid="codex-session-pane">{branch}</div>
-      <button onClick={onClose}>close-codex</button>
-    </div>
-  )
-}))
-
 const config: AppConfig = {
   repositories: [{ id: 'repo-1', name: 'treebeard', path: '/repo' }],
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: [],
-  codexServerEnabled: false,
-  desktopCodexPaneWidth: 420
+  collapsedRepos: []
 }
 
 describe('App', () => {
@@ -86,8 +66,7 @@ describe('App', () => {
       setPollInterval: vi.fn(async () => {}),
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
-      reorderRepos: vi.fn(async () => {}),
-      setDesktopCodexPaneWidth: vi.fn(async () => {})
+      reorderRepos: vi.fn(async () => {})
     })
   })
 
@@ -140,58 +119,5 @@ describe('App', () => {
 
     expect(appQuitRequest).toHaveBeenCalledWith({})
     expect(appCloseWindowRequest).toHaveBeenCalledWith({})
-  })
-
-  it('keeps the codex pane hidden by default and allows opening and closing it', async () => {
-    useConfigMock.mockReturnValue({
-      config: {
-        ...config,
-        codexServerEnabled: true
-      },
-      loading: false,
-      addRepo: vi.fn(async () => {}),
-      removeRepo: vi.fn(async () => {}),
-      setPollInterval: vi.fn(async () => {}),
-      setAutoUpdateEnabled: vi.fn(async () => {}),
-      setUpdateCheckInterval: vi.fn(async () => {}),
-      reorderRepos: vi.fn(async () => {}),
-      setDesktopCodexPaneWidth: vi.fn(async () => {})
-    })
-
-    systemDependenciesRequest.mockResolvedValue({
-      checkedAt: new Date().toISOString(),
-      checks: []
-    })
-
-    renderWithMantine(<App />)
-
-    expect(screen.queryByTestId('codex-session-pane')).toBeNull()
-
-    fireEvent.click(screen.getByText('open-codex'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('codex-session-pane').textContent).toBe('main')
-    })
-
-    fireEvent.click(screen.getByText('close-codex'))
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('codex-session-pane')).toBeNull()
-    })
-  })
-
-  it('disables embedded codex when codex support is disabled', async () => {
-    systemDependenciesRequest.mockResolvedValue({
-      checkedAt: new Date().toISOString(),
-      checks: []
-    })
-
-    renderWithMantine(<App />)
-
-    expect(screen.getByTestId('embedded-codex-enabled').textContent).toBe('false')
-    fireEvent.click(screen.getByText('open-codex'))
-    await waitFor(() => {
-      expect(screen.queryByTestId('codex-session-pane')).toBeNull()
-    })
   })
 })

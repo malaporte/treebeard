@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
-import { IconBrandVscode, IconGhost, IconSparkles } from '@tabler/icons-react'
+import { IconBrandVscode, IconGhost } from '@tabler/icons-react'
 import { rpc } from '../rpc'
 
 interface LaunchButtonsProps {
@@ -8,23 +7,12 @@ interface LaunchButtonsProps {
 }
 
 export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
-  const [launchingCodexDesktop, setLaunchingCodexDesktop] = useState(false)
-
   const handleVSCode = async () => {
     await rpc().request['launch:vscode']({ worktreePath })
   }
 
   const handleGhostty = async () => {
     await rpc().request['launch:ghostty']({ worktreePath })
-  }
-
-  const handleCodexDesktop = async () => {
-    setLaunchingCodexDesktop(true)
-    try {
-      await rpc().request['launch:codexDesktop']({ worktreePath })
-    } finally {
-      setLaunchingCodexDesktop(false)
-    }
   }
 
   return (
@@ -37,18 +25,6 @@ export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
       <Tooltip label="Open Ghostty terminal">
         <ActionIcon variant="subtle" color="violet" size="sm" onClick={handleGhostty}>
           <IconGhost size={16} />
-        </ActionIcon>
-      </Tooltip>
-      <Tooltip label="Open Codex desktop app">
-        <ActionIcon
-          variant="subtle"
-          color="orange"
-          size="sm"
-          onClick={handleCodexDesktop}
-          loading={launchingCodexDesktop}
-          disabled={launchingCodexDesktop}
-        >
-          <IconSparkles size={16} />
         </ActionIcon>
       </Tooltip>
     </Group>

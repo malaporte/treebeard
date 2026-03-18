@@ -1,12 +1,6 @@
 import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
-  CodexConversationUpdate,
-  CodexConversationSnapshot,
-  CodexPendingAction,
-  CodexRuntimeStatus,
-  CodexSessionEvent,
-  CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
   PRInfo,
@@ -78,56 +72,8 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
-      'launch:codexDesktop': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string }
-      }
       'launch:url': {
         params: { url: string }
-        response: { success: boolean; error?: string }
-      }
-      'codex:getStatus': {
-        params: Record<string, never>
-        response: CodexRuntimeStatus
-      }
-      'codex:setEnabled': {
-        params: { enabled: boolean }
-        response: CodexRuntimeStatus
-      }
-      'codex:startSession': {
-        params: { worktreePath: string; prompt: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus }
-      }
-      'codex:interruptSession': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus }
-      }
-      'codex:steerSession': {
-        params: { worktreePath: string; prompt: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus }
-      }
-      'codex:getSessionStatus': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus }
-      }
-      'codex:getSessionEvents': {
-        params: { worktreePath: string; cursor: number }
-        response: { success: boolean; error?: string; events: CodexSessionEvent[]; nextCursor: number }
-      }
-      'codex:getConversation': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
-      }
-      'codex:resumeConversation': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string; status?: CodexSessionStatus; snapshot?: CodexConversationSnapshot }
-      }
-      'codex:getPendingActions': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string; actions: CodexPendingAction[] }
-      }
-      'codex:respondPendingAction': {
-        params: { worktreePath: string; actionId: string; response: string }
         response: { success: boolean; error?: string }
       }
       'system:homedir': {
@@ -161,7 +107,6 @@ export type TreebeardRPC = {
     requests: Record<string, never>
     messages: {
       'ui:openSettings': void
-      'codex:conversationUpdate': CodexConversationUpdate
     }
   }>
 }

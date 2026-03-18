@@ -89,9 +89,7 @@ describe('RepoDashboard', () => {
         repos={[]}
         pollIntervalSec={60}
         search={''}
-        embeddedCodexEnabled={true}
         onReorder={() => {}}
-        onOpenCodex={() => {}}
       />
     )
 
@@ -116,9 +114,7 @@ describe('RepoDashboard', () => {
         repos={repos}
         pollIntervalSec={60}
         search={'feat'}
-        embeddedCodexEnabled={true}
         onReorder={() => {}}
-        onOpenCodex={() => {}}
       />
     )
 
@@ -131,9 +127,7 @@ describe('RepoDashboard', () => {
         repos={repos}
         pollIntervalSec={60}
         search={'missing'}
-        embeddedCodexEnabled={true}
         onReorder={() => {}}
-        onOpenCodex={() => {}}
       />
     )
 

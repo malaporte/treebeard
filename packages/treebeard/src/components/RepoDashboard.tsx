@@ -21,26 +21,22 @@ import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { RepoConfig, Worktree } from '../shared/types'
+import type { RepoConfig } from '../shared/types'
 
 interface RepoSectionProps {
   repo: RepoConfig
   pollIntervalSec: number
   search: string
-  embeddedCodexEnabled: boolean
   isCollapsed: boolean
   onToggleCollapse: () => void
-  onOpenCodex: (worktree: Worktree) => void
 }
 
 function RepoSection({
   repo,
   pollIntervalSec,
   search,
-  embeddedCodexEnabled,
   isCollapsed,
-  onToggleCollapse,
-  onOpenCodex
+  onToggleCollapse
 }: RepoSectionProps) {
   const { worktrees, loading, error, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
@@ -128,9 +124,7 @@ function RepoSection({
                 key={wt.path}
                 worktree={wt}
                 repoPath={repo.path}
-                embeddedCodexEnabled={embeddedCodexEnabled}
                 onDelete={refresh}
-                onOpenCodex={onOpenCodex}
               />
             ))}
           </Stack>
@@ -144,18 +138,14 @@ interface RepoDashboardProps {
   repos: RepoConfig[]
   pollIntervalSec: number
   search: string
-  embeddedCodexEnabled: boolean
   onReorder: (repos: RepoConfig[]) => void
-  onOpenCodex: (worktree: Worktree) => void
 }
 
 export function RepoDashboard({
   repos,
   pollIntervalSec,
   search,
-  embeddedCodexEnabled,
-  onReorder,
-  onOpenCodex
+  onReorder
 }: RepoDashboardProps) {
   const { collapsed, toggle } = useCollapsed()
   const [orderedRepos, setOrderedRepos] = useState(repos)
@@ -200,10 +190,8 @@ export function RepoDashboard({
               repo={repo}
               pollIntervalSec={pollIntervalSec}
               search={search}
-              embeddedCodexEnabled={embeddedCodexEnabled}
               isCollapsed={collapsed.has(repo.id)}
               onToggleCollapse={() => toggle(repo.id)}
-              onOpenCodex={onOpenCodex}
             />
           ))}
         </Stack>

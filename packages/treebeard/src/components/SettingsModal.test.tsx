@@ -7,17 +7,13 @@ import type { AppConfig, DependencyStatus } from '../shared/types'
 const systemDependenciesRequest = vi.fn()
 const openDirectoryRequest = vi.fn()
 const checkForUpdatesRequest = vi.fn()
-const codexGetStatusRequest = vi.fn()
-const codexSetEnabledRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
       'system:dependencies': systemDependenciesRequest,
       'dialog:openDirectory': openDirectoryRequest,
-      'app:checkForUpdates': checkForUpdatesRequest,
-      'codex:getStatus': codexGetStatusRequest,
-      'codex:setEnabled': codexSetEnabledRequest
+      'app:checkForUpdates': checkForUpdatesRequest
     }
   })
 }))
@@ -33,9 +29,7 @@ const config: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: [],
-  codexServerEnabled: false,
-  desktopCodexPaneWidth: 420
+  collapsedRepos: []
 }
 
 describe('SettingsModal', () => {
@@ -43,21 +37,6 @@ describe('SettingsModal', () => {
     systemDependenciesRequest.mockReset()
     openDirectoryRequest.mockReset()
     checkForUpdatesRequest.mockReset()
-    codexGetStatusRequest.mockReset()
-    codexSetEnabledRequest.mockReset()
-
-    codexGetStatusRequest.mockResolvedValue({
-      enabled: false,
-      running: false,
-      pid: null,
-      error: null
-    })
-    codexSetEnabledRequest.mockResolvedValue({
-      enabled: true,
-      running: true,
-      pid: 4096,
-      error: null
-    })
   })
 
   it('loads dependency status and notifies parent', async () => {
@@ -150,38 +129,6 @@ describe('SettingsModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('You are on the latest version.')).toBeTruthy()
-    })
-  })
-
-  it('shows and updates codex controls', async () => {
-    systemDependenciesRequest.mockResolvedValue({
-      checkedAt: new Date().toISOString(),
-      checks: []
-    })
-
-    renderWithMantine(
-      <SettingsModal
-        opened={true}
-        onClose={() => {}}
-        config={config}
-        onDependencyStatusChange={() => {}}
-        onAddRepo={async () => {}}
-        onRemoveRepo={async () => {}}
-        onSetPollInterval={async () => {}}
-        onSetAutoUpdateEnabled={async () => {}}
-        onSetUpdateCheckInterval={async () => {}}
-      />
-    )
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Enable Codex sessions from Treebeard')).toBeTruthy()
-    })
-
-    fireEvent.click(screen.getByLabelText('Enable Codex sessions from Treebeard'))
-
-    await waitFor(() => {
-      expect(codexSetEnabledRequest).toHaveBeenCalledWith({ enabled: true })
-      expect(screen.getByText(/Status: Running/)).toBeTruthy()
     })
   })
 })

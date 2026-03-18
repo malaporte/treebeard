@@ -16,7 +16,7 @@ import {
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { AppConfig, CodexRuntimeStatus, DependencyStatus, RepoConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus, RepoConfig } from '../shared/types'
 
 interface SettingsModalProps {
   opened: boolean
@@ -50,8 +50,6 @@ export function SettingsModal({
   const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null)
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [checkingDependencies, setCheckingDependencies] = useState(false)
-  const [codexStatus, setCodexStatus] = useState<CodexRuntimeStatus | null>(null)
-  const [codexBusy, setCodexBusy] = useState(false)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const { shortenPath } = useHomedir()
 
@@ -69,36 +67,11 @@ export function SettingsModal({
     }
   }
 
-  const loadCodexStatus = async () => {
-    setCodexBusy(true)
-    try {
-      const status = await rpc().request['codex:getStatus']({})
-      setCodexStatus(status)
-    } catch {
-      setCodexStatus(null)
-    } finally {
-      setCodexBusy(false)
-    }
-  }
-
   useEffect(() => {
     if (!opened) return
     setActiveSection('general')
     void loadDependencies(false)
-    void loadCodexStatus()
   }, [opened])
-
-  const handleCodexEnabledChange = async (enabled: boolean) => {
-    setCodexBusy(true)
-    try {
-      const status = await rpc().request['codex:setEnabled']({ enabled })
-      setCodexStatus(status)
-    } catch {
-      // Keep existing status if RPC fails
-    } finally {
-      setCodexBusy(false)
-    }
-  }
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return
@@ -297,33 +270,6 @@ export function SettingsModal({
                     Add
                   </Button>
                 </Group>
-              </div>
-
-              <Divider />
-
-              <div>
-                <Text fw={600} size="sm" mb="xs">
-                  Codex
-                </Text>
-                <Switch
-                  label="Enable Codex sessions from Treebeard"
-                  checked={codexStatus?.enabled ?? config.codexServerEnabled}
-                  onChange={(e) => {
-                    void handleCodexEnabledChange(e.currentTarget.checked)
-                  }}
-                  disabled={codexBusy}
-                  size="sm"
-                />
-                <Group gap="sm" mt="xs">
-                  <Text size="xs" c="dimmed">
-                    Status: {codexStatus?.running ? 'Running' : 'Stopped'}
-                    {codexStatus?.pid ? ` (pid ${codexStatus.pid})` : ''}
-                  </Text>
-                  <Button size="xs" variant="subtle" onClick={() => void loadCodexStatus()} loading={codexBusy}>
-                    Refresh Codex status
-                  </Button>
-                </Group>
-                {codexStatus?.error && <Text size="xs" c="yellow">{codexStatus.error}</Text>}
               </div>
 
               <Divider />

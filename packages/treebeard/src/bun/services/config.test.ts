@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  getCodexEnabled,
   getCollapsedRepos,
   getConfig,
-  setCodexEnabled,
   setCollapsedRepos,
   setConfig
 } from './config'
@@ -53,9 +51,7 @@ describe('config service', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: [],
-      codexServerEnabled: false,
-      desktopCodexPaneWidth: 420
+      collapsedRepos: []
     })
   })
 
@@ -65,9 +61,7 @@ describe('config service', () => {
       pollIntervalSec: 1,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 5000,
-      collapsedRepos: [],
-      codexServerEnabled: false,
-      desktopCodexPaneWidth: 99999
+      collapsedRepos: []
     })
 
     expect(getConfig()).toEqual({
@@ -75,71 +69,12 @@ describe('config service', () => {
       pollIntervalSec: 10,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 1440,
-      collapsedRepos: [],
-      codexServerEnabled: false,
-      desktopCodexPaneWidth: 4096
+      collapsedRepos: []
     })
   })
 
   it('persists collapsed repos independently', () => {
     setCollapsedRepos(['repo-1', 'repo-2'])
     expect(getCollapsedRepos()).toEqual(['repo-1', 'repo-2'])
-  })
-})
-
-describe('codex server config helpers', () => {
-  beforeEach(() => {
-    setupStore()
-  })
-
-  it('returns false by default', () => {
-    expect(getCodexEnabled()).toBe(false)
-  })
-
-  it('persists enabled state', () => {
-    setCodexEnabled(true)
-    expect(getCodexEnabled()).toBe(true)
-  })
-
-  it('can disable server state', () => {
-    setCodexEnabled(true)
-    setCodexEnabled(false)
-    expect(getCodexEnabled()).toBe(false)
-  })
-
-  it('preserves other config fields when toggling codex servers', () => {
-    setConfig({
-      repositories: [{ id: '1', name: 'repo', path: '/repo' }],
-      pollIntervalSec: 120,
-      autoUpdateEnabled: false,
-      updateCheckIntervalMin: 45,
-      collapsedRepos: ['repo-1'],
-      codexServerEnabled: false,
-      desktopCodexPaneWidth: 480
-    })
-
-    setCodexEnabled(true)
-
-    const config = getConfig()
-    expect(config.repositories).toEqual([{ id: '1', name: 'repo', path: '/repo' }])
-    expect(config.pollIntervalSec).toBe(120)
-    expect(config.autoUpdateEnabled).toBe(false)
-    expect(config.collapsedRepos).toEqual(['repo-1'])
-    expect(config.codexServerEnabled).toBe(true)
-  })
-
-  it('sanitizes invalid codexServerEnabled value to false', () => {
-    store.set('/Users/test/.config/treebeard/treebeard-config.json', JSON.stringify({
-      repositories: [],
-      pollIntervalSec: 60,
-      autoUpdateEnabled: true,
-      updateCheckIntervalMin: 30,
-      collapsedRepos: [],
-      codexServerEnabled: 'invalid'
-    }))
-
-    const config = getConfig()
-    expect(config.codexServerEnabled).toBe(false)
-    expect(config.desktopCodexPaneWidth).toBe(420)
   })
 })
