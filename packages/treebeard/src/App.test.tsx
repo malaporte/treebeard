@@ -68,9 +68,7 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
-  desktopCodexPaneWidth: 420,
-  sandboxEnabled: false,
-  sandboxMountPath: null
+  desktopCodexPaneWidth: 420
 }
 
 describe('App', () => {

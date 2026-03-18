@@ -20,9 +20,7 @@ const DEFAULTS: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
-  desktopCodexPaneWidth: 420,
-  sandboxEnabled: false,
-  sandboxMountPath: null
+  desktopCodexPaneWidth: 420
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -49,11 +47,7 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
     codexServerEnabled: typeof config.codexServerEnabled === 'boolean' ? config.codexServerEnabled : DEFAULTS.codexServerEnabled,
-    desktopCodexPaneWidth,
-    sandboxEnabled: typeof config.sandboxEnabled === 'boolean' ? config.sandboxEnabled : DEFAULTS.sandboxEnabled,
-    sandboxMountPath: typeof config.sandboxMountPath === 'string' && config.sandboxMountPath.trim() !== ''
-      ? config.sandboxMountPath.trim()
-      : null
+    desktopCodexPaneWidth
   }
 }
 
@@ -116,25 +110,5 @@ export function getCodexEnabled(): boolean {
 export function setCodexEnabled(enabled: boolean): void {
   const config = readConfig()
   config.codexServerEnabled = enabled
-  writeConfig(config)
-}
-
-export function getSandboxEnabled(): boolean {
-  return readConfig().sandboxEnabled === true
-}
-
-export function setSandboxEnabled(enabled: boolean): void {
-  const config = readConfig()
-  config.sandboxEnabled = enabled
-  writeConfig(config)
-}
-
-export function getSandboxMountPath(): string | null {
-  return readConfig().sandboxMountPath
-}
-
-export function setSandboxMountPath(mountPath: string | null): void {
-  const config = readConfig()
-  config.sandboxMountPath = mountPath && mountPath.trim() !== '' ? mountPath.trim() : null
   writeConfig(config)
 }

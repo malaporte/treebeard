@@ -35,9 +35,7 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   codexServerEnabled: false,
-  desktopCodexPaneWidth: 420,
-  sandboxEnabled: false,
-  sandboxMountPath: null
+  desktopCodexPaneWidth: 420
 }
 
 describe('SettingsModal', () => {
@@ -101,7 +99,6 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetSandboxMountPath={async () => {}}
       />
     )
 
@@ -137,7 +134,6 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetSandboxMountPath={async () => {}}
       />
     )
 
@@ -174,7 +170,6 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
-        onSetSandboxMountPath={async () => {}}
       />
     )
 

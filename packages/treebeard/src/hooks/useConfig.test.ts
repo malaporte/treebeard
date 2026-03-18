@@ -30,9 +30,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 420,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 420
     }
     getConfigRequest.mockResolvedValue(initial)
 
@@ -52,9 +50,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 420,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 420
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -102,9 +98,7 @@ describe('useConfig', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 420,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 420
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)

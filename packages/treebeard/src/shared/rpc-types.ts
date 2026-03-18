@@ -9,9 +9,7 @@ import type {
   CodexSessionStatus,
   DependencyStatus,
   JiraIssue,
-  PippinCliStatus,
   PRInfo,
-  SandboxStatus,
   Worktree,
   WorktreeStatus
 } from './types'
@@ -143,26 +141,6 @@ export type TreebeardRPC = {
       'system:dependencies': {
         params: { refresh?: boolean }
         response: DependencyStatus
-      }
-      'leash:start': {
-        params: Record<string, never>
-        response: SandboxStatus
-      }
-      'leash:stop': {
-        params: Record<string, never>
-        response: SandboxStatus
-      }
-      'leash:status': {
-        params: Record<string, never>
-        response: SandboxStatus
-      }
-      'pippin:installCli': {
-        params: Record<string, never>
-        response: PippinCliStatus
-      }
-      'pippin:cliStatus': {
-        params: Record<string, never>
-        response: PippinCliStatus
       }
       'app:quit': {
         params: Record<string, never>

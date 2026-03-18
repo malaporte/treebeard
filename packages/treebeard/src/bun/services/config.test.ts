@@ -3,13 +3,9 @@ import {
   getCodexEnabled,
   getCollapsedRepos,
   getConfig,
-  getSandboxEnabled,
-  getSandboxMountPath,
   setCodexEnabled,
   setCollapsedRepos,
-  setConfig,
-  setSandboxEnabled,
-  setSandboxMountPath
+  setConfig
 } from './config'
 
 vi.mock('node:os', () => ({
@@ -59,9 +55,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 420,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 420
     })
   })
 
@@ -73,9 +67,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 99999,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 99999
     })
 
     expect(getConfig()).toEqual({
@@ -85,9 +77,7 @@ describe('config service', () => {
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 4096,
-      sandboxEnabled: false,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 4096
     })
   })
 
@@ -125,9 +115,7 @@ describe('codex server config helpers', () => {
       updateCheckIntervalMin: 45,
       collapsedRepos: ['repo-1'],
       codexServerEnabled: false,
-      desktopCodexPaneWidth: 480,
-      sandboxEnabled: true,
-      sandboxMountPath: null
+      desktopCodexPaneWidth: 480
     })
 
     setCodexEnabled(true)
@@ -153,87 +141,5 @@ describe('codex server config helpers', () => {
     const config = getConfig()
     expect(config.codexServerEnabled).toBe(false)
     expect(config.desktopCodexPaneWidth).toBe(420)
-  })
-})
-
-describe('sandbox config helpers', () => {
-  beforeEach(() => {
-    setupStore()
-  })
-
-  it('returns false by default', () => {
-    expect(getSandboxEnabled()).toBe(false)
-  })
-
-  it('persists enabled state', () => {
-    setSandboxEnabled(true)
-    expect(getSandboxEnabled()).toBe(true)
-  })
-
-  it('can disable sandbox state', () => {
-    setSandboxEnabled(true)
-    setSandboxEnabled(false)
-    expect(getSandboxEnabled()).toBe(false)
-  })
-
-  it('sanitizes invalid sandboxEnabled value to false', () => {
-    store.set('/Users/test/.config/treebeard/treebeard-config.json', JSON.stringify({
-      repositories: [],
-      pollIntervalSec: 60,
-      autoUpdateEnabled: true,
-      updateCheckIntervalMin: 30,
-      collapsedRepos: [],
-      codexServerEnabled: false,
-      sandboxEnabled: 'invalid'
-    }))
-
-    expect(getSandboxEnabled()).toBe(false)
-  })
-})
-
-describe('sandbox mount path config helpers', () => {
-  beforeEach(() => {
-    setupStore()
-  })
-
-  it('returns null by default', () => {
-    expect(getSandboxMountPath()).toBeNull()
-  })
-
-  it('persists mount path', () => {
-    setSandboxMountPath('/Users/test/Developer')
-    expect(getSandboxMountPath()).toBe('/Users/test/Developer')
-  })
-
-  it('clears mount path when set to null', () => {
-    setSandboxMountPath('/Users/test/Developer')
-    setSandboxMountPath(null)
-    expect(getSandboxMountPath()).toBeNull()
-  })
-
-  it('clears mount path when set to empty string', () => {
-    setSandboxMountPath('/Users/test/Developer')
-    setSandboxMountPath('')
-    expect(getSandboxMountPath()).toBeNull()
-  })
-
-  it('trims whitespace from mount path', () => {
-    setSandboxMountPath('  /Users/test/Developer  ')
-    expect(getSandboxMountPath()).toBe('/Users/test/Developer')
-  })
-
-  it('sanitizes non-string sandboxMountPath to null', () => {
-    store.set('/Users/test/.config/treebeard/treebeard-config.json', JSON.stringify({
-      repositories: [],
-      pollIntervalSec: 60,
-      autoUpdateEnabled: true,
-      updateCheckIntervalMin: 30,
-      collapsedRepos: [],
-      codexServerEnabled: false,
-      sandboxEnabled: false,
-      sandboxMountPath: 42
-    }))
-
-    expect(getSandboxMountPath()).toBeNull()
   })
 })

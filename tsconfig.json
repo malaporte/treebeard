@@ -1,7 +1,6 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/treebeard" },
-    { "path": "packages/pippin" }
+    { "path": "packages/treebeard" }
   ]
 }

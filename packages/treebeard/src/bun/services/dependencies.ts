@@ -114,7 +114,7 @@ async function checkDependency(name: DependencyName, env: Record<string, string>
   if (!commandStatus.installed) {
     return {
       name,
-      required: name !== 'pippin',
+      required: true,
       installed: false,
       authenticated: null,
       version: null,
@@ -123,11 +123,10 @@ async function checkDependency(name: DependencyName, env: Record<string, string>
     }
   }
 
-  // pippin and codex don't need auth checks
-  if (name === 'codex' || name === 'pippin') {
+  if (name === 'codex') {
     return {
       name,
-      required: name !== 'pippin',
+      required: true,
       installed: true,
       authenticated: null,
       version: commandStatus.version,
@@ -158,8 +157,7 @@ export async function checkDependencies(): Promise<DependencyStatus> {
   const checks = await Promise.all([
     checkDependency('gh', env),
     checkDependency('jira', env),
-    checkDependency('codex', env),
-    checkDependency('pippin', env)
+    checkDependency('codex', env)
   ])
 
   return {

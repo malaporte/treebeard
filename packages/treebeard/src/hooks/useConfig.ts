@@ -93,14 +93,6 @@ export function useConfig() {
     [config, save]
   )
 
-  const setSandboxMountPath = useCallback(
-    async (mountPath: string | null) => {
-      if (!config) return
-      await save({ ...config, sandboxMountPath: mountPath })
-    },
-    [config, save]
-  )
-
   return {
     config,
     loading,
@@ -110,7 +102,6 @@ export function useConfig() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth,
-    setSandboxMountPath
+    setDesktopCodexPaneWidth
   }
 }

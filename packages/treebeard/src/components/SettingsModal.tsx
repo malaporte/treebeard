@@ -28,10 +28,9 @@ interface SettingsModalProps {
   onSetPollInterval: (sec: number) => Promise<void>
   onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
   onSetUpdateCheckInterval: (minutes: number) => Promise<void>
-  onSetSandboxMountPath: (path: string | null) => Promise<void>
 }
 
-type SettingsSection = 'general' | 'sandbox' | 'updates' | 'dependencies'
+type SettingsSection = 'general' | 'updates' | 'dependencies'
 
 export function SettingsModal({
   opened,
@@ -42,9 +41,8 @@ export function SettingsModal({
   onRemoveRepo,
   onSetPollInterval,
   onSetAutoUpdateEnabled,
-    onSetUpdateCheckInterval,
-    onSetSandboxMountPath
-  }: SettingsModalProps) {
+  onSetUpdateCheckInterval
+}: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
   const [pendingDelete, setPendingDelete] = useState<RepoConfig | null>(null)
@@ -182,7 +180,6 @@ export function SettingsModal({
 
   const sectionItems: Array<{ key: SettingsSection; label: string }> = [
     { key: 'general', label: 'General' },
-    { key: 'sandbox', label: 'Sandbox' },
     { key: 'updates', label: 'Updates' },
     { key: 'dependencies', label: 'Dependencies' }
   ]
@@ -349,63 +346,6 @@ export function SettingsModal({
                   style={{ maxWidth: 200 }}
                   size="sm"
                 />
-              </div>
-            </Stack>
-          )}
-
-          {activeSection === 'sandbox' && (
-            <Stack gap="lg">
-              <div>
-                <Text fw={600} size="sm" mb="xs">
-                  Sandbox Mount Path
-                </Text>
-                <Text size="xs" c="dimmed" mb="sm">
-                  Host directory accessible inside the sandbox. Paths are identical on
-                  both sides — the container sees the same absolute paths as the host.
-                  Commands run via pippin must have their working directory within this path.
-                  Changing this requires a sandbox restart.
-                </Text>
-                <Group align="flex-end">
-                  <TextInput
-                    placeholder="/path/to/projects"
-                    value={config.sandboxMountPath ?? ''}
-                    onChange={(e) => {
-                      const val = e.currentTarget.value.trim()
-                      void onSetSandboxMountPath(val || null)
-                    }}
-                    style={{ flex: 1 }}
-                    size="sm"
-                    rightSection={
-                      <ActionIcon
-                        variant="subtle"
-                        color="neon"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const selected = await rpc().request['dialog:openDirectory']({})
-                            if (selected) {
-                              void onSetSandboxMountPath(selected)
-                            }
-                          } catch {
-                            // Dialog cancelled or RPC failed
-                          }
-                        }}
-                      >
-                        <IconFolderOpen size={14} />
-                      </ActionIcon>
-                    }
-                  />
-                  {config.sandboxMountPath && (
-                    <Button
-                      variant="subtle"
-                      color="pink"
-                      size="sm"
-                      onClick={() => void onSetSandboxMountPath(null)}
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </Group>
               </div>
             </Stack>
           )}

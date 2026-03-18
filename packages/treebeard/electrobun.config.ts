@@ -23,10 +23,7 @@ export default {
       }
     },
     copy: {
-      'src/mainview/index.html': 'views/mainview/index.html',
-      '../../packages/pippin/dist/pippin': 'bin/pippin',
-      '../../packages/pippin/dist/pippin-server-linux-arm64': 'bin/pippin-server-linux-arm64',
-      '../../packages/pippin/dist/pippin-server-linux-x64': 'bin/pippin-server-linux-x64'
+      'src/mainview/index.html': 'views/mainview/index.html'
     }
   },
   scripts: {

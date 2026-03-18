@@ -16,11 +16,8 @@ import {
 import { IconSettings, IconSearch, IconX } from '@tabler/icons-react'
 import { CodexSessionPane } from './components/CodexSessionPane'
 import { RepoDashboard } from './components/RepoDashboard'
-import { SandboxIndicator } from './components/SandboxIndicator'
-import { SandboxPane } from './components/SandboxPane'
 import { SettingsModal } from './components/SettingsModal'
 import { useConfig } from './hooks/useConfig'
-import { useSandbox } from './hooks/useSandbox'
 import { rpc } from './rpc'
 import type { DependencyStatus, Worktree } from './shared/types'
 
@@ -71,34 +68,22 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDesktopCodexPaneWidth,
-    setSandboxMountPath
+    setDesktopCodexPaneWidth
   } = useConfig()
-  const { status: sandboxStatus, loading: sandboxLoading, start: startSandbox, stop: stopSandbox } = useSandbox()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [selectedCodexWorktree, setSelectedCodexWorktree] = useState<Worktree | null>(null)
-  const [sandboxPaneOpened, setSandboxPaneOpened] = useState(false)
   const [rightPaneWidth, setRightPaneWidth] = useState(420)
   const [resizingRightPane, setResizingRightPane] = useState(false)
   const embeddedCodexEnabled = config?.codexServerEnabled === true
   const codexPaneOpened = embeddedCodexEnabled && selectedCodexWorktree !== null
-  const sandboxControlUiPort = sandboxStatus?.state === 'running' ? sandboxStatus.controlUiPort : null
-  const rightPaneOpened = codexPaneOpened || (sandboxPaneOpened && sandboxControlUiPort !== null)
+  const rightPaneOpened = codexPaneOpened
 
   const handleOpenCodex = useCallback((worktree: Worktree) => {
     if (!embeddedCodexEnabled) return
-    setSandboxPaneOpened(false)
     setSelectedCodexWorktree(worktree)
   }, [embeddedCodexEnabled])
-
-  const handleToggleSandboxPane = useCallback(() => {
-    setSandboxPaneOpened((prev) => {
-      if (!prev) setSelectedCodexWorktree(null)
-      return !prev
-    })
-  }, [])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -145,13 +130,6 @@ export default function App() {
     if (embeddedCodexEnabled) return
     setSelectedCodexWorktree(null)
   }, [embeddedCodexEnabled])
-
-  // Auto-close sandbox pane when sandbox stops running
-  useEffect(() => {
-    if (sandboxStatus?.state !== 'running') {
-      setSandboxPaneOpened(false)
-    }
-  }, [sandboxStatus?.state])
 
   useEffect(() => {
     const handleResize = () => {
@@ -234,7 +212,7 @@ export default function App() {
           className="electrobun-webkit-app-region-drag"
         >
           <Group gap="xs" className="electrobun-webkit-app-region-no-drag">
-            <TextInput
+             <TextInput
               placeholder="Filter worktrees..."
               size="xs"
               variant="unstyled"
@@ -244,17 +222,10 @@ export default function App() {
                   <IconX size={12} />
                 </ActionIcon>
               ) : null}
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              style={{ width: 220 }}
-            />
-            <SandboxIndicator
-              status={sandboxStatus}
-              loading={sandboxLoading}
-              onStart={startSandbox}
-              onStop={stopSandbox}
-              onOpenMonitor={handleToggleSandboxPane}
-            />
+               value={search}
+               onChange={(e) => setSearch(e.currentTarget.value)}
+               style={{ width: 220 }}
+             />
             <ActionIcon
               variant="subtle"
               color="neon"
@@ -336,35 +307,6 @@ export default function App() {
                 </Paper>
               </>
             )}
-
-            {sandboxPaneOpened && sandboxControlUiPort !== null && (
-              <>
-                <Box
-                  role="separator"
-                  aria-orientation="vertical"
-                  onMouseDown={() => setResizingRightPane(true)}
-                  style={{
-                    width: 10,
-                    cursor: 'col-resize',
-                    flexShrink: 0,
-                    background: resizingRightPane ? 'rgba(0, 136, 255, 0.18)' : 'transparent',
-                    borderLeft: '1px solid rgba(0, 136, 255, 0.08)',
-                    borderRight: '1px solid rgba(0, 136, 255, 0.08)'
-                  }}
-                />
-
-                <Box
-                  style={{
-                    width: rightPaneWidth,
-                    minWidth: MIN_RIGHT_PANE_WIDTH,
-                    flexShrink: 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <SandboxPane controlUiPort={sandboxControlUiPort} />
-                </Box>
-              </>
-            )}
           </Group>
         </AppShell.Main>
       </AppShell>
@@ -379,7 +321,6 @@ export default function App() {
         onSetPollInterval={setPollInterval}
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
-        onSetSandboxMountPath={setSandboxMountPath}
       />
     </MantineProvider>
   )

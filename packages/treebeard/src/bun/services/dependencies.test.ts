@@ -15,7 +15,6 @@ describe('dependencies service', () => {
       if (key === 'jira --version') return { stdout: 'jira version 1.0.0\n' }
       if (key === 'jira me --raw') return { stdout: '{"name":"sam"}' }
       if (key === 'codex --version') return { stdout: 'codex version 1.2.0\n' }
-      if (key === 'pippin --version') return { stdout: 'pippin version 0.1.0\n' }
       return { stderr: `unexpected command: ${key}`, exitCode: 1 }
     })
 
@@ -45,15 +44,6 @@ describe('dependencies service', () => {
         installed: true,
         authenticated: null,
         version: 'codex version 1.2.0',
-        error: null,
-        authError: null
-      },
-      {
-        name: 'pippin',
-        required: false,
-        installed: true,
-        authenticated: null,
-        version: 'pippin version 0.1.0',
         error: null,
         authError: null
       }

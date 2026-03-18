@@ -1,7 +1,5 @@
-// Pre-build script: processes Mantine CSS and compiles pippin binaries.
-// Electrobun runs this before the app build so all assets are ready for bundling.
+// Pre-build script: processes Mantine CSS before the app build.
 
-import { $ } from 'bun'
 import postcss from 'postcss'
 import postcssPresetMantine from 'postcss-preset-mantine'
 import postcssSimpleVars from 'postcss-simple-vars'
@@ -33,8 +31,3 @@ fs.writeFileSync(outputPath, result.css)
 if (result.map) {
   fs.writeFileSync(outputPath + '.map', result.map.toString())
 }
-
-// --- Pippin binaries ---
-
-const workspaceRoot = path.resolve(__dirname, '..', '..', '..')
-await $`bun run --filter pippin build`.cwd(workspaceRoot)

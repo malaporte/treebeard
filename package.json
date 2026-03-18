@@ -4,12 +4,9 @@
   "scripts": {
     "dev": "bun run --filter treebeard dev",
     "build": "bun run --filter treebeard build",
-    "build:pippin": "bun run --filter pippin build",
     "test": "bun run --filter '*' test",
     "test:treebeard": "bun run --filter treebeard test",
-    "test:pippin": "bun run --filter pippin test",
-    "typecheck": "bun run --filter '*' typecheck",
-    "pippin": "bun run packages/pippin/src/cli/index.ts"
+    "typecheck": "bun run --filter '*' typecheck"
   },
   "packageManager": "bun@1.3.10"
 }

@@ -1,7 +1,7 @@
 import os from 'node:os'
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import Electrobun from 'electrobun/bun'
-import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos, setSandboxEnabled } from './services/config'
+import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
 import {
   getCodexConversation,
   forceStopAllCodexSessions,
@@ -32,8 +32,6 @@ import {
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
 import { launchVSCode, launchGhostty, launchCodexDesktop, launchURL } from './services/launcher'
-import { startSandbox, stopSandbox, getSandboxStatus, forceStopSandbox } from './services/leash'
-import { installPippinCli, getPippinCliStatus } from './services/pippin-cli'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -185,7 +183,6 @@ async function gracefulShutdown(quitAfterCleanup: boolean): Promise<void> {
 
   shutdownInFlight = (async () => {
     await stopAllCodexSessions()
-    await stopSandbox()
     if (quitAfterCleanup) {
       Utils.quit()
     }
@@ -390,26 +387,6 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'system:dependencies': async ({ refresh }) => {
         return getDependencyStatus(Boolean(refresh))
       },
-      'leash:start': async () => {
-        const status = await startSandbox()
-        if (status.state === 'running') {
-          setSandboxEnabled(true)
-        }
-        return status
-      },
-      'leash:stop': async () => {
-        setSandboxEnabled(false)
-        return stopSandbox()
-      },
-      'leash:status': () => {
-        return getSandboxStatus()
-      },
-      'pippin:installCli': async () => {
-        return installPippinCli()
-      },
-      'pippin:cliStatus': async () => {
-        return getPippinCliStatus()
-      },
       'app:quit': () => {
         return gracefulShutdown(true)
       },
@@ -501,12 +478,8 @@ Electrobun.events.on(`new-window-open-${win.webview.id}`, (event: { data?: { det
 
 startAutoUpdateScheduler()
 void getDependencyStatus()
-void installPippinCli()
 if (getConfig().codexServerEnabled) {
   void setCodexStatusEnabled(true)
-}
-if (getConfig().sandboxEnabled) {
-  void startSandbox()
 }
 
 // --- Shutdown Cleanup ---
@@ -519,5 +492,4 @@ process.on('SIGINT', handleShutdown)
 process.on('SIGTERM', handleShutdown)
 process.on('exit', () => {
   forceStopAllCodexSessions()
-  forceStopSandbox()
 })

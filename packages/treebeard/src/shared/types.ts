@@ -14,8 +14,6 @@ export interface AppConfig {
   collapsedRepos: string[]
   codexServerEnabled: boolean
   desktopCodexPaneWidth: number
-  sandboxEnabled: boolean
-  sandboxMountPath: string | null
 }
 
 export interface Worktree {
@@ -190,18 +188,8 @@ export interface CodexPendingAction {
   options: string[]
 }
 
-export type SandboxState = 'stopped' | 'starting' | 'running' | 'stopping' | 'error'
-
-export interface SandboxStatus {
-  state: SandboxState
-  port: number | null
-  controlUiPort: number | null
-  error: string | null
-  log: string[]
-}
-
 export interface DependencyCheck {
-  name: 'gh' | 'jira' | 'codex' | 'pippin'
+  name: 'gh' | 'jira' | 'codex'
   required: boolean
   installed: boolean
   authenticated: boolean | null
@@ -213,12 +201,4 @@ export interface DependencyCheck {
 export interface DependencyStatus {
   checkedAt: string
   checks: DependencyCheck[]
-}
-
-export interface PippinCliStatus {
-  installed: boolean
-  needsUpdate: boolean
-  onPath: boolean
-  installPath: string
-  error: string | null
 }
