@@ -7,17 +7,33 @@ Treebeard is a macOS desktop app for managing Git worktrees across repositories,
 
 ![Treebeard screenshot](treebeard-current.png)
 
+## Why Treebeard?
+
+[Git worktrees](https://git-scm.com/docs/git-worktree) let you check out multiple branches of the same repo simultaneously, each in its own directory. No more stashing, no more switching — just `cd` into the branch you want to work on. If you haven't tried them, they're a game-changer for working on more than one thing at a time.
+
+With AI coding agents (Copilot, Cursor, Claude Code, etc.) the number of things in flight at once has gone up dramatically. You might have an agent working on a feature in one worktree while you review a PR in another and fix a bug in a third. Worktrees make this possible; Treebeard makes it manageable — giving you a single dashboard to see what's happening across all your repos and branches, with PR status, CI checks, and Jira context at a glance.
+
 ## Features
 
-- Manage worktrees across multiple repositories from one dashboard
-- Search and filter worktrees by branch or path
-- Drag and drop repository sections to reorder them
-- Show Jira issue badges parsed from branch names
-- Show GitHub PR status and CI check status per branch
-- Show dirty status (`+/-` lines, unpushed, unpulled commits)
-- Launch worktrees in VS Code or Ghostty
-- Create and delete worktrees directly from the app
-- Built-in auto-update support for packaged releases
+### Multi-repo worktree dashboard
+
+All your repos in one place, each as a collapsible section showing every worktree as a card. Search and filter across everything by branch name or path. Drag and drop repo sections to put your most active work at the top — the order is persisted across sessions.
+
+### GitHub and Jira integration
+
+Treebeard shows a PR badge on every branch — state, draft status, and CI check results (pass/fail/pending) — all pulled from the GitHub CLI. Jira issue keys are automatically extracted from branch names (e.g. `feat/PROJ-123-add-login`), and displayed as color-coded badges with the issue status. Click any badge to open the PR or issue in your browser.
+
+### Worktree lifecycle
+
+Create new worktrees from the app — either a new branch or an existing remote branch — with auto-generated paths. Delete worktrees with safety checks that warn you about uncommitted changes or unpushed commits before anything is removed. Every card shows a live dirty-status indicator: lines added/deleted, commits ahead/behind.
+
+### Quick-launch actions
+
+Open any worktree in VS Code or Ghostty with a single click (or double-click a card to open it in VS Code). Jira and GitHub links open in your default browser.
+
+### Auto-updates and settings
+
+Built-in auto-update checks for new releases on a configurable schedule. The settings modal lets you manage your repo list, set the polling interval, and check the health of optional CLI dependencies (`gh` and `jira`).
 
 ## Prerequisites
 
