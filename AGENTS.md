@@ -3,15 +3,15 @@
 ## Project Overview
 
 Treebeard is an **Electrobun** desktop app for managing Git worktrees across repositories,
-with Jira issue badges, GitHub PR/CI status, and quick-launch buttons for VS Code,
-Ghostty, and OpenCode.
+with Jira issue badges, GitHub PR/CI status, and quick-launch buttons for VS Code
+and Ghostty.
 
 **Stack:** TypeScript (strict), React 18, Mantine v7, Electrobun, Bun
 
 **Structure:**
 - `packages/treebeard/` — The Electrobun desktop app package
 - `packages/treebeard/src/bun/` — Main process entry (`index.ts`), shared types (`../shared/types.ts`)
-- `packages/treebeard/src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `opencode.ts`, `dependencies.ts`
+- `packages/treebeard/src/bun/services/` — Backend services: `git.ts`, `github.ts`, `jira.ts`, `launcher.ts`, `config.ts`, `dependencies.ts`, `shell-env.ts`
 - `packages/treebeard/src/shared/` — Shared types and RPC schema (`types.ts`, `rpc-types.ts`)
 - `packages/treebeard/src/` — Renderer process (React app)
 - `packages/treebeard/src/components/` — Flat directory of single-purpose React components
@@ -181,9 +181,7 @@ Zero logging in the codebase. No `console.log`, `console.error`, or logging libr
 - **RPC accessor:** `src/rpc.ts` exposes a typed `rpc()` helper that reads the Electroview
   instance from `window.__electrobun`. All hooks import `rpc` from this module.
 - **Persistence:** App config stored as JSON via `src/bun/services/config.ts` in
-  `~/Library/Application Support/Treebeard/treebeard-config.json`.
+  `~/.config/treebeard/treebeard-config.json`.
 - **State management:** Local `useState` + custom hooks only. No external state library.
 - **External CLIs:** GitHub data via `gh` CLI, Jira data via `jira` CLI, both called from
-  the bun process via `child_process.execFile`. Failures return `null` silently.
-- **OpenCode runtime:** Treebeard manages one global OpenCode server lifecycle
-  (start/stop/restart, stale process cleanup, health/status reporting).
+  the bun process via `Bun.spawn`. Failures return `null` silently.

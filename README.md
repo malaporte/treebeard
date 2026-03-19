@@ -3,7 +3,7 @@
 [![CI](https://github.com/malaporte/treebeard/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/malaporte/treebeard/actions/workflows/build.yml)
 [![Release Build](https://github.com/malaporte/treebeard/actions/workflows/build.yml/badge.svg)](https://github.com/malaporte/treebeard/actions/workflows/build.yml)
 
-Treebeard is a macOS desktop app for managing Git worktrees across repositories, with built-in Codex session support and quick launch actions for common tools.
+Treebeard is a macOS desktop app for managing Git worktrees across repositories, with Jira issue badges, GitHub PR/CI status, and quick-launch actions for VS Code and Ghostty.
 
 ![Treebeard screenshot](treebeard-current.png)
 
@@ -15,8 +15,7 @@ Treebeard is a macOS desktop app for managing Git worktrees across repositories,
 - Show Jira issue badges parsed from branch names
 - Show GitHub PR status and CI check status per branch
 - Show dirty status (`+/-` lines, unpushed, unpulled commits)
-- Launch worktrees in VS Code, Ghostty, or Codex Desktop
-- Run embedded Codex sessions directly inside Treebeard
+- Launch worktrees in VS Code or Ghostty
 - Create and delete worktrees directly from the app
 - Built-in auto-update support for packaged releases
 
@@ -33,7 +32,6 @@ Treebeard is a macOS desktop app for managing Git worktrees across repositories,
 - [Jira CLI (`jira`)](https://github.com/ankitpokhrel/jira-cli) for Jira badges
 - VS Code (`code` command available in PATH) for the VS Code launch button
 - [Ghostty](https://ghostty.org/) for the terminal launch button
-- Codex CLI/Desktop for embedded Codex sessions and Codex launch actions
 
 Treebeard works without optional CLIs, but related badges/actions are unavailable.
 
@@ -47,13 +45,6 @@ Treebeard works without optional CLIs, but related badges/actions are unavailabl
 bun install
 bun run dev
 ```
-
-## Using Codex
-
-Enable Codex in Settings to turn on Treebeard's worktree-level Codex actions.
-
-- Use the Codex button on a worktree card to open an embedded Codex session for that specific worktree inside Treebeard.
-- Use the launch buttons on a worktree card to open that worktree in Codex Desktop, VS Code, or Ghostty.
 
 ## Scripts
 
@@ -78,7 +69,7 @@ Treebeard is built with [Electrobun](https://github.com/blackboardsh/electrobun)
 - React renderer in the main view (`src/mainview/`, `src/components/`, `src/hooks/`)
 - Typed RPC between renderer and main process (`src/shared/rpc-types.ts`)
 - Shared app/domain types in `src/shared/types.ts`
-- Local config, dependency checks, and Codex runtime/session orchestration in the Bun process
+- Local config and dependency checks in the Bun process
 
 High-level structure:
 
@@ -97,7 +88,7 @@ App settings are persisted at:
 
 `~/.config/treebeard/treebeard-config.json`
 
-This file stores repository paths, polling interval, update settings, Codex settings, and collapsed repo state.
+This file stores repository paths, polling interval, update settings, and collapsed repo state.
 
 ## Contributing
 
