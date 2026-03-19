@@ -16,6 +16,8 @@ import type { Worktree } from '../shared/types'
 interface WorktreeCardProps {
   worktree: Worktree
   repoPath: string
+  pollIntervalSec: number
+  refreshKey: number
   onDelete: () => void
 }
 
@@ -29,14 +31,16 @@ function extractJiraKey(branch: string): string | null {
 export function WorktreeCard({
   worktree,
   repoPath,
+  pollIntervalSec,
+  refreshKey,
   onDelete
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
-  const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey)
-  const { pr, loading: prLoading } = usePR(repoPath, worktree.isMain ? null : worktree.branch)
-  const { status: wtStatus, loading: wtStatusLoading } = useWorktreeStatus(worktree.path)
+  const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey, pollIntervalSec, refreshKey)
+  const { pr, loading: prLoading } = usePR(repoPath, worktree.isMain ? null : worktree.branch, pollIntervalSec, refreshKey)
+  const { status: wtStatus, loading: wtStatusLoading } = useWorktreeStatus(worktree.path, pollIntervalSec, refreshKey)
   const { shortenPath } = useHomedir()
 
   const handleDoubleClick = () => {

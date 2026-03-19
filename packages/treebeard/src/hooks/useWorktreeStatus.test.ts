@@ -34,7 +34,7 @@ describe('useWorktreeStatus', () => {
         linesDeleted: 0
       })
 
-    const { result } = renderHook(() => useWorktreeStatus('/repo/wt'))
+    const { result } = renderHook(() => useWorktreeStatus('/repo/wt', 0))
 
     await waitFor(() => {
       expect(result.current.status?.unpushedCommits).toBe(1)
@@ -49,7 +49,7 @@ describe('useWorktreeStatus', () => {
 
   it('sets status to null when request fails', async () => {
     worktreeStatusRequest.mockRejectedValueOnce(new Error('rpc failed'))
-    const { result } = renderHook(() => useWorktreeStatus('/repo/wt'))
+    const { result } = renderHook(() => useWorktreeStatus('/repo/wt', 0))
 
     await waitFor(() => {
       expect(result.current.status).toBeNull()

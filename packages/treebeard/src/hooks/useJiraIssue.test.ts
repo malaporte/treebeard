@@ -18,7 +18,7 @@ describe('useJiraIssue', () => {
   })
 
   it('returns null without issue key', async () => {
-    const { result } = renderHook(() => useJiraIssue(null))
+    const { result } = renderHook(() => useJiraIssue(null, 0))
 
     await waitFor(() => {
       expect(result.current.issue).toBeNull()
@@ -39,7 +39,7 @@ describe('useJiraIssue', () => {
     })
 
     const { result, rerender } = renderHook(
-      ({ key }) => useJiraIssue(key),
+      ({ key }) => useJiraIssue(key, 0),
       { initialProps: { key: 'TB-1' as string | null } }
     )
 

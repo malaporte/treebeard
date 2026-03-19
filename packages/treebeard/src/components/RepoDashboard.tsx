@@ -40,6 +40,7 @@ function RepoSection({
 }: RepoSectionProps) {
   const { worktrees, loading, error, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
   const { shortenPath } = useHomedir()
 
@@ -90,7 +91,7 @@ function RepoSection({
           <ActionIcon variant="subtle" color="neon" onClick={() => setAddOpened(true)}>
             <IconPlus size={16} />
           </ActionIcon>
-          <ActionIcon variant="subtle" color="neon" onClick={refresh} loading={loading}>
+          <ActionIcon variant="subtle" color="neon" onClick={() => { refresh(); setRefreshKey((k) => k + 1) }} loading={loading}>
             <IconRefresh size={16} />
           </ActionIcon>
         </Group>
@@ -124,6 +125,8 @@ function RepoSection({
                 key={wt.path}
                 worktree={wt}
                 repoPath={repo.path}
+                pollIntervalSec={pollIntervalSec}
+                refreshKey={refreshKey}
                 onDelete={refresh}
               />
             ))}

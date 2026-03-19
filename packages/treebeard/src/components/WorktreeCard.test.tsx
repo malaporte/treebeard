@@ -17,15 +17,15 @@ vi.mock('../rpc', () => ({
 }))
 
 vi.mock('../hooks/useJiraIssue', () => ({
-  useJiraIssue: (issueKey: string | null) => useJiraIssueMock(issueKey)
+  useJiraIssue: (issueKey: string | null, _pollIntervalSec: number, _refreshKey?: number) => useJiraIssueMock(issueKey)
 }))
 
 vi.mock('../hooks/usePR', () => ({
-  usePR: (repoPath: string | null, branch: string | null) => usePRMock(repoPath, branch)
+  usePR: (repoPath: string | null, branch: string | null, _pollIntervalSec: number, _refreshKey?: number) => usePRMock(repoPath, branch)
 }))
 
 vi.mock('../hooks/useWorktreeStatus', () => ({
-  useWorktreeStatus: (worktreePath: string) => useWorktreeStatusMock(worktreePath)
+  useWorktreeStatus: (worktreePath: string, _pollIntervalSec: number, _refreshKey?: number) => useWorktreeStatusMock(worktreePath)
 }))
 
 vi.mock('../hooks/useHomedir', () => ({
@@ -97,6 +97,8 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        pollIntervalSec={60}
+        refreshKey={0}
         onDelete={() => {}}
       />
     )
@@ -114,6 +116,8 @@ describe('WorktreeCard', () => {
           isMain: true
         }}
         repoPath={'/repo'}
+        pollIntervalSec={60}
+        refreshKey={0}
         onDelete={() => {}}
       />
     )
@@ -132,6 +136,8 @@ describe('WorktreeCard', () => {
           isMain: false
         }}
         repoPath={'/repo'}
+        pollIntervalSec={60}
+        refreshKey={0}
         onDelete={() => {}}
       />
     )

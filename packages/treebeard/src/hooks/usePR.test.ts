@@ -18,7 +18,7 @@ describe('usePR', () => {
   })
 
   it('returns null without repo or branch', async () => {
-    const { result } = renderHook(() => usePR('/repo', null))
+    const { result } = renderHook(() => usePR('/repo', null, 0))
 
     await waitFor(() => {
       expect(result.current.pr).toBeNull()
@@ -41,7 +41,7 @@ describe('usePR', () => {
     })
 
     const { result, rerender } = renderHook(
-      ({ repo, branch }) => usePR(repo, branch),
+      ({ repo, branch }) => usePR(repo, branch, 0),
       { initialProps: { repo: '/repo', branch: 'feat/a' as string | null } }
     )
 
