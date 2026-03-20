@@ -29,7 +29,8 @@ const config: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: []
+  collapsedRepos: [],
+  defaultIde: 'vscode'
 }
 
 describe('SettingsModal', () => {
@@ -78,6 +79,7 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
+        onSetDefaultIde={async () => {}}
       />
     )
 
@@ -113,6 +115,7 @@ describe('SettingsModal', () => {
         onSetPollInterval={async () => {}}
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
+        onSetDefaultIde={async () => {}}
       />
     )
 

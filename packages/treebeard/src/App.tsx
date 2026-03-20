@@ -63,7 +63,8 @@ export default function App() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos
+    reorderRepos,
+    setDefaultIde
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
@@ -204,6 +205,7 @@ export default function App() {
                 repos={config.repositories}
                 pollIntervalSec={config.pollIntervalSec}
                 search={search}
+                defaultIde={config.defaultIde}
                 onReorder={reorderRepos}
               />
             </Stack>
@@ -221,6 +223,7 @@ export default function App() {
         onSetPollInterval={setPollInterval}
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
+        onSetDefaultIde={setDefaultIde}
       />
     </MantineProvider>
   )

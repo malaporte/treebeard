@@ -48,7 +48,8 @@ const config: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: []
+  collapsedRepos: [],
+  defaultIde: 'vscode'
 }
 
 describe('App', () => {
@@ -66,7 +67,8 @@ describe('App', () => {
       setPollInterval: vi.fn(async () => {}),
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
-      reorderRepos: vi.fn(async () => {})
+      reorderRepos: vi.fn(async () => {}),
+      setDefaultIde: vi.fn(async () => {})
     })
   })
 

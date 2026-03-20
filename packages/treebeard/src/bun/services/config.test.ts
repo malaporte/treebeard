@@ -51,7 +51,8 @@ describe('config service', () => {
       pollIntervalSec: 60,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
-      collapsedRepos: []
+      collapsedRepos: [],
+      defaultIde: 'vscode'
     })
   })
 
@@ -61,7 +62,8 @@ describe('config service', () => {
       pollIntervalSec: 1,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 5000,
-      collapsedRepos: []
+      collapsedRepos: [],
+      defaultIde: 'intellij'
     })
 
     expect(getConfig()).toEqual({
@@ -69,7 +71,8 @@ describe('config service', () => {
       pollIntervalSec: 10,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 1440,
-      collapsedRepos: []
+      collapsedRepos: [],
+      defaultIde: 'intellij'
     })
   })
 

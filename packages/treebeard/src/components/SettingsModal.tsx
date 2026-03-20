@@ -12,12 +12,15 @@ import {
   NumberInput,
   Divider,
   Switch,
-  Alert
+  Alert,
+  Select
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
+import { IdeIcon } from './IdeIcon'
+import { IDE_REGISTRY, IDE_OPTIONS } from '../shared/ide-registry'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { AppConfig, DependencyStatus, RepoConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus, IdeId, RepoConfig } from '../shared/types'
 
 const INSTALL_URLS: Record<string, string> = {
   gh: 'https://cli.github.com/',
@@ -34,9 +37,10 @@ interface SettingsModalProps {
   onSetPollInterval: (sec: number) => Promise<void>
   onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
   onSetUpdateCheckInterval: (minutes: number) => Promise<void>
+  onSetDefaultIde: (ide: IdeId) => Promise<void>
 }
 
-type SettingsSection = 'general' | 'updates' | 'dependencies'
+type SettingsSection = 'general' | 'editor' | 'updates' | 'dependencies'
 
 export function SettingsModal({
   opened,
@@ -47,7 +51,8 @@ export function SettingsModal({
   onRemoveRepo,
   onSetPollInterval,
   onSetAutoUpdateEnabled,
-  onSetUpdateCheckInterval
+  onSetUpdateCheckInterval,
+  onSetDefaultIde
 }: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
@@ -159,6 +164,7 @@ export function SettingsModal({
 
   const sectionItems: Array<{ key: SettingsSection; label: string }> = [
     { key: 'general', label: 'General' },
+    { key: 'editor', label: 'Editor' },
     { key: 'updates', label: 'Updates' },
     { key: 'dependencies', label: 'Dependencies' }
   ]
@@ -299,6 +305,35 @@ export function SettingsModal({
                   size="sm"
                 />
               </div>
+            </Stack>
+          )}
+
+          {activeSection === 'editor' && (
+            <Stack gap="sm">
+              <Text fw={600} size="sm">Default Editor</Text>
+              <Text size="xs" c="dimmed">
+                Choose the editor that opens when you click the IDE button or double-click a worktree card.
+              </Text>
+              <Select
+                data={IDE_OPTIONS.map((id) => ({
+                  value: id,
+                  label: IDE_REGISTRY[id].label
+                }))}
+                value={config.defaultIde}
+                onChange={(val) => {
+                  if (val) {
+                    void onSetDefaultIde(val as IdeId)
+                  }
+                }}
+                style={{ maxWidth: 250 }}
+                size="sm"
+                renderOption={({ option }) => (
+                  <Group gap="sm">
+                    <IdeIcon ide={option.value as IdeId} size={16} />
+                    <Text size="sm">{option.label}</Text>
+                  </Group>
+                )}
+              />
             </Stack>
           )}
 

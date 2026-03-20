@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LaunchButtons } from './LaunchButtons'
 import { renderWithMantine } from '../test/render'
 
-const launchVSCodeRequest = vi.fn()
+const launchIdeRequest = vi.fn()
 const launchGhosttyRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
-      'launch:vscode': launchVSCodeRequest,
+      'launch:ide': launchIdeRequest,
       'launch:ghostty': launchGhosttyRequest
     }
   })
@@ -17,20 +17,29 @@ vi.mock('../rpc', () => ({
 
 describe('LaunchButtons', () => {
   beforeEach(() => {
-    launchVSCodeRequest.mockReset()
+    launchIdeRequest.mockReset()
     launchGhosttyRequest.mockReset()
-    launchVSCodeRequest.mockResolvedValue(undefined)
+    launchIdeRequest.mockResolvedValue(undefined)
     launchGhosttyRequest.mockResolvedValue(undefined)
   })
 
-  it('launches VS Code and Ghostty for the selected worktree', () => {
-    renderWithMantine(<LaunchButtons worktreePath={'/repo/worktrees/feat'} />)
+  it('launches configured IDE and Ghostty for the selected worktree', () => {
+    renderWithMantine(<LaunchButtons worktreePath={'/repo/worktrees/feat'} defaultIde="vscode" />)
 
     const buttons = screen.getAllByRole('button')
     fireEvent.click(buttons[0])
     fireEvent.click(buttons[1])
 
-    expect(launchVSCodeRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/feat' })
+    expect(launchIdeRequest).toHaveBeenCalledWith({ ideId: 'vscode', worktreePath: '/repo/worktrees/feat' })
     expect(launchGhosttyRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/feat' })
+  })
+
+  it('uses the configured IDE when set to intellij', () => {
+    renderWithMantine(<LaunchButtons worktreePath={'/repo/worktrees/feat'} defaultIde="intellij" />)
+
+    const buttons = screen.getAllByRole('button')
+    fireEvent.click(buttons[0])
+
+    expect(launchIdeRequest).toHaveBeenCalledWith({ ideId: 'intellij', worktreePath: '/repo/worktrees/feat' })
   })
 })

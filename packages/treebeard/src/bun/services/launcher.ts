@@ -1,8 +1,12 @@
 import { getShellEnv } from './shell-env'
+import { IDE_REGISTRY } from '../../shared/ide-registry'
+import type { IdeId } from '../../shared/types'
 
-export async function launchVSCode(worktreePath: string): Promise<void> {
+/** Launch the configured IDE for a given worktree path */
+export async function launchIde(ideId: IdeId, worktreePath: string): Promise<void> {
+  const ide = IDE_REGISTRY[ideId]
   const env = await getShellEnv()
-  const proc = Bun.spawn(['code', worktreePath], { stdout: 'pipe', stderr: 'pipe', env })
+  const proc = Bun.spawn([...ide.command, worktreePath], { stdout: 'pipe', stderr: 'pipe', env })
   await proc.exited
 }
 
