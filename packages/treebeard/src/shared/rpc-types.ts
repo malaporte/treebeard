@@ -2,6 +2,7 @@ import type { RPCSchema } from 'electrobun/bun'
 import type {
   AppConfig,
   DependencyStatus,
+  IdeId,
   JiraIssue,
   PRInfo,
   Worktree,
@@ -64,8 +65,8 @@ export type TreebeardRPC = {
         params: { repoPath: string; branch: string }
         response: PRInfo | null
       }
-      'launch:vscode': {
-        params: { worktreePath: string }
+      'launch:ide': {
+        params: { ideId: IdeId; worktreePath: string }
         response: void
       }
       'launch:ghostty': {

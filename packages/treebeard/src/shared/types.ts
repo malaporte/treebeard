@@ -1,5 +1,7 @@
 // Shared types used across bun and view processes
 
+export type IdeId = 'vscode' | 'cursor' | 'intellij' | 'webstorm' | 'zed' | 'sublime'
+
 export interface RepoConfig {
   id: string
   name: string
@@ -12,6 +14,7 @@ export interface AppConfig {
   autoUpdateEnabled: boolean
   updateCheckIntervalMin: number
   collapsedRepos: string[]
+  defaultIde: IdeId
 }
 
 export interface Worktree {

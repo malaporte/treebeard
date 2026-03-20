@@ -11,13 +11,14 @@ import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
-import type { Worktree } from '../shared/types'
+import type { IdeId, Worktree } from '../shared/types'
 
 interface WorktreeCardProps {
   worktree: Worktree
   repoPath: string
   pollIntervalSec: number
   refreshKey: number
+  defaultIde: IdeId
   onDelete: () => void
 }
 
@@ -33,6 +34,7 @@ export function WorktreeCard({
   repoPath,
   pollIntervalSec,
   refreshKey,
+  defaultIde,
   onDelete
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
@@ -44,7 +46,7 @@ export function WorktreeCard({
   const { shortenPath } = useHomedir()
 
   const handleDoubleClick = () => {
-    rpc().request['launch:vscode']({ worktreePath: worktree.path })
+    rpc().request['launch:ide']({ ideId: defaultIde, worktreePath: worktree.path })
   }
 
   return (
@@ -92,7 +94,7 @@ export function WorktreeCard({
         </Group>
 
         <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-          <LaunchButtons worktreePath={worktree.path} />
+          <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
           {!worktree.isMain && (
             <Tooltip label="Delete worktree">
               <ActionIcon

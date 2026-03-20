@@ -1,14 +1,20 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
-import { IconBrandVscode, IconGhost } from '@tabler/icons-react'
+import { IconGhost } from '@tabler/icons-react'
+import { IdeIcon } from './IdeIcon'
+import { IDE_REGISTRY } from '../shared/ide-registry'
 import { rpc } from '../rpc'
+import type { IdeId } from '../shared/types'
 
 interface LaunchButtonsProps {
   worktreePath: string
+  defaultIde: IdeId
 }
 
-export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
-  const handleVSCode = async () => {
-    await rpc().request['launch:vscode']({ worktreePath })
+export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) {
+  const ide = IDE_REGISTRY[defaultIde]
+
+  const handleIde = async () => {
+    await rpc().request['launch:ide']({ ideId: defaultIde, worktreePath })
   }
 
   const handleGhostty = async () => {
@@ -17,9 +23,9 @@ export function LaunchButtons({ worktreePath }: LaunchButtonsProps) {
 
   return (
     <Group gap={4}>
-      <Tooltip label="Open in VS Code">
-        <ActionIcon variant="subtle" color="neon" size="sm" onClick={handleVSCode}>
-          <IconBrandVscode size={16} />
+      <Tooltip label={`Open in ${ide.label}`}>
+        <ActionIcon variant="subtle" color={ide.color} size="sm" onClick={handleIde}>
+          <IdeIcon ide={defaultIde} size={16} />
         </ActionIcon>
       </Tooltip>
       <Tooltip label="Open Ghostty terminal">

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorktreeCard } from './WorktreeCard'
 import { renderWithMantine } from '../test/render'
 
-const launchVSCodeRequest = vi.fn()
+const launchIdeRequest = vi.fn()
 const useJiraIssueMock = vi.fn()
 const usePRMock = vi.fn()
 const useWorktreeStatusMock = vi.fn()
@@ -11,7 +11,7 @@ const useWorktreeStatusMock = vi.fn()
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
-      'launch:vscode': launchVSCodeRequest
+      'launch:ide': launchIdeRequest
     }
   })
 }))
@@ -77,7 +77,7 @@ vi.mock('./DeleteWorktreeModal', () => ({
 describe('WorktreeCard', () => {
   beforeEach(() => {
     vi.stubGlobal('alert', vi.fn())
-    launchVSCodeRequest.mockReset()
+    launchIdeRequest.mockReset()
     useJiraIssueMock.mockReset()
     usePRMock.mockReset()
     useWorktreeStatusMock.mockReset()
@@ -99,6 +99,7 @@ describe('WorktreeCard', () => {
         repoPath={'/repo'}
         pollIntervalSec={60}
         refreshKey={0}
+        defaultIde="vscode"
         onDelete={() => {}}
       />
     )
@@ -106,7 +107,7 @@ describe('WorktreeCard', () => {
     expect(screen.getByTestId('jira-key').textContent).toBe('TB-123')
   })
 
-  it('opens vscode on card double click and hides delete button for main branch', () => {
+  it('opens configured IDE on card double click and hides delete button for main branch', () => {
     const { rerender } = renderWithMantine(
       <WorktreeCard
         worktree={{
@@ -118,12 +119,13 @@ describe('WorktreeCard', () => {
         repoPath={'/repo'}
         pollIntervalSec={60}
         refreshKey={0}
+        defaultIde="intellij"
         onDelete={() => {}}
       />
     )
 
     fireEvent.doubleClick(screen.getAllByText('main')[0])
-    expect(launchVSCodeRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/main' })
+    expect(launchIdeRequest).toHaveBeenCalledWith({ ideId: 'intellij', worktreePath: '/repo/worktrees/main' })
     // Delete button is hidden for main
     expect(screen.queryAllByRole('button')).toHaveLength(0)
 
@@ -138,6 +140,7 @@ describe('WorktreeCard', () => {
         repoPath={'/repo'}
         pollIntervalSec={60}
         refreshKey={0}
+        defaultIde="intellij"
         onDelete={() => {}}
       />
     )

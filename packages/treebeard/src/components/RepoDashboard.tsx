@@ -21,12 +21,13 @@ import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { RepoConfig } from '../shared/types'
+import type { IdeId, RepoConfig } from '../shared/types'
 
 interface RepoSectionProps {
   repo: RepoConfig
   pollIntervalSec: number
   search: string
+  defaultIde: IdeId
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -35,6 +36,7 @@ function RepoSection({
   repo,
   pollIntervalSec,
   search,
+  defaultIde,
   isCollapsed,
   onToggleCollapse
 }: RepoSectionProps) {
@@ -127,6 +129,7 @@ function RepoSection({
                 repoPath={repo.path}
                 pollIntervalSec={pollIntervalSec}
                 refreshKey={refreshKey}
+                defaultIde={defaultIde}
                 onDelete={refresh}
               />
             ))}
@@ -141,6 +144,7 @@ interface RepoDashboardProps {
   repos: RepoConfig[]
   pollIntervalSec: number
   search: string
+  defaultIde: IdeId
   onReorder: (repos: RepoConfig[]) => void
 }
 
@@ -148,6 +152,7 @@ export function RepoDashboard({
   repos,
   pollIntervalSec,
   search,
+  defaultIde,
   onReorder
 }: RepoDashboardProps) {
   const { collapsed, toggle } = useCollapsed()
@@ -193,6 +198,7 @@ export function RepoDashboard({
               repo={repo}
               pollIntervalSec={pollIntervalSec}
               search={search}
+              defaultIde={defaultIde}
               isCollapsed={collapsed.has(repo.id)}
               onToggleCollapse={() => toggle(repo.id)}
             />

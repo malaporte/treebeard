@@ -1,6 +1,7 @@
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
+import { isValidIdeId } from '../../shared/ide-registry'
 import type { AppConfig } from '../../shared/types'
 
 const CONFIG_FILENAME = 'treebeard-config.json'
@@ -16,7 +17,8 @@ const DEFAULTS: AppConfig = {
   pollIntervalSec: 60,
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
-  collapsedRepos: []
+  collapsedRepos: [],
+  defaultIde: 'vscode'
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -37,7 +39,8 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     pollIntervalSec,
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
-    collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : []
+    collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
+    defaultIde: isValidIdeId(config.defaultIde) ? config.defaultIde : DEFAULTS.defaultIde
   }
 }
 

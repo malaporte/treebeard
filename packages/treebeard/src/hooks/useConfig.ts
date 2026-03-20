@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { rpc } from '../rpc'
-import type { AppConfig, RepoConfig } from '../shared/types'
+import type { AppConfig, IdeId, RepoConfig } from '../shared/types'
 
 export function useConfig() {
   const [config, setConfigState] = useState<AppConfig | null>(null)
@@ -85,6 +85,14 @@ export function useConfig() {
     [config, save]
   )
 
+  const setDefaultIde = useCallback(
+    async (ide: IdeId) => {
+      if (!config) return
+      await save({ ...config, defaultIde: ide })
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -93,6 +101,7 @@ export function useConfig() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos
+    reorderRepos,
+    setDefaultIde
   }
 }
