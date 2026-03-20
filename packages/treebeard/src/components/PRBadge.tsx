@@ -65,7 +65,14 @@ export function PRBadge({ pr, loading }: PRBadgeProps) {
 
       {pr.ciStatus && (
         <Tooltip label={`CI: ${pr.ciStatus === 'FAILURE' ? `${pr.ciFailed} failed of ${pr.ciTotal}` : pr.ciStatus.toLowerCase()}`}>
-          <Badge variant="light" color={CI_COLOR[pr.ciStatus]} size="sm" leftSection={CI_ICON[pr.ciStatus]}>
+          <Badge
+            variant="light"
+            color={CI_COLOR[pr.ciStatus]}
+            size="sm"
+            leftSection={CI_ICON[pr.ciStatus]}
+            onClick={() => window.open(`${pr.url}/checks`, '_blank')}
+            style={{ cursor: 'pointer' }}
+          >
             {pr.ciStatus === 'FAILURE' ? `${pr.ciFailed}/${pr.ciTotal}` : 'CI'}
           </Badge>
         </Tooltip>
