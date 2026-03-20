@@ -6,6 +6,7 @@ import {
   Stack,
   Group,
   Text,
+  Anchor,
   ActionIcon,
   Table,
   NumberInput,
@@ -17,6 +18,11 @@ import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/i
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
 import type { AppConfig, DependencyStatus, RepoConfig } from '../shared/types'
+
+const INSTALL_URLS: Record<string, string> = {
+  gh: 'https://cli.github.com/',
+  jira: 'https://github.com/ankitpokhrel/jira-cli'
+}
 
 interface SettingsModalProps {
   opened: boolean
@@ -352,7 +358,12 @@ export function SettingsModal({
                 <Alert color="yellow" variant="light" title="Missing required CLIs">
                   <Stack gap={4}>
                     {missingDependencies.map((check) => (
-                      <Text key={check.name} size="sm">{check.name}</Text>
+                      <Text key={check.name} size="sm">
+                        {check.name}
+                        {INSTALL_URLS[check.name] && (
+                          <> — Install from <Anchor href={INSTALL_URLS[check.name]} target="_blank" size="sm">{INSTALL_URLS[check.name]}</Anchor></>
+                        )}
+                      </Text>
                     ))}
                   </Stack>
                 </Alert>

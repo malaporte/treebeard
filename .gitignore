@@ -8,3 +8,4 @@ AppIcon.iconset/
 .DS_Store
 packages/treebeard/src/mainview/styles.css
 apps/mobile/.expo/
+.idea
