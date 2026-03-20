@@ -36,7 +36,17 @@ bun vitest run -t "test name pattern"         # single test by name
 
 ## Releasing
 
-To publish a new version:
+Use the `release` skill to walk through the full release process:
+
+```
+/release
+```
+
+The skill will read the current version, inspect commits since the last tag to
+recommend a semver bump, update `packages/treebeard/package.json`, commit, tag,
+and push to trigger the CI/CD release pipeline.
+
+### Manual steps (for reference)
 
 1. Bump the version in `packages/treebeard/package.json`
 2. Commit the version bump (e.g., `chore: bump version to X.Y.Z`)
