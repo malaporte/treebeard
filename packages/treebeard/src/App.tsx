@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   MantineProvider,
   AppShell,
+  Anchor,
   Box,
   ActionIcon,
   Loader,
@@ -47,6 +48,11 @@ const theme = createTheme({
     glowGreen: '#00ff88'
   }
 })
+
+const INSTALL_URLS: Record<string, string> = {
+  gh: 'https://cli.github.com/',
+  jira: 'https://github.com/ankitpokhrel/jira-cli'
+}
 
 export default function App() {
   const {
@@ -107,13 +113,10 @@ export default function App() {
     ? dependencyStatus.checks.filter((check) => check.required && check.installed && check.authenticated === false)
     : []
 
-  const missingDependencyMessage = missingDependencies
-    .map((check) => {
-      if (check.name === 'gh') return 'gh CLI missing (PR badges unavailable)'
-      if (check.name === 'jira') return 'jira CLI missing (Jira badges unavailable)'
-      return `${check.name} missing`
-    })
-    .join(' | ')
+  const MISSING_LABELS: Record<string, string> = {
+    gh: 'gh CLI missing (PR badges unavailable)',
+    jira: 'jira CLI missing (Jira badges unavailable)'
+  }
 
   const authDependencyMessage = unauthenticatedDependencies
     .map((check) => {
@@ -180,7 +183,16 @@ export default function App() {
             <Stack gap="md">
               {missingDependencies.length > 0 && (
                 <Alert color="yellow" variant="light" title="Missing CLI dependencies">
-                  {missingDependencyMessage}
+                  <Stack gap={4}>
+                    {missingDependencies.map((check) => (
+                      <Text key={check.name} size="sm">
+                        {MISSING_LABELS[check.name] ?? `${check.name} missing`}
+                        {INSTALL_URLS[check.name] && (
+                          <> — Install from <Anchor href={INSTALL_URLS[check.name]} target="_blank" size="sm">{INSTALL_URLS[check.name]}</Anchor></>
+                        )}
+                      </Text>
+                    ))}
+                  </Stack>
                 </Alert>
               )}
               {unauthenticatedDependencies.length > 0 && (

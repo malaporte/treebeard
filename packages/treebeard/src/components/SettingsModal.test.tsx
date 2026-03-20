@@ -85,7 +85,7 @@ describe('SettingsModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Missing required CLIs')).toBeTruthy()
-      expect(screen.getByText('gh')).toBeTruthy()
+      expect(screen.getByRole('link', { name: /cli\.github\.com/ })).toBeTruthy()
       expect(onDependencyStatusChange).toHaveBeenCalledWith(status)
     })
   })
