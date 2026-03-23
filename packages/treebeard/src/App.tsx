@@ -64,7 +64,8 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDefaultIde
+    setDefaultIde,
+    setRepoSetupCommands
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
@@ -164,6 +165,9 @@ export default function App() {
                   <IconX size={12} />
                 </ActionIcon>
               ) : null}
+               autoCapitalize="off"
+               autoCorrect="off"
+               spellCheck={false}
                value={search}
                onChange={(e) => setSearch(e.currentTarget.value)}
                style={{ width: 220 }}
@@ -224,6 +228,7 @@ export default function App() {
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
         onSetDefaultIde={setDefaultIde}
+        onSetRepoSetupCommands={setRepoSetupCommands}
       />
     </MantineProvider>
   )

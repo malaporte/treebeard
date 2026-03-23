@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { rpc } from '../rpc'
-import type { Worktree } from '../shared/types'
+import type { SetupCommandResult, Worktree } from '../shared/types'
+
+export interface SetupFailure {
+  worktreeName: string
+  results: SetupCommandResult[]
+}
 
 export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
   const [worktrees, setWorktrees] = useState<Worktree[]>([])
@@ -8,6 +13,8 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
   const [error, setError] = useState<string | null>(null)
   const [deletingPaths, setDeletingPaths] = useState<Set<string>>(new Set())
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [settingUpPaths, setSettingUpPaths] = useState<Set<string>>(new Set())
+  const [setupError, setSetupError] = useState<SetupFailure | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetch = useCallback(async () => {
@@ -60,6 +67,35 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
     setDeleteError(null)
   }, [])
 
+  const startSetup = useCallback(async (worktreePath: string, commands: string[]) => {
+    setSettingUpPaths((prev) => new Set(prev).add(worktreePath))
+    setSetupError(null)
+    const worktreeName = worktreePath.split('/').pop() ?? worktreePath
+
+    try {
+      const result = await rpc().request['git:runSetup']({ worktreePath, commands })
+      if (!result.allSucceeded) {
+        setSetupError({ worktreeName, results: result.results })
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      setSetupError({
+        worktreeName,
+        results: commands.map((command) => ({ command, success: false, output: message }))
+      })
+    } finally {
+      setSettingUpPaths((prev) => {
+        const next = new Set(prev)
+        next.delete(worktreePath)
+        return next
+      })
+    }
+  }, [])
+
+  const clearSetupError = useCallback(() => {
+    setSetupError(null)
+  }, [])
+
   useEffect(() => {
     fetch()
 
@@ -73,5 +109,18 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
     }
   }, [fetch, pollIntervalSec])
 
-  return { worktrees, loading, error, deleteError, deletingPaths, startDelete, clearDeleteError, refresh: fetch }
+  return {
+    worktrees,
+    loading,
+    error,
+    deleteError,
+    deletingPaths,
+    startDelete,
+    clearDeleteError,
+    settingUpPaths,
+    setupError,
+    startSetup,
+    clearSetupError,
+    refresh: fetch
+  }
 }

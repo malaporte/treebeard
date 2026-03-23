@@ -83,6 +83,10 @@ describe('RepoDashboard', () => {
       deletingPaths: new Set<string>(),
       startDelete: vi.fn(),
       clearDeleteError: vi.fn(),
+      settingUpPaths: new Set<string>(),
+      setupError: null,
+      startSetup: vi.fn(),
+      clearSetupError: vi.fn(),
       refresh: vi.fn()
     })
   })
@@ -115,6 +119,10 @@ describe('RepoDashboard', () => {
       deletingPaths: new Set<string>(),
       startDelete: vi.fn(),
       clearDeleteError: vi.fn(),
+      settingUpPaths: new Set<string>(),
+      setupError: null,
+      startSetup: vi.fn(),
+      clearSetupError: vi.fn(),
       refresh: vi.fn()
     })
 

@@ -80,6 +80,7 @@ describe('SettingsModal', () => {
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
         onSetDefaultIde={async () => {}}
+        onSetRepoSetupCommands={async () => {}}
       />
     )
 
@@ -116,6 +117,7 @@ describe('SettingsModal', () => {
         onSetAutoUpdateEnabled={async () => {}}
         onSetUpdateCheckInterval={async () => {}}
         onSetDefaultIde={async () => {}}
+        onSetRepoSetupCommands={async () => {}}
       />
     )
 

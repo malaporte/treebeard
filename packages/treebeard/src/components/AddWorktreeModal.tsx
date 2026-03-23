@@ -20,10 +20,10 @@ interface AddWorktreeModalProps {
   repo: RepoConfig
   opened: boolean
   onClose: () => void
-  onSuccess: () => void
+  onCreated: (worktreePath: string) => void
 }
 
-export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktreeModalProps) {
+export function AddWorktreeModal({ repo, opened, onClose, onCreated }: AddWorktreeModalProps) {
   const [branch, setBranch] = useState('')
   const [mode, setMode] = useState<'new' | 'existing'>('new')
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
@@ -83,7 +83,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     setSubmitting(false)
 
     if (result.success) {
-      onSuccess()
+      onCreated(result.worktreePath!)
       onClose()
     } else if (mode === 'new' && !branchExists && result.error?.includes("already exists")) {
       // Branch exists locally — prompt the user to reuse it instead
@@ -130,6 +130,8 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
               if (e.key === 'Enter') handleSubmit()
             }}
             autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
           />
         ) : (

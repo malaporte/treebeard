@@ -27,8 +27,8 @@ describe('AddWorktreeModal', () => {
   })
 
   it('submits new branch worktree request', async () => {
-    addWorktreeRequest.mockResolvedValue({ success: true })
-    const onSuccess = vi.fn()
+    addWorktreeRequest.mockResolvedValue({ success: true, worktreePath: '/Users/test/Developer/worktrees/treebeard/feat/testing' })
+    const onCreated = vi.fn()
     const onClose = vi.fn()
 
     renderWithMantine(
@@ -36,7 +36,7 @@ describe('AddWorktreeModal', () => {
         repo={{ id: 'repo-1', name: 'treebeard', path: '/repo' }}
         opened={true}
         onClose={onClose}
-        onSuccess={onSuccess}
+        onCreated={onCreated}
       />
     )
 
@@ -54,21 +54,21 @@ describe('AddWorktreeModal', () => {
       })
     })
 
-    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(onCreated).toHaveBeenCalledWith('/Users/test/Developer/worktrees/treebeard/feat/testing')
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('switches to existing-branch mode after already-exists error', async () => {
     addWorktreeRequest
       .mockResolvedValueOnce({ success: false, error: 'branch already exists' })
-      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: true, worktreePath: '/Users/test/Developer/worktrees/treebeard/feat/existing' })
 
     renderWithMantine(
       <AddWorktreeModal
         repo={{ id: 'repo-1', name: 'treebeard', path: '/repo' }}
         opened={true}
         onClose={() => {}}
-        onSuccess={() => {}}
+        onCreated={() => {}}
       />
     )
 

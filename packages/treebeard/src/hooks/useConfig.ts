@@ -93,6 +93,20 @@ export function useConfig() {
     [config, save]
   )
 
+  const setRepoSetupCommands = useCallback(
+    async (repoId: string, commands: string[]) => {
+      if (!config) return
+      const updated = {
+        ...config,
+        repositories: config.repositories.map((r) =>
+          r.id === repoId ? { ...r, setupCommands: commands.length ? commands : undefined } : r
+        )
+      }
+      await save(updated)
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -102,6 +116,7 @@ export function useConfig() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDefaultIde
+    setDefaultIde,
+    setRepoSetupCommands
   }
 }

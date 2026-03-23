@@ -11,7 +11,8 @@ import {
   buildWorktreePath,
   getRemoteBranches,
   getWorktreeStatus,
-  removeWorktree
+  removeWorktree,
+  runSetupCommands
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
@@ -143,7 +144,7 @@ async function getDependencyStatus(forceRefresh = false): Promise<DependencyStat
 // --- Main RPC Handlers ---
 
 const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
-  maxRequestTime: 30000,
+  maxRequestTime: 300000,
   handlers: {
     requests: {
       'config:get': () => {
@@ -171,7 +172,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'git:addWorktree': async ({ repoPath, repoName, branch, isNewBranch }) => {
         const baseBranch = isNewBranch ? await getDefaultBranch(repoPath) : undefined
         const worktreePath = buildWorktreePath(repoName, branch)
-        return addWorktree(repoPath, branch, worktreePath, isNewBranch, baseBranch)
+        const result = await addWorktree(repoPath, branch, worktreePath, isNewBranch, baseBranch)
+        if (!result.success) return result
+        return { ...result, worktreePath }
+      },
+      'git:runSetup': async ({ worktreePath, commands }) => {
+        return runSetupCommands(worktreePath, commands)
       },
       'git:worktreeStatus': async ({ worktreePath }) => {
         return getWorktreeStatus(worktreePath)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Stack, Group, Title, Text, ActionIcon, Loader, Alert, Collapse } from '@mantine/core'
-import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical, IconAlertCircle } from '@tabler/icons-react'
+import { Stack, Group, Title, Text, ActionIcon, Loader, Alert, Collapse, Code } from '@mantine/core'
+import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical, IconAlertCircle, IconCheck, IconX } from '@tabler/icons-react'
 import {
   DndContext,
   closestCenter,
@@ -40,11 +40,19 @@ function RepoSection({
   isCollapsed,
   onToggleCollapse
 }: RepoSectionProps) {
-  const { worktrees, loading, error, deleteError, deletingPaths, startDelete, clearDeleteError, refresh } = useWorktrees(repo.path, pollIntervalSec)
+  const { worktrees, loading, error, deleteError, deletingPaths, startDelete, clearDeleteError, settingUpPaths, setupError, startSetup, clearSetupError, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
   const { shortenPath } = useHomedir()
+
+  const handleWorktreeCreated = async (worktreePath: string) => {
+    await refresh()
+    const commands = repo.setupCommands ?? []
+    if (commands.length > 0) {
+      void startSetup(worktreePath, commands)
+    }
+  }
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -103,7 +111,7 @@ function RepoSection({
         repo={repo}
         opened={addOpened}
         onClose={() => setAddOpened(false)}
-        onSuccess={refresh}
+        onCreated={handleWorktreeCreated}
       />
 
       <Collapse in={!isCollapsed}>
@@ -126,6 +134,36 @@ function RepoSection({
           </Alert>
         )}
 
+        {setupError && (
+          <Alert
+            color="orange"
+            variant="light"
+            icon={<IconAlertCircle size={16} />}
+            title={`Setup failed for ${setupError.worktreeName}`}
+            mb="sm"
+            withCloseButton
+            onClose={clearSetupError}
+          >
+            <Stack gap="xs" mt={4}>
+              {setupError.results.map((result, idx) => (
+                <div key={idx}>
+                  <Group gap="xs" wrap="nowrap">
+                    {result.success
+                      ? <IconCheck size={14} color="var(--mantine-color-green-6)" />
+                      : <IconX size={14} color="var(--mantine-color-pink-6)" />}
+                    <Code style={{ fontSize: 12 }}>{result.command}</Code>
+                  </Group>
+                  {!result.success && result.output && (
+                    <Code block style={{ fontSize: 11, maxHeight: 120, overflow: 'auto', marginTop: 4 }}>
+                      {result.output}
+                    </Code>
+                  )}
+                </div>
+              ))}
+            </Stack>
+          </Alert>
+        )}
+
         {loading && worktrees.length === 0 ? (
           <Group justify="center" p="md">
             <Loader size="sm" />
@@ -144,6 +182,7 @@ function RepoSection({
                 refreshKey={refreshKey}
                 defaultIde={defaultIde}
                 deleting={deletingPaths.has(wt.path)}
+                settingUp={settingUpPaths.has(wt.path)}
                 onConfirmDelete={(force) => startDelete(wt.path, force)}
               />
             ))}
