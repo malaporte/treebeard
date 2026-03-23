@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/malaporte/treebeard/compare/v2.4.1...v2.4.2) (2026-03-23)
+
+
+### Bug Fixes
+
+* add Edit menu to prevent macOS beep on Cmd+C/V shortcuts ([#7](https://github.com/malaporte/treebeard/issues/7)) ([53a3d97](https://github.com/malaporte/treebeard/commit/53a3d97fab680f217bded1d7880d915f819d4e7b))
+
 ## [2.4.1](https://github.com/malaporte/treebeard/compare/v2.4.0...v2.4.1) (2026-03-23)
 
 
