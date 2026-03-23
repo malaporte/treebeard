@@ -165,6 +165,9 @@ export default function App() {
                   <IconX size={12} />
                 </ActionIcon>
               ) : null}
+               autoCapitalize="off"
+               autoCorrect="off"
+               spellCheck={false}
                value={search}
                onChange={(e) => setSearch(e.currentTarget.value)}
                style={{ width: 220 }}

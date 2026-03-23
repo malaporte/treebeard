@@ -48,12 +48,11 @@ export type TreebeardRPC = {
           branch: string
           isNewBranch: boolean
         }
-        response: {
-          success: boolean
-          error?: string
-          setupResults?: SetupCommandResult[]
-          setupFailed?: boolean
-        }
+        response: { success: boolean; worktreePath?: string; error?: string }
+      }
+      'git:runSetup': {
+        params: { worktreePath: string; commands: string[] }
+        response: { results: SetupCommandResult[]; allSucceeded: boolean }
       }
       'git:worktreeStatus': {
         params: { worktreePath: string }

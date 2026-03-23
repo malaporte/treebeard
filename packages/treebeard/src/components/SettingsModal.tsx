@@ -276,6 +276,9 @@ export function SettingsModal({
                                           value={cmd}
                                           placeholder="e.g. pnpm install"
                                           style={{ flex: 1, fontFamily: 'monospace' }}
+                                          autoCapitalize="off"
+                                          autoCorrect="off"
+                                          spellCheck={false}
                                           onChange={(e) => {
                                             const updated = [...commands]
                                             updated[idx] = e.currentTarget.value
@@ -334,6 +337,9 @@ export function SettingsModal({
                     onChange={(e) => setName(e.currentTarget.value)}
                     style={{ flex: 1 }}
                     size="sm"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                   <TextInput
                     label="Path"
@@ -342,6 +348,9 @@ export function SettingsModal({
                     onChange={(e) => setPath(e.currentTarget.value)}
                     style={{ flex: 2 }}
                     size="sm"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     rightSection={
                       <ActionIcon variant="subtle" color="neon" size="sm" onClick={handleBrowse}>
                         <IconFolderOpen size={14} />

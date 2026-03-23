@@ -12,18 +12,18 @@ import {
   Group,
   Loader
 } from '@mantine/core'
-import { IconAlertCircle, IconInfoCircle, IconCheck, IconX } from '@tabler/icons-react'
+import { IconAlertCircle, IconInfoCircle } from '@tabler/icons-react'
 import { rpc } from '../rpc'
-import type { RepoConfig, SetupCommandResult } from '../shared/types'
+import type { RepoConfig } from '../shared/types'
 
 interface AddWorktreeModalProps {
   repo: RepoConfig
   opened: boolean
   onClose: () => void
-  onSuccess: () => void
+  onCreated: (worktreePath: string) => void
 }
 
-export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktreeModalProps) {
+export function AddWorktreeModal({ repo, opened, onClose, onCreated }: AddWorktreeModalProps) {
   const [branch, setBranch] = useState('')
   const [mode, setMode] = useState<'new' | 'existing'>('new')
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
@@ -32,8 +32,6 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [branchExists, setBranchExists] = useState(false)
-  const [setupResults, setSetupResults] = useState<SetupCommandResult[] | null>(null)
-  const [setupFailed, setSetupFailed] = useState(false)
 
   useEffect(() => {
     if (opened) {
@@ -42,8 +40,6 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
       setSubmitting(false)
       setBranchExists(false)
       setRemoteBranches([])
-      setSetupResults(null)
-      setSetupFailed(false)
       rpc().request['git:defaultBranch']({ repoPath: repo.path }).then(setDefaultBranch).catch(() => {
         setDefaultBranch('main')
       })
@@ -67,14 +63,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     ? `~/Developer/worktrees/${slug}/${branch}`
     : null
 
-  const hasSetupCommands = (repo.setupCommands?.length ?? 0) > 0
-  const canSubmit = branch.trim().length > 0 && !submitting && !setupResults
-
-  const handleClose = () => {
-    setSetupResults(null)
-    setSetupFailed(false)
-    onClose()
-  }
+  const canSubmit = branch.trim().length > 0 && !submitting
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -94,19 +83,8 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     setSubmitting(false)
 
     if (result.success) {
-      onSuccess()
-
-      // If setup commands ran, show results before closing
-      if (result.setupResults?.length) {
-        setSetupResults(result.setupResults)
-        setSetupFailed(result.setupFailed ?? false)
-        if (!result.setupFailed) {
-          // Auto-close after a brief delay on full success
-          setTimeout(handleClose, 1500)
-        }
-      } else {
-        handleClose()
-      }
+      onCreated(result.worktreePath!)
+      onClose()
     } else if (mode === 'new' && !branchExists && result.error?.includes("already exists")) {
       // Branch exists locally — prompt the user to reuse it instead
       setBranchExists(true)
@@ -115,58 +93,10 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
     }
   }
 
-  // Setup results view — shown after worktree creation when setup commands ran
-  if (setupResults) {
-    return (
-      <Modal
-        opened={opened}
-        onClose={handleClose}
-        title={`Add worktree to ${repo.name}`}
-        size="md"
-      >
-        <Stack gap="md">
-          {setupFailed ? (
-            <Alert color="orange" variant="light" icon={<IconAlertCircle size={16} />}>
-              Worktree created, but setup commands failed.
-            </Alert>
-          ) : (
-            <Alert color="green" variant="light" icon={<IconCheck size={16} />}>
-              Worktree created and setup completed.
-            </Alert>
-          )}
-
-          <Stack gap="xs">
-            {setupResults.map((result, idx) => (
-              <div key={idx}>
-                <Group gap="xs" wrap="nowrap">
-                  {result.success
-                    ? <IconCheck size={14} color="var(--mantine-color-green-6)" />
-                    : <IconX size={14} color="var(--mantine-color-pink-6)" />}
-                  <Code style={{ flex: 1 }}>{result.command}</Code>
-                </Group>
-                {result.output && (
-                  <Code block style={{ fontSize: 11, maxHeight: 120, overflow: 'auto', marginTop: 4 }}>
-                    {result.output}
-                  </Code>
-                )}
-              </div>
-            ))}
-          </Stack>
-
-          <Group justify="flex-end">
-            <Button onClick={handleClose}>
-              {setupFailed ? 'Dismiss' : 'Done'}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-    )
-  }
-
   return (
     <Modal
       opened={opened}
-      onClose={handleClose}
+      onClose={onClose}
       title={`Add worktree to ${repo.name}`}
       size="md"
     >
@@ -200,6 +130,8 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
               if (e.key === 'Enter') handleSubmit()
             }}
             autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
           />
         ) : (
@@ -245,15 +177,11 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
         )}
 
         <Group justify="flex-end">
-          <Button variant="subtle" color="gray" onClick={handleClose}>
+          <Button variant="subtle" color="gray" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
-            {submitting && hasSetupCommands
-              ? 'Running setup...'
-              : branchExists
-                ? 'Use existing branch'
-                : 'Create worktree'}
+            {branchExists ? 'Use existing branch' : 'Create worktree'}
           </Button>
         </Group>
       </Stack>

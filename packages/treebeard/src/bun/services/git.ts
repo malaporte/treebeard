@@ -210,7 +210,7 @@ export async function addWorktree(
   }
 }
 
-const SETUP_COMMAND_TIMEOUT_MS = 60_000
+const SETUP_COMMAND_TIMEOUT_MS = 300_000
 
 /** Run setup commands sequentially in a worktree directory. Stops on first failure. */
 export async function runSetupCommands(

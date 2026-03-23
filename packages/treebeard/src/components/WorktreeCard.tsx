@@ -20,6 +20,7 @@ interface WorktreeCardProps {
   refreshKey: number
   defaultIde: IdeId
   deleting?: boolean
+  settingUp?: boolean
   onConfirmDelete: (force: boolean) => void
 }
 
@@ -37,6 +38,7 @@ export function WorktreeCard({
   refreshKey,
   defaultIde,
   deleting,
+  settingUp,
   onConfirmDelete
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
@@ -104,6 +106,11 @@ export function WorktreeCard({
         ) : (
           <>
             <Group gap={8} wrap="nowrap" style={{ flexShrink: 0 }}>
+              {settingUp && (
+                <Badge variant="light" color="neon" size="xs" leftSection={<Loader size={8} color="neon" />}>
+                  Setting up…
+                </Badge>
+              )}
               <JiraBadge jiraKey={jiraKey} issue={jiraIssue} loading={jiraLoading} />
               <PRBadge pr={pr} loading={prLoading} />
               <DirtyBadge status={wtStatus} loading={wtStatusLoading} />
