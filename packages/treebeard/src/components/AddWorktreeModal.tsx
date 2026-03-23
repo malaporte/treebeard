@@ -129,6 +129,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onSuccess }: AddWorktr
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSubmit()
             }}
+            autoCapitalize="off"
             autoFocus
           />
         ) : (
