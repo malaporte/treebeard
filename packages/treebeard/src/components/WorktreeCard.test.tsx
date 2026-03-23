@@ -100,7 +100,7 @@ describe('WorktreeCard', () => {
         pollIntervalSec={60}
         refreshKey={0}
         defaultIde="vscode"
-        onDelete={() => {}}
+        onConfirmDelete={() => {}}
       />
     )
 
@@ -120,7 +120,7 @@ describe('WorktreeCard', () => {
         pollIntervalSec={60}
         refreshKey={0}
         defaultIde="intellij"
-        onDelete={() => {}}
+        onConfirmDelete={() => {}}
       />
     )
 
@@ -141,7 +141,7 @@ describe('WorktreeCard', () => {
         pollIntervalSec={60}
         refreshKey={0}
         defaultIde="intellij"
-        onDelete={() => {}}
+        onConfirmDelete={() => {}}
       />
     )
 

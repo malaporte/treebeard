@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Stack, Group, Title, Text, ActionIcon, Loader, Alert, Collapse } from '@mantine/core'
-import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical } from '@tabler/icons-react'
+import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical, IconAlertCircle } from '@tabler/icons-react'
 import {
   DndContext,
   closestCenter,
@@ -40,7 +40,7 @@ function RepoSection({
   isCollapsed,
   onToggleCollapse
 }: RepoSectionProps) {
-  const { worktrees, loading, error, refresh } = useWorktrees(repo.path, pollIntervalSec)
+  const { worktrees, loading, error, deleteError, deletingPaths, startDelete, clearDeleteError, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
@@ -113,6 +113,19 @@ function RepoSection({
           </Alert>
         )}
 
+        {deleteError && (
+          <Alert
+            color="pink"
+            variant="light"
+            icon={<IconAlertCircle size={16} />}
+            mb="sm"
+            withCloseButton
+            onClose={clearDeleteError}
+          >
+            {deleteError}
+          </Alert>
+        )}
+
         {loading && worktrees.length === 0 ? (
           <Group justify="center" p="md">
             <Loader size="sm" />
@@ -130,7 +143,8 @@ function RepoSection({
                 pollIntervalSec={pollIntervalSec}
                 refreshKey={refreshKey}
                 defaultIde={defaultIde}
-                onDelete={refresh}
+                deleting={deletingPaths.has(wt.path)}
+                onConfirmDelete={(force) => startDelete(wt.path, force)}
               />
             ))}
           </Stack>

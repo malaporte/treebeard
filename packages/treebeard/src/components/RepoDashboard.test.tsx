@@ -79,6 +79,10 @@ describe('RepoDashboard', () => {
       worktrees: [],
       loading: false,
       error: null,
+      deleteError: null,
+      deletingPaths: new Set<string>(),
+      startDelete: vi.fn(),
+      clearDeleteError: vi.fn(),
       refresh: vi.fn()
     })
   })
@@ -107,6 +111,10 @@ describe('RepoDashboard', () => {
       ],
       loading: false,
       error: null,
+      deleteError: null,
+      deletingPaths: new Set<string>(),
+      startDelete: vi.fn(),
+      clearDeleteError: vi.fn(),
       refresh: vi.fn()
     })
 

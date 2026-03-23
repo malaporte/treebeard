@@ -1,30 +1,25 @@
 import { useState, useEffect } from 'react'
 import { Modal, Button, Stack, Text, Alert, Code, Group, Loader } from '@mantine/core'
-import { IconAlertCircle, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
+import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
 import type { Worktree, WorktreeStatus } from '../shared/types'
 
 interface DeleteWorktreeModalProps {
   worktree: Worktree
-  repoPath: string
   opened: boolean
   onClose: () => void
-  onSuccess: () => void
+  onConfirm: (force: boolean) => void
 }
 
-export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuccess }: DeleteWorktreeModalProps) {
+export function DeleteWorktreeModal({ worktree, opened, onClose, onConfirm }: DeleteWorktreeModalProps) {
   const [status, setStatus] = useState<WorktreeStatus | null>(null)
   const [loadingStatus, setLoadingStatus] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const { shortenPath } = useHomedir()
 
   useEffect(() => {
     if (opened) {
       setStatus(null)
-      setError(null)
-      setDeleting(false)
       setLoadingStatus(true)
       rpc().request['git:worktreeStatus']({ worktreePath: worktree.path })
         .then(setStatus)
@@ -35,23 +30,9 @@ export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuc
 
   const hasWarnings = status?.hasUncommittedChanges || (status?.unpushedCommits ?? 0) > 0
 
-  const handleDelete = async () => {
-    setDeleting(true)
-    setError(null)
-
-    const result = await rpc().request['git:removeWorktree']({
-      repoPath,
-      worktreePath: worktree.path,
-      force: hasWarnings || undefined
-    })
-
-    if (result.success) {
-      onSuccess()
-      onClose()
-    } else {
-      setError(result.error || 'Failed to remove worktree')
-      setDeleting(false)
-    }
+  const handleDelete = () => {
+    onConfirm(!!hasWarnings)
+    onClose()
   }
 
   return (
@@ -104,12 +85,6 @@ export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuc
           </Alert>
         )}
 
-        {error && (
-          <Alert color="pink" variant="light" icon={<IconAlertCircle size={16} />}>
-            {error}
-          </Alert>
-        )}
-
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={onClose}>
             Cancel
@@ -117,7 +92,6 @@ export function DeleteWorktreeModal({ worktree, repoPath, opened, onClose, onSuc
           <Button
             color="pink"
             onClick={handleDelete}
-            loading={deleting}
             disabled={loadingStatus}
           >
             Delete worktree
