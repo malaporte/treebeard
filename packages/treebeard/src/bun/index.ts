@@ -11,7 +11,8 @@ import {
   buildWorktreePath,
   getRemoteBranches,
   getWorktreeStatus,
-  removeWorktree
+  removeWorktree,
+  runSetupCommands
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
@@ -171,7 +172,23 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'git:addWorktree': async ({ repoPath, repoName, branch, isNewBranch }) => {
         const baseBranch = isNewBranch ? await getDefaultBranch(repoPath) : undefined
         const worktreePath = buildWorktreePath(repoName, branch)
-        return addWorktree(repoPath, branch, worktreePath, isNewBranch, baseBranch)
+        const result = await addWorktree(repoPath, branch, worktreePath, isNewBranch, baseBranch)
+
+        if (!result.success) return result
+
+        // Run setup commands if configured for this repo
+        const config = getConfig()
+        const repo = config.repositories.find((r) => r.path === repoPath)
+        if (repo?.setupCommands?.length) {
+          const setup = await runSetupCommands(worktreePath, repo.setupCommands)
+          return {
+            ...result,
+            setupResults: setup.results,
+            setupFailed: !setup.allSucceeded
+          }
+        }
+
+        return result
       },
       'git:worktreeStatus': async ({ worktreePath }) => {
         return getWorktreeStatus(worktreePath)

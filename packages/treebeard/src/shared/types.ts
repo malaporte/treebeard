@@ -6,6 +6,7 @@ export interface RepoConfig {
   id: string
   name: string
   path: string
+  setupCommands?: string[]
 }
 
 export interface AppConfig {
@@ -50,6 +51,12 @@ export interface WorktreeStatus {
   unpulledCommits: number
   linesAdded: number
   linesDeleted: number
+}
+
+export interface SetupCommandResult {
+  command: string
+  success: boolean
+  output: string
 }
 
 export interface DependencyCheck {

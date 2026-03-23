@@ -5,6 +5,7 @@ import type {
   IdeId,
   JiraIssue,
   PRInfo,
+  SetupCommandResult,
   Worktree,
   WorktreeStatus
 } from './types'
@@ -47,7 +48,12 @@ export type TreebeardRPC = {
           branch: string
           isNewBranch: boolean
         }
-        response: { success: boolean; error?: string }
+        response: {
+          success: boolean
+          error?: string
+          setupResults?: SetupCommandResult[]
+          setupFailed?: boolean
+        }
       }
       'git:worktreeStatus': {
         params: { worktreePath: string }

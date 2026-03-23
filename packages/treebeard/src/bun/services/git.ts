@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { getShellEnv } from './shell-env'
-import type { Worktree, WorktreeStatus } from '../../shared/types'
+import type { Worktree, WorktreeStatus, SetupCommandResult } from '../../shared/types'
 
 const MAIN_BRANCH_NAMES = new Set(['main', 'master', 'develop', 'trunk'])
 
@@ -208,4 +208,48 @@ export async function addWorktree(
     const message = err instanceof Error ? err.message : String(err)
     return { success: false, error: message }
   }
+}
+
+const SETUP_COMMAND_TIMEOUT_MS = 60_000
+
+/** Run setup commands sequentially in a worktree directory. Stops on first failure. */
+export async function runSetupCommands(
+  worktreePath: string,
+  commands: string[]
+): Promise<{ results: SetupCommandResult[]; allSucceeded: boolean }> {
+  const shell = Bun.env.SHELL || '/bin/zsh'
+  const env = await getShellEnv()
+  const results: SetupCommandResult[] = []
+
+  for (const command of commands) {
+    try {
+      const proc = Bun.spawn([shell, '-ilc', command], {
+        cwd: worktreePath,
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env
+      })
+
+      const timer = setTimeout(() => proc.kill(), SETUP_COMMAND_TIMEOUT_MS)
+      const stdout = await new Response(proc.stdout).text()
+      const stderr = await new Response(proc.stderr).text()
+      const exitCode = await proc.exited
+      clearTimeout(timer)
+
+      const output = (stdout + stderr).trim()
+
+      if (exitCode !== 0) {
+        results.push({ command, success: false, output })
+        return { results, allSucceeded: false }
+      }
+
+      results.push({ command, success: true, output })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      results.push({ command, success: false, output: message })
+      return { results, allSucceeded: false }
+    }
+  }
+
+  return { results, allSucceeded: true }
 }

@@ -7,7 +7,8 @@ import {
   getRemoteBranches,
   getWorktreeStatus,
   getWorktrees,
-  removeWorktree
+  removeWorktree,
+  runSetupCommands
 } from './git'
 import { setBunSpawnQueue } from '../../test/bun'
 
@@ -144,5 +145,49 @@ describe('git service', () => {
       success: false,
       error: 'cannot remove worktree'
     })
+  })
+
+  it('runs setup commands sequentially and returns results', async () => {
+    setBunSpawnQueue([
+      { stdout: 'installed 42 packages\n' },
+      { stdout: 'copied\n' }
+    ])
+
+    const result = await runSetupCommands('/tmp/wt', ['pnpm install', 'cp .env.example .env'])
+    expect(result.allSucceeded).toBe(true)
+    expect(result.results).toHaveLength(2)
+    expect(result.results[0]).toEqual({
+      command: 'pnpm install',
+      success: true,
+      output: 'installed 42 packages'
+    })
+    expect(result.results[1]).toEqual({
+      command: 'cp .env.example .env',
+      success: true,
+      output: 'copied'
+    })
+  })
+
+  it('stops on first failing setup command', async () => {
+    setBunSpawnQueue([
+      { stdout: 'ok\n' },
+      { stderr: 'file not found\n', exitCode: 1 }
+    ])
+
+    const result = await runSetupCommands('/tmp/wt', ['echo ok', 'cp missing dest', 'echo never'])
+    expect(result.allSucceeded).toBe(false)
+    expect(result.results).toHaveLength(2)
+    expect(result.results[0].success).toBe(true)
+    expect(result.results[1]).toEqual({
+      command: 'cp missing dest',
+      success: false,
+      output: 'file not found'
+    })
+  })
+
+  it('returns empty results for empty command list', async () => {
+    const result = await runSetupCommands('/tmp/wt', [])
+    expect(result.allSucceeded).toBe(true)
+    expect(result.results).toHaveLength(0)
   })
 })

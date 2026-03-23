@@ -64,7 +64,8 @@ export default function App() {
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
     reorderRepos,
-    setDefaultIde
+    setDefaultIde,
+    setRepoSetupCommands
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
@@ -224,6 +225,7 @@ export default function App() {
         onSetAutoUpdateEnabled={setAutoUpdateEnabled}
         onSetUpdateCheckInterval={setUpdateCheckInterval}
         onSetDefaultIde={setDefaultIde}
+        onSetRepoSetupCommands={setRepoSetupCommands}
       />
     </MantineProvider>
   )

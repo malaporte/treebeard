@@ -15,7 +15,7 @@ import {
   Alert,
   Select
 } from '@mantine/core'
-import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX } from '@tabler/icons-react'
+import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX, IconChevronRight, IconChevronDown } from '@tabler/icons-react'
 import { IdeIcon } from './IdeIcon'
 import { IDE_REGISTRY, IDE_OPTIONS } from '../shared/ide-registry'
 import { useHomedir } from '../hooks/useHomedir'
@@ -38,6 +38,7 @@ interface SettingsModalProps {
   onSetAutoUpdateEnabled: (enabled: boolean) => Promise<void>
   onSetUpdateCheckInterval: (minutes: number) => Promise<void>
   onSetDefaultIde: (ide: IdeId) => Promise<void>
+  onSetRepoSetupCommands: (repoId: string, commands: string[]) => Promise<void>
 }
 
 type SettingsSection = 'general' | 'editor' | 'updates' | 'dependencies'
@@ -52,7 +53,8 @@ export function SettingsModal({
   onSetPollInterval,
   onSetAutoUpdateEnabled,
   onSetUpdateCheckInterval,
-  onSetDefaultIde
+  onSetDefaultIde,
+  onSetRepoSetupCommands
 }: SettingsModalProps) {
   const [name, setName] = useState('')
   const [path, setPath] = useState('')
@@ -62,6 +64,7 @@ export function SettingsModal({
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [checkingDependencies, setCheckingDependencies] = useState(false)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
+  const [expandedRepoId, setExpandedRepoId] = useState<string | null>(null)
   const { shortenPath } = useHomedir()
 
   const loadDependencies = async (refresh: boolean) => {
@@ -198,46 +201,118 @@ export function SettingsModal({
                   <Table striped highlightOnHover>
                     <Table.Thead>
                       <Table.Tr>
+                        <Table.Th w={20} />
                         <Table.Th>Name</Table.Th>
                         <Table.Th>Path</Table.Th>
                         <Table.Th w={40} />
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {config.repositories.map((repo) => (
-                        <Table.Tr key={repo.id}>
-                          <Table.Td>
-                            <Text size="sm" style={{ fontFamily: 'monospace' }}>{repo.name}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="xs" c="dimmed" truncate style={{ maxWidth: 300 }}>
-                              {shortenPath(repo.path)}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            {pendingDelete?.id === repo.id ? (
-                              <Group gap={4} wrap="nowrap">
-                                <Text size="xs" c="pink">Remove?</Text>
-                                <ActionIcon variant="filled" color="pink" size="sm" onClick={handleConfirmDelete}>
-                                  <IconCheck size={12} />
-                                </ActionIcon>
-                                <ActionIcon variant="subtle" color="dimmed" size="sm" onClick={() => setPendingDelete(null)}>
-                                  <IconX size={12} />
-                                </ActionIcon>
-                              </Group>
-                            ) : (
-                              <ActionIcon
-                                variant="subtle"
-                                color="pink"
-                                size="sm"
-                                onClick={() => setPendingDelete(repo)}
-                              >
-                                <IconTrash size={14} />
-                              </ActionIcon>
+                      {config.repositories.map((repo) => {
+                        const isExpanded = expandedRepoId === repo.id
+                        const commands = repo.setupCommands ?? []
+                        return (
+                          <>
+                            <Table.Tr
+                              key={repo.id}
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => setExpandedRepoId(isExpanded ? null : repo.id)}
+                            >
+                              <Table.Td>
+                                {isExpanded
+                                  ? <IconChevronDown size={14} />
+                                  : <IconChevronRight size={14} />}
+                              </Table.Td>
+                              <Table.Td>
+                                <Group gap={6} wrap="nowrap">
+                                  <Text size="sm" style={{ fontFamily: 'monospace' }}>{repo.name}</Text>
+                                  {commands.length > 0 && (
+                                    <Text size="xs" c="dimmed">
+                                      ({commands.length} setup {commands.length === 1 ? 'cmd' : 'cmds'})
+                                    </Text>
+                                  )}
+                                </Group>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="xs" c="dimmed" truncate style={{ maxWidth: 260 }}>
+                                  {shortenPath(repo.path)}
+                                </Text>
+                              </Table.Td>
+                              <Table.Td onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                {pendingDelete?.id === repo.id ? (
+                                  <Group gap={4} wrap="nowrap">
+                                    <Text size="xs" c="pink">Remove?</Text>
+                                    <ActionIcon variant="filled" color="pink" size="sm" onClick={handleConfirmDelete}>
+                                      <IconCheck size={12} />
+                                    </ActionIcon>
+                                    <ActionIcon variant="subtle" color="dimmed" size="sm" onClick={() => setPendingDelete(null)}>
+                                      <IconX size={12} />
+                                    </ActionIcon>
+                                  </Group>
+                                ) : (
+                                  <ActionIcon
+                                    variant="subtle"
+                                    color="pink"
+                                    size="sm"
+                                    onClick={() => setPendingDelete(repo)}
+                                  >
+                                    <IconTrash size={14} />
+                                  </ActionIcon>
+                                )}
+                              </Table.Td>
+                            </Table.Tr>
+                            {isExpanded && (
+                              <Table.Tr key={`${repo.id}-setup`}>
+                                <Table.Td colSpan={4} style={{ background: 'rgba(0, 136, 255, 0.03)' }}>
+                                  <Stack gap="xs" p="xs">
+                                    <Text size="xs" fw={500}>Setup commands</Text>
+                                    <Text size="xs" c="dimmed">
+                                      Run sequentially in the new worktree directory after creation.
+                                    </Text>
+                                    {commands.map((cmd, idx) => (
+                                      <Group key={idx} gap="xs" wrap="nowrap">
+                                        <TextInput
+                                          size="xs"
+                                          value={cmd}
+                                          placeholder="e.g. pnpm install"
+                                          style={{ flex: 1, fontFamily: 'monospace' }}
+                                          onChange={(e) => {
+                                            const updated = [...commands]
+                                            updated[idx] = e.currentTarget.value
+                                            void onSetRepoSetupCommands(repo.id, updated)
+                                          }}
+                                        />
+                                        <ActionIcon
+                                          variant="subtle"
+                                          color="pink"
+                                          size="sm"
+                                          onClick={() => {
+                                            const updated = commands.filter((_, i) => i !== idx)
+                                            void onSetRepoSetupCommands(repo.id, updated)
+                                          }}
+                                        >
+                                          <IconX size={12} />
+                                        </ActionIcon>
+                                      </Group>
+                                    ))}
+                                    <Button
+                                      variant="subtle"
+                                      size="xs"
+                                      leftSection={<IconPlus size={12} />}
+                                      style={{ alignSelf: 'flex-start' }}
+                                      onClick={() => {
+                                        void onSetRepoSetupCommands(repo.id, [...commands, ''])
+                                      }}
+                                    >
+                                      Add command
+                                    </Button>
+                                  </Stack>
+                                </Table.Td>
+                              </Table.Tr>
                             )}
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
+                          </>
+                        )
+                      })}
                     </Table.Tbody>
                   </Table>
                 ) : (
