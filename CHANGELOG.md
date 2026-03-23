@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/malaporte/treebeard/compare/v2.4.0...v2.4.1) (2026-03-23)
+
+
+### Bug Fixes
+
+* **refactor:** remove the skill about releases ([4846898](https://github.com/malaporte/treebeard/commit/4846898d2bc82354fe32ff0766ddcf935897584d))
+
 # [2.4.0](https://github.com/malaporte/treebeard/compare/v2.3.0...v2.4.0) (2026-03-23)
 
 
