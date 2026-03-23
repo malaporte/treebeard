@@ -1,3 +1,10 @@
+## [2.4.3](https://github.com/malaporte/treebeard/compare/v2.4.2...v2.4.3) (2026-03-23)
+
+
+### Bug Fixes
+
+* merge macOS build into release workflow ([92df899](https://github.com/malaporte/treebeard/commit/92df899332fe989d196063a53ce244ce2aa8bc37))
+
 ## [2.4.2](https://github.com/malaporte/treebeard/compare/v2.4.1...v2.4.2) (2026-03-23)
 
 
