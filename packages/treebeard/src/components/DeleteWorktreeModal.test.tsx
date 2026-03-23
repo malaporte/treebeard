@@ -4,13 +4,11 @@ import { DeleteWorktreeModal } from './DeleteWorktreeModal'
 import { renderWithMantine } from '../test/render'
 
 const statusRequest = vi.fn()
-const removeRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
-      'git:worktreeStatus': statusRequest,
-      'git:removeWorktree': removeRequest
+      'git:worktreeStatus': statusRequest
     }
   })
 }))
@@ -24,10 +22,9 @@ vi.mock('../hooks/useHomedir', () => ({
 describe('DeleteWorktreeModal', () => {
   beforeEach(() => {
     statusRequest.mockReset()
-    removeRequest.mockReset()
   })
 
-  it('forces deletion when warnings are present', async () => {
+  it('calls onConfirm with force=true when warnings are present', async () => {
     statusRequest.mockResolvedValue({
       hasUncommittedChanges: true,
       unpushedCommits: 2,
@@ -35,17 +32,15 @@ describe('DeleteWorktreeModal', () => {
       linesAdded: 1,
       linesDeleted: 0
     })
-    removeRequest.mockResolvedValue({ success: true })
 
-    const onSuccess = vi.fn()
+    const onConfirm = vi.fn()
     const onClose = vi.fn()
 
     renderWithMantine(
       <DeleteWorktreeModal
         opened={true}
         onClose={onClose}
-        onSuccess={onSuccess}
-        repoPath={'/repo'}
+        onConfirm={onConfirm}
         worktree={{
           path: '/repo/.worktrees/feat',
           branch: 'feat/a',
@@ -62,19 +57,11 @@ describe('DeleteWorktreeModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete worktree' }))
 
-    await waitFor(() => {
-      expect(removeRequest).toHaveBeenCalledWith({
-        repoPath: '/repo',
-        worktreePath: '/repo/.worktrees/feat',
-        force: true
-      })
-    })
-
-    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(onConfirm).toHaveBeenCalledWith(true)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('shows error message when delete fails', async () => {
+  it('calls onConfirm with force=false when no warnings', async () => {
     statusRequest.mockResolvedValue({
       hasUncommittedChanges: false,
       unpushedCommits: 0,
@@ -82,14 +69,14 @@ describe('DeleteWorktreeModal', () => {
       linesAdded: 0,
       linesDeleted: 0
     })
-    removeRequest.mockResolvedValue({ success: false, error: 'cannot delete' })
+
+    const onConfirm = vi.fn()
 
     renderWithMantine(
       <DeleteWorktreeModal
         opened={true}
         onClose={() => {}}
-        onSuccess={() => {}}
-        repoPath={'/repo'}
+        onConfirm={onConfirm}
         worktree={{
           path: '/repo/.worktrees/feat',
           branch: 'feat/a',
@@ -105,8 +92,6 @@ describe('DeleteWorktreeModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete worktree' }))
 
-    await waitFor(() => {
-      expect(screen.getByText('cannot delete')).toBeTruthy()
-    })
+    expect(onConfirm).toHaveBeenCalledWith(false)
   })
 })

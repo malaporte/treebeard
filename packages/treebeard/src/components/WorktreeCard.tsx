@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core'
+import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader } from '@mantine/core'
 import { IconGitBranch, IconTrash } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
@@ -19,7 +19,8 @@ interface WorktreeCardProps {
   pollIntervalSec: number
   refreshKey: number
   defaultIde: IdeId
-  onDelete: () => void
+  deleting?: boolean
+  onConfirmDelete: (force: boolean) => void
 }
 
 const JIRA_KEY_REGEX = /([a-zA-Z][a-zA-Z0-9]+-\d+)/i
@@ -35,7 +36,8 @@ export function WorktreeCard({
   pollIntervalSec,
   refreshKey,
   defaultIde,
-  onDelete
+  deleting,
+  onConfirmDelete
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -46,6 +48,7 @@ export function WorktreeCard({
   const { shortenPath } = useHomedir()
 
   const handleDoubleClick = () => {
+    if (deleting) return
     rpc().request['launch:ide']({ ideId: defaultIde, worktreePath: worktree.path })
   }
 
@@ -59,17 +62,23 @@ export function WorktreeCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        borderColor: hovered ? 'rgba(0, 136, 255, 0.45)' : 'rgba(0, 136, 255, 0.2)',
-        background: hovered
-          ? 'linear-gradient(135deg, rgba(0, 136, 255, 0.08) 0%, rgba(0, 136, 255, 0.02) 100%)'
-          : 'linear-gradient(135deg, rgba(0, 136, 255, 0.03) 0%, transparent 100%)',
-        transition: 'background 150ms ease, border-color 150ms ease',
-        cursor: 'default'
+        borderColor: deleting
+          ? 'rgba(255, 255, 255, 0.08)'
+          : hovered ? 'rgba(0, 136, 255, 0.45)' : 'rgba(0, 136, 255, 0.2)',
+        background: deleting
+          ? 'rgba(255, 255, 255, 0.02)'
+          : hovered
+            ? 'linear-gradient(135deg, rgba(0, 136, 255, 0.08) 0%, rgba(0, 136, 255, 0.02) 100%)'
+            : 'linear-gradient(135deg, rgba(0, 136, 255, 0.03) 0%, transparent 100%)',
+        opacity: deleting ? 0.45 : 1,
+        transition: 'background 150ms ease, border-color 150ms ease, opacity 150ms ease',
+        cursor: deleting ? 'default' : 'default',
+        pointerEvents: deleting ? 'none' : undefined
       }}
     >
       <Group justify="space-between" align="center" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: 1 }}>
-          <IconGitBranch size={20} color="#0088ff" style={{ flexShrink: 0 }} />
+          <IconGitBranch size={20} color={deleting ? '#666' : '#0088ff'} style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <Group gap={6} wrap="nowrap">
               <Text size="sm" fw={600} truncate style={{ fontFamily: 'monospace' }}>
@@ -87,35 +96,43 @@ export function WorktreeCard({
           </div>
         </Group>
 
-        <Group gap={8} wrap="nowrap" style={{ flexShrink: 0 }}>
-          <JiraBadge jiraKey={jiraKey} issue={jiraIssue} loading={jiraLoading} />
-          <PRBadge pr={pr} loading={prLoading} />
-          <DirtyBadge status={wtStatus} loading={wtStatusLoading} />
-        </Group>
+        {deleting ? (
+          <Group gap={6} wrap="nowrap" style={{ flexShrink: 0 }}>
+            <Loader size={14} color="dimmed" />
+            <Text size="xs" c="dimmed">Deleting…</Text>
+          </Group>
+        ) : (
+          <>
+            <Group gap={8} wrap="nowrap" style={{ flexShrink: 0 }}>
+              <JiraBadge jiraKey={jiraKey} issue={jiraIssue} loading={jiraLoading} />
+              <PRBadge pr={pr} loading={prLoading} />
+              <DirtyBadge status={wtStatus} loading={wtStatusLoading} />
+            </Group>
 
-        <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-          <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
-          {!worktree.isMain && (
-            <Tooltip label="Delete worktree">
-              <ActionIcon
-                variant="subtle"
-                color="pink"
-                size="sm"
-                onClick={() => setDeleteOpened(true)}
-              >
-                <IconTrash size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </Group>
+            <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+              <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
+              {!worktree.isMain && (
+                <Tooltip label="Delete worktree">
+                  <ActionIcon
+                    variant="subtle"
+                    color="pink"
+                    size="sm"
+                    onClick={() => setDeleteOpened(true)}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </Group>
+          </>
+        )}
       </Group>
 
       <DeleteWorktreeModal
         worktree={worktree}
-        repoPath={repoPath}
         opened={deleteOpened}
         onClose={() => setDeleteOpened(false)}
-        onSuccess={onDelete}
+        onConfirm={onConfirmDelete}
       />
     </Card>
   )
