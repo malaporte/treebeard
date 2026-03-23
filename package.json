@@ -8,5 +8,10 @@
     "test:treebeard": "bun run --filter treebeard test",
     "typecheck": "bun run --filter '*' typecheck"
   },
-  "packageManager": "bun@1.3.10"
+  "packageManager": "bun@1.3.10",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "semantic-release": "^25.0.3"
+  }
 }
