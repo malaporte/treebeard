@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/malaporte/treebeard/compare/v2.4.3...v2.5.0) (2026-03-24)
+
+
+### Features
+
+* **git:** add git pull on click for unpulled commits indicator ([#9](https://github.com/malaporte/treebeard/issues/9)) ([6a651d0](https://github.com/malaporte/treebeard/commit/6a651d00bd8db27f2ca7eae6a075e4504ff482f7))
+
 ## [2.4.3](https://github.com/malaporte/treebeard/compare/v2.4.2...v2.4.3) (2026-03-23)
 
 
