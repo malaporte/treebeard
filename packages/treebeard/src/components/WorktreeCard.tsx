@@ -46,7 +46,7 @@ export function WorktreeCard({
   const jiraKey = extractJiraKey(worktree.branch)
   const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey, pollIntervalSec, refreshKey)
   const { pr, loading: prLoading } = usePR(repoPath, worktree.isMain ? null : worktree.branch, pollIntervalSec, refreshKey)
-  const { status: wtStatus, loading: wtStatusLoading } = useWorktreeStatus(worktree.path, pollIntervalSec, refreshKey)
+  const { status: wtStatus, loading: wtStatusLoading, refresh: refreshStatus } = useWorktreeStatus(worktree.path, pollIntervalSec, refreshKey)
   const { shortenPath } = useHomedir()
 
   const handleDoubleClick = () => {
@@ -113,7 +113,7 @@ export function WorktreeCard({
               )}
               <JiraBadge jiraKey={jiraKey} issue={jiraIssue} loading={jiraLoading} />
               <PRBadge pr={pr} loading={prLoading} />
-              <DirtyBadge status={wtStatus} loading={wtStatusLoading} />
+              <DirtyBadge status={wtStatus} loading={wtStatusLoading} worktreePath={worktree.path} onPullComplete={refreshStatus} />
             </Group>
 
             <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>

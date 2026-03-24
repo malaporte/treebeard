@@ -168,6 +168,17 @@ export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeS
   return { hasUncommittedChanges, unpushedCommits, unpulledCommits, linesAdded, linesDeleted }
 }
 
+/** Pull the latest changes from upstream in a worktree. */
+export async function pullWorktree(worktreePath: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await git(['pull'], worktreePath)
+    return { success: true }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
 /** Remove a worktree by its path. */
 export async function removeWorktree(
   repoPath: string,

@@ -12,7 +12,8 @@ import {
   getRemoteBranches,
   getWorktreeStatus,
   removeWorktree,
-  runSetupCommands
+  runSetupCommands,
+  pullWorktree
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue } from './services/jira'
@@ -181,6 +182,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'git:worktreeStatus': async ({ worktreePath }) => {
         return getWorktreeStatus(worktreePath)
+      },
+      'git:pull': async ({ worktreePath }) => {
+        return pullWorktree(worktreePath)
       },
       'git:removeWorktree': async ({ repoPath, worktreePath, force }) => {
         return removeWorktree(repoPath, worktreePath, force)
