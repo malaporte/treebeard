@@ -58,6 +58,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: WorktreeStatus
       }
+      'git:pull': {
+        params: { worktreePath: string }
+        response: { success: boolean; error?: string }
+      }
       'git:removeWorktree': {
         params: { repoPath: string; worktreePath: string; force?: boolean }
         response: { success: boolean; error?: string }
