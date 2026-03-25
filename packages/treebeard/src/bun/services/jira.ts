@@ -1,7 +1,7 @@
 import { getShellEnv } from './shell-env'
 import type { JiraIssue } from '../../shared/types'
 
-const DONE_STATUSES = new Set(['done', 'closed', 'resolved', 'completed', 'cancelled', 'canceled'])
+const DONE_STATUSES = new Set(['done', 'closed', 'resolved', 'completed', 'cancelled', 'canceled', 'rejected'])
 
 /** Fetch all open Jira issues assigned to the current user. */
 export async function getMyJiraIssues(): Promise<JiraIssue[]> {
@@ -10,7 +10,13 @@ export async function getMyJiraIssues(): Promise<JiraIssue[]> {
     const me = await getJiraMe(env)
     if (!me) return []
 
-    const proc = Bun.spawn(['jira', 'issue', 'list', `--assignee=${me}`, '--raw'], {
+    const proc = Bun.spawn([
+      'jira', 'issue', 'list',
+      `--assignee=${me}`,
+      '-qproject IS NOT EMPTY',
+      '--paginate', '0:100',
+      '--raw'
+    ], {
       stdout: 'pipe',
       stderr: 'pipe',
       env

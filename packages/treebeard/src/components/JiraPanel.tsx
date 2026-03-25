@@ -14,7 +14,7 @@ interface JiraPanelProps {
 
 export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMouseDown }: JiraPanelProps) {
   return (
-    <Stack gap="xs" h="100%" style={{ overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Group justify="space-between" align="center" px="xs" pt="xs" style={{ flexShrink: 0 }}>
         <Text size="xs" fw={600} c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           My Issues
@@ -24,7 +24,7 @@ export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMous
         </ActionIcon>
       </Group>
 
-      <ScrollArea style={{ flex: 1 }} px="xs" pb="xs">
+      <ScrollArea style={{ flex: 1, minHeight: 0 }} px="xs" pb="xs">
         {loading && issues.length === 0 ? (
           <Group justify="center" pt="xl">
             <Loader size="sm" color="neon" />
@@ -46,6 +46,6 @@ export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMous
           </Stack>
         )}
       </ScrollArea>
-    </Stack>
+    </div>
   )
 }

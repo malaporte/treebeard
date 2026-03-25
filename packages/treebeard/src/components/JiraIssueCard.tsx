@@ -1,4 +1,5 @@
 import { Box, Text, Badge, Group } from '@mantine/core'
+import { rpc } from '../rpc'
 import type { JiraIssue } from '../shared/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,6 +48,9 @@ export function JiraIssueCard({ issue, isDragging, onMouseDown }: JiraIssueCardP
     <Box
       p="xs"
       onMouseDown={onMouseDown ? (e) => onMouseDown(e, dragData) : undefined}
+      onDoubleClick={() => {
+        if (issue.url) rpc().request['launch:url']({ url: issue.url })
+      }}
       style={{
         opacity: isDragging ? 0.4 : 1,
         cursor: 'grab',

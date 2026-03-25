@@ -11,6 +11,7 @@ import {
   Alert,
   Stack,
   Group,
+  Tooltip,
   createTheme
 } from '@mantine/core'
 import { IconSettings, IconSearch, IconX, IconTicket } from '@tabler/icons-react'
@@ -215,23 +216,26 @@ export default function App() {
                 onChange={(e) => setSearch(e.currentTarget.value)}
                 style={{ width: 220 }}
               />
-              <ActionIcon
-                variant={jiraPanelOpen ? 'light' : 'subtle'}
-                color="neon"
-                size="sm"
-                onClick={() => setJiraPanelOpen(!jiraPanelOpen)}
-                title="Toggle Jira panel"
-              >
-                <IconTicket size={16} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="neon"
-                size="sm"
-                onClick={() => setSettingsOpened(true)}
-              >
-                <IconSettings size={16} />
-              </ActionIcon>
+              <Tooltip label={jiraPanelOpen ? 'Hide my Jira issues' : 'Show my Jira issues'} openDelay={500}>
+                <ActionIcon
+                  variant={jiraPanelOpen ? 'light' : 'subtle'}
+                  color="neon"
+                  size="sm"
+                  onClick={() => setJiraPanelOpen(!jiraPanelOpen)}
+                >
+                  <IconTicket size={16} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Settings" openDelay={500}>
+                <ActionIcon
+                  variant="subtle"
+                  color="neon"
+                  size="sm"
+                  onClick={() => setSettingsOpened(true)}
+                >
+                  <IconSettings size={16} />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </AppShell.Header>
 
