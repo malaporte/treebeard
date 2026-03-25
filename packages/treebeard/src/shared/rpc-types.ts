@@ -70,6 +70,10 @@ export type TreebeardRPC = {
         params: { issueKey: string }
         response: JiraIssue | null
       }
+      'jira:myIssues': {
+        params: Record<string, never>
+        response: JiraIssue[]
+      }
       'gh:pr': {
         params: { repoPath: string; branch: string }
         response: PRInfo | null

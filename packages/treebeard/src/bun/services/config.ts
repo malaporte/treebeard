@@ -18,7 +18,8 @@ const DEFAULTS: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  defaultIde: 'vscode'
+  defaultIde: 'vscode',
+  jiraPanelOpen: false
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -40,7 +41,8 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
-    defaultIde: isValidIdeId(config.defaultIde) ? config.defaultIde : DEFAULTS.defaultIde
+    defaultIde: isValidIdeId(config.defaultIde) ? config.defaultIde : DEFAULTS.defaultIde,
+    jiraPanelOpen: typeof config.jiraPanelOpen === 'boolean' ? config.jiraPanelOpen : DEFAULTS.jiraPanelOpen
   }
 }
 

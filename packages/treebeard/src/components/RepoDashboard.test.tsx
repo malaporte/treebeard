@@ -13,7 +13,9 @@ vi.mock('@dnd-kit/core', () => ({
   closestCenter: () => null,
   PointerSensor: class {},
   useSensor: () => ({}),
-  useSensors: () => []
+  useSensors: () => [],
+  useDroppable: () => ({ setNodeRef: () => {}, isOver: false }),
+  DragOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }))
 
 vi.mock('@dnd-kit/sortable', () => ({
@@ -99,6 +101,10 @@ describe('RepoDashboard', () => {
         search={''}
         defaultIde="vscode"
         onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
       />
     )
 
@@ -133,6 +139,10 @@ describe('RepoDashboard', () => {
         search={'feat'}
         defaultIde="vscode"
         onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
       />
     )
 
@@ -147,6 +157,10 @@ describe('RepoDashboard', () => {
         search={'missing'}
         defaultIde="vscode"
         onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
       />
     )
 

@@ -21,9 +21,10 @@ interface AddWorktreeModalProps {
   opened: boolean
   onClose: () => void
   onCreated: (worktreePath: string) => void
+  initialBranch?: string
 }
 
-export function AddWorktreeModal({ repo, opened, onClose, onCreated }: AddWorktreeModalProps) {
+export function AddWorktreeModal({ repo, opened, onClose, onCreated, initialBranch }: AddWorktreeModalProps) {
   const [branch, setBranch] = useState('')
   const [mode, setMode] = useState<'new' | 'existing'>('new')
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
@@ -35,7 +36,8 @@ export function AddWorktreeModal({ repo, opened, onClose, onCreated }: AddWorktr
 
   useEffect(() => {
     if (opened) {
-      setBranch('')
+      setBranch(initialBranch ?? '')
+      setMode('new')
       setError(null)
       setSubmitting(false)
       setBranchExists(false)
@@ -44,7 +46,7 @@ export function AddWorktreeModal({ repo, opened, onClose, onCreated }: AddWorktr
         setDefaultBranch('main')
       })
     }
-  }, [opened, repo.path])
+  }, [opened, repo.path, initialBranch])
 
   // Fetch remote branches when switching to "existing" mode
   useEffect(() => {

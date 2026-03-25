@@ -30,7 +30,8 @@ const config: AppConfig = {
   autoUpdateEnabled: true,
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
-  defaultIde: 'vscode'
+  defaultIde: 'vscode',
+  jiraPanelOpen: false
 }
 
 describe('SettingsModal', () => {

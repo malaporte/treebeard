@@ -16,6 +16,7 @@ export interface AppConfig {
   updateCheckIntervalMin: number
   collapsedRepos: string[]
   defaultIde: IdeId
+  jiraPanelOpen: boolean
 }
 
 export interface Worktree {
