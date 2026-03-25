@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/malaporte/treebeard/compare/v2.6.0...v2.6.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **jira:** fix issue URL construction, open via window.open, resizable panel, drag threshold ([#11](https://github.com/malaporte/treebeard/issues/11)) ([52376ed](https://github.com/malaporte/treebeard/commit/52376edccd8e7a4751d6ef61d047fef1f14490ff))
+
 # [2.6.0](https://github.com/malaporte/treebeard/compare/v2.5.0...v2.6.0) (2026-03-25)
 
 
