@@ -107,6 +107,14 @@ export function useConfig() {
     [config, save]
   )
 
+  const setJiraPanelOpen = useCallback(
+    async (open: boolean) => {
+      if (!config) return
+      await save({ ...config, jiraPanelOpen: open })
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -117,6 +125,7 @@ export function useConfig() {
     setUpdateCheckInterval,
     reorderRepos,
     setDefaultIde,
-    setRepoSetupCommands
+    setRepoSetupCommands,
+    setJiraPanelOpen
   }
 }

@@ -15,7 +15,7 @@ import {
   runSetupCommands
 } from './services/git'
 import { getPRForBranch } from './services/github'
-import { getJiraIssue } from './services/jira'
+import { getJiraIssue, getMyJiraIssues } from './services/jira'
 import { launchIde, launchGhostty, launchURL } from './services/launcher'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
@@ -187,6 +187,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'jira:issue': async ({ issueKey }) => {
         return getJiraIssue(issueKey)
+      },
+      'jira:myIssues': async () => {
+        return getMyJiraIssues()
       },
       'gh:pr': async ({ repoPath, branch }) => {
         const ghRepo = await getGitHubRepo(repoPath)

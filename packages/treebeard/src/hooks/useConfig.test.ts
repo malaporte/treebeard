@@ -29,7 +29,8 @@ describe('useConfig', () => {
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      defaultIde: 'vscode'
+      defaultIde: 'vscode',
+      jiraPanelOpen: false
     }
     getConfigRequest.mockResolvedValue(initial)
 
@@ -48,7 +49,8 @@ describe('useConfig', () => {
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      defaultIde: 'vscode'
+      defaultIde: 'vscode',
+      jiraPanelOpen: false
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
@@ -95,7 +97,8 @@ describe('useConfig', () => {
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
-      defaultIde: 'vscode'
+      defaultIde: 'vscode',
+      jiraPanelOpen: false
     }
     getConfigRequest.mockResolvedValue(initial)
     setConfigRequest.mockResolvedValue(undefined)
