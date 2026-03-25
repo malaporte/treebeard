@@ -67,8 +67,6 @@ const INSTALL_URLS: Record<string, string> = {
   jira: 'https://github.com/ankitpokhrel/jira-cli'
 }
 
-const JIRA_PANEL_WIDTH = 260
-
 export default function App() {
   const {
     config,
@@ -81,16 +79,23 @@ export default function App() {
     reorderRepos,
     setDefaultIde,
     setRepoSetupCommands,
-    setJiraPanelOpen
+    setJiraPanelOpen,
+    setJiraPanelWidth
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [jiraDropTargets, setJiraDropTargets] = useState<Record<string, string | null>>({})
   const [orderedRepos, setOrderedRepos] = useState<RepoConfig[]>([])
+  const [panelWidth, setPanelWidth] = useState<number>(260)
 
   const jiraPanelOpen = config?.jiraPanelOpen ?? false
   const pollIntervalSec = config?.pollIntervalSec ?? 60
+
+  // Sync panel width from persisted config on load
+  useEffect(() => {
+    if (config) setPanelWidth(config.jiraPanelWidth ?? 260)
+  }, [config?.jiraPanelWidth])
 
   const { issues: jiraIssues, loading: jiraLoading, refresh: refreshJira } = useMyJiraIssues(pollIntervalSec)
 
@@ -103,6 +108,11 @@ export default function App() {
   const handleJiraDrop = useCallback((repoId: string, data: JiraIssueDragData) => {
     setJiraDropTargets((prev) => ({ ...prev, [repoId]: `${data.issueKey}-` }))
   }, [])
+
+  const handlePanelResize = useCallback((width: number) => {
+    setPanelWidth(width)
+    void setJiraPanelWidth(width)
+  }, [setJiraPanelWidth])
 
   const { isDragging: isDraggingJira, draggingKey, overRepoId, onMouseDown: onIssueMouseDown } =
     useJiraDrag(handleJiraDrop)
@@ -185,7 +195,7 @@ export default function App() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <AppShell
           header={{ height: 38 }}
-          aside={jiraPanelOpen ? { width: JIRA_PANEL_WIDTH, breakpoint: 'xs' } : undefined}
+          aside={jiraPanelOpen ? { width: panelWidth, breakpoint: 'xs' } : undefined}
           padding="md"
         >
           <AppShell.Header
@@ -286,6 +296,7 @@ export default function App() {
                 onRefresh={refreshJira}
                 draggingKey={draggingKey}
                 onIssueMouseDown={onIssueMouseDown}
+                onResize={handlePanelResize}
               />
             </AppShell.Aside>
           )}

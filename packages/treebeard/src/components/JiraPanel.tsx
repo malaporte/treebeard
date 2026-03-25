@@ -10,11 +10,43 @@ interface JiraPanelProps {
   onRefresh: () => void
   draggingKey: string | null
   onIssueMouseDown: (e: React.MouseEvent, data: JiraIssueDragData) => void
+  onResize: (width: number) => void
 }
 
-export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMouseDown }: JiraPanelProps) {
+export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMouseDown, onResize }: JiraPanelProps) {
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = (e.currentTarget as HTMLElement).parentElement!.offsetWidth
+
+    const onMove = (me: MouseEvent) => {
+      const newWidth = Math.max(180, Math.min(600, startWidth - (me.clientX - startX)))
+      onResize(newWidth)
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
+      <div
+        onMouseDown={handleResizeMouseDown}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          cursor: 'ew-resize',
+          zIndex: 10
+        }}
+      />
       <Group justify="space-between" align="center" px="xs" pt="xs" style={{ flexShrink: 0 }}>
         <Text size="xs" fw={600} c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           My Issues
@@ -24,7 +56,7 @@ export function JiraPanel({ issues, loading, onRefresh, draggingKey, onIssueMous
         </ActionIcon>
       </Group>
 
-      <ScrollArea style={{ flex: 1, minHeight: 0 }} px="xs" pb="xs">
+      <ScrollArea scrollbars="y" style={{ flex: 1, minHeight: 0 }} px="xs" pb="xs">
         {loading && issues.length === 0 ? (
           <Group justify="center" pt="xl">
             <Loader size="sm" color="neon" />

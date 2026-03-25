@@ -53,7 +53,8 @@ describe('config service', () => {
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
       defaultIde: 'vscode',
-      jiraPanelOpen: false
+      jiraPanelOpen: false,
+      jiraPanelWidth: 260
     })
   })
 
@@ -65,7 +66,8 @@ describe('config service', () => {
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
       defaultIde: 'intellij',
-      jiraPanelOpen: false
+      jiraPanelOpen: false,
+      jiraPanelWidth: 260
     })
 
     expect(getConfig()).toEqual({
@@ -75,7 +77,8 @@ describe('config service', () => {
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],
       defaultIde: 'intellij',
-      jiraPanelOpen: false
+      jiraPanelOpen: false,
+      jiraPanelWidth: 260
     })
   })
 

@@ -115,6 +115,14 @@ export function useConfig() {
     [config, save]
   )
 
+  const setJiraPanelWidth = useCallback(
+    async (width: number) => {
+      if (!config) return
+      await save({ ...config, jiraPanelWidth: width })
+    },
+    [config, save]
+  )
+
   return {
     config,
     loading,
@@ -126,6 +134,7 @@ export function useConfig() {
     reorderRepos,
     setDefaultIde,
     setRepoSetupCommands,
-    setJiraPanelOpen
+    setJiraPanelOpen,
+    setJiraPanelWidth
   }
 }
