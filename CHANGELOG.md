@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/malaporte/treebeard/compare/v2.5.0...v2.6.0) (2026-03-25)
+
+
+### Features
+
+* Jira issues panel with drag-and-drop worktree creation ([#10](https://github.com/malaporte/treebeard/issues/10)) ([ed8a5de](https://github.com/malaporte/treebeard/commit/ed8a5de84cd4697bc589f795cbb8fd8893496993))
+
 # [2.5.0](https://github.com/malaporte/treebeard/compare/v2.4.3...v2.5.0) (2026-03-24)
 
 
