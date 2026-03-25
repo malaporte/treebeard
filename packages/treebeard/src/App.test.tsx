@@ -50,7 +50,8 @@ const config: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   defaultIde: 'vscode',
-  jiraPanelOpen: false
+  jiraPanelOpen: false,
+  jiraPanelWidth: 260
 }
 
 describe('App', () => {

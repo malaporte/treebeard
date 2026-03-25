@@ -17,6 +17,7 @@ export interface AppConfig {
   collapsedRepos: string[]
   defaultIde: IdeId
   jiraPanelOpen: boolean
+  jiraPanelWidth: number
 }
 
 export interface Worktree {

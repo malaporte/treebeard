@@ -1,4 +1,7 @@
 import { getShellEnv } from './shell-env'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 import type { JiraIssue } from '../../shared/types'
 
 const DONE_STATUSES = new Set(['done', 'closed', 'resolved', 'completed', 'cancelled', 'canceled', 'rejected'])
@@ -43,7 +46,7 @@ export async function getMyJiraIssues(): Promise<JiraIssue[]> {
         status: item.fields?.status?.name || 'Unknown',
         assignee: item.fields?.assignee?.displayName || null,
         issueType: item.fields?.issueType?.name || item.fields?.issuetype?.name || 'Unknown',
-        url: `${getJiraBaseUrl(item.self)}browse/${item.key}`
+        url: `${getJiraBaseUrl()}browse/${item.key}`
       }))
   } catch {
     return []
@@ -93,17 +96,19 @@ export async function getJiraIssue(issueKey: string): Promise<JiraIssue | null> 
       status: fields.status?.name || 'Unknown',
       assignee: fields.assignee?.displayName || null,
       issueType: fields.issuetype?.name || 'Unknown',
-      url: `${getJiraBaseUrl(data.self)}browse/${data.key}`
+      url: `${getJiraBaseUrl()}browse/${data.key}`
     }
   } catch {
     return null
   }
 }
 
-function getJiraBaseUrl(selfUrl: string): string {
+function getJiraBaseUrl(): string {
   try {
-    const url = new URL(selfUrl)
-    return `${url.protocol}//${url.host}/`
+    const config = readFileSync(join(homedir(), '.config', '.jira', '.config.yml'), 'utf-8')
+    const match = config.match(/^server:\s*(.+)$/m)
+    const server = match?.[1]?.trim()
+    return server ? (server.endsWith('/') ? server : `${server}/`) : ''
   } catch {
     return ''
   }

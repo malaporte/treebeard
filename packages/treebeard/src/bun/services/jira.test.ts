@@ -6,6 +6,16 @@ vi.mock('./shell-env', () => ({
   getShellEnv: vi.fn(async () => ({ PATH: '/usr/bin' }))
 }))
 
+vi.mock('node:os', () => ({
+  default: { homedir: () => '/Users/test' },
+  homedir: () => '/Users/test'
+}))
+
+vi.mock('node:fs', () => ({
+  default: { readFileSync: () => 'server: https://acme.atlassian.net\n' },
+  readFileSync: () => 'server: https://acme.atlassian.net\n'
+}))
+
 describe('jira service', () => {
   it('parses issue fields and computes browse URL', async () => {
     setBunSpawnQueue([

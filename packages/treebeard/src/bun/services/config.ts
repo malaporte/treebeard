@@ -9,6 +9,8 @@ const MIN_POLL_INTERVAL_SEC = 10
 const MAX_POLL_INTERVAL_SEC = 600
 const MIN_UPDATE_CHECK_INTERVAL_MIN = 5
 const MAX_UPDATE_CHECK_INTERVAL_MIN = 1440
+const MIN_JIRA_PANEL_WIDTH = 180
+const MAX_JIRA_PANEL_WIDTH = 600
 
 const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', CONFIG_FILENAME)
 
@@ -19,7 +21,8 @@ const DEFAULTS: AppConfig = {
   updateCheckIntervalMin: 30,
   collapsedRepos: [],
   defaultIde: 'vscode',
-  jiraPanelOpen: false
+  jiraPanelOpen: false,
+  jiraPanelWidth: 260
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -42,7 +45,10 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     updateCheckIntervalMin,
     collapsedRepos: Array.isArray(config.collapsedRepos) ? [...config.collapsedRepos] : [],
     defaultIde: isValidIdeId(config.defaultIde) ? config.defaultIde : DEFAULTS.defaultIde,
-    jiraPanelOpen: typeof config.jiraPanelOpen === 'boolean' ? config.jiraPanelOpen : DEFAULTS.jiraPanelOpen
+    jiraPanelOpen: typeof config.jiraPanelOpen === 'boolean' ? config.jiraPanelOpen : DEFAULTS.jiraPanelOpen,
+    jiraPanelWidth: typeof config.jiraPanelWidth === 'number'
+      ? clamp(Math.round(config.jiraPanelWidth), MIN_JIRA_PANEL_WIDTH, MAX_JIRA_PANEL_WIDTH)
+      : DEFAULTS.jiraPanelWidth
   }
 }
 

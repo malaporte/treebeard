@@ -32,9 +32,27 @@ export function useJiraDrag(
   const ghostRef = useRef<HTMLDivElement | null>(null)
 
   const onMouseDown = useCallback((e: React.MouseEvent, data: JiraIssueDragData) => {
-    e.preventDefault()
-    setDrag({ data, x: e.clientX, y: e.clientY })
-    setOverRepoId(null)
+    const startX = e.clientX
+    const startY = e.clientY
+
+    const onMove = (me: MouseEvent) => {
+      const dx = me.clientX - startX
+      const dy = me.clientY - startY
+      if (Math.sqrt(dx * dx + dy * dy) >= 6) {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        setDrag({ data, x: me.clientX, y: me.clientY })
+        setOverRepoId(null)
+      }
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
   }, [])
 
   useEffect(() => {
