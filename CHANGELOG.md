@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/malaporte/treebeard/compare/v2.6.1...v2.7.0) (2026-03-26)
+
+
+### Features
+
+* add background git fetch on a separate longer schedule ([#12](https://github.com/malaporte/treebeard/issues/12)) ([0e3dd39](https://github.com/malaporte/treebeard/commit/0e3dd39bba798b560f19216d414f6a09f79e6691))
+
 ## [2.6.1](https://github.com/malaporte/treebeard/compare/v2.6.0...v2.6.1) (2026-03-25)
 
 
