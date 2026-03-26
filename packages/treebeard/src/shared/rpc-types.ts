@@ -58,6 +58,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: WorktreeStatus
       }
+      'git:fetchRepo': {
+        params: { repoPath: string }
+        response: void
+      }
       'git:pull': {
         params: { worktreePath: string }
         response: { success: boolean; error?: string }

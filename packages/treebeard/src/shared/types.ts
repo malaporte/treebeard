@@ -12,6 +12,7 @@ export interface RepoConfig {
 export interface AppConfig {
   repositories: RepoConfig[]
   pollIntervalSec: number
+  fetchIntervalSec: number
   autoUpdateEnabled: boolean
   updateCheckIntervalMin: number
   collapsedRepos: string[]

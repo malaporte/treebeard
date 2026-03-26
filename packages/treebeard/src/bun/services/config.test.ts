@@ -49,6 +49,7 @@ describe('config service', () => {
     expect(getConfig()).toEqual({
       repositories: [],
       pollIntervalSec: 60,
+      fetchIntervalSec: 300,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
@@ -62,6 +63,7 @@ describe('config service', () => {
     setConfig({
       repositories: [],
       pollIntervalSec: 1,
+      fetchIntervalSec: 30,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 5000,
       collapsedRepos: [],
@@ -73,6 +75,7 @@ describe('config service', () => {
     expect(getConfig()).toEqual({
       repositories: [],
       pollIntervalSec: 10,
+      fetchIntervalSec: 60,
       autoUpdateEnabled: false,
       updateCheckIntervalMin: 1440,
       collapsedRepos: [],

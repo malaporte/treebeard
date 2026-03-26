@@ -26,6 +26,7 @@ describe('useConfig', () => {
     const initial: AppConfig = {
       repositories: [],
       pollIntervalSec: 60,
+      fetchIntervalSec: 300,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
@@ -47,6 +48,7 @@ describe('useConfig', () => {
     const initial: AppConfig = {
       repositories: [{ id: '1', name: 'repo', path: '/repo' }],
       pollIntervalSec: 60,
+      fetchIntervalSec: 300,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
@@ -96,6 +98,7 @@ describe('useConfig', () => {
         { id: '2', name: 'repo-b', path: '/repo-b' }
       ],
       pollIntervalSec: 60,
+      fetchIntervalSec: 300,
       autoUpdateEnabled: true,
       updateCheckIntervalMin: 30,
       collapsedRepos: [],
