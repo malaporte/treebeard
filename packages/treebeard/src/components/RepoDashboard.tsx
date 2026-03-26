@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Stack, Group, Title, Text, ActionIcon, Loader, Alert, Collapse, Code } from '@mantine/core'
 import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical, IconAlertCircle, IconCheck, IconX } from '@tabler/icons-react'
 import {
@@ -12,6 +12,7 @@ import { AddWorktreeModal } from './AddWorktreeModal'
 import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
+import { useFetchRepo } from '../hooks/useFetchRepo'
 import type { IdeId, RepoConfig } from '../shared/types'
 
 // --- RepoSection ---
@@ -19,6 +20,7 @@ import type { IdeId, RepoConfig } from '../shared/types'
 interface RepoSectionProps {
   repo: RepoConfig
   pollIntervalSec: number
+  fetchIntervalSec: number
   search: string
   defaultIde: IdeId
   isCollapsed: boolean
@@ -32,6 +34,7 @@ interface RepoSectionProps {
 function RepoSection({
   repo,
   pollIntervalSec,
+  fetchIntervalSec,
   search,
   defaultIde,
   isCollapsed,
@@ -46,6 +49,9 @@ function RepoSection({
   const [refreshKey, setRefreshKey] = useState(0)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
   const { shortenPath } = useHomedir()
+
+  const handleFetched = useCallback(() => setRefreshKey((k) => k + 1), [])
+  useFetchRepo(repo.path, fetchIntervalSec, handleFetched)
 
   useEffect(() => {
     if (jiraDropBranch) setAddOpened(true)
@@ -200,6 +206,7 @@ function RepoSection({
 interface RepoDashboardProps {
   repos: RepoConfig[]
   pollIntervalSec: number
+  fetchIntervalSec: number
   search: string
   defaultIde: IdeId
   onReorder: (repos: RepoConfig[]) => void
@@ -213,6 +220,7 @@ interface RepoDashboardProps {
 export function RepoDashboard({
   repos,
   pollIntervalSec,
+  fetchIntervalSec,
   search,
   defaultIde,
   onReorder,
@@ -245,6 +253,7 @@ export function RepoDashboard({
             key={repo.id}
             repo={repo}
             pollIntervalSec={pollIntervalSec}
+            fetchIntervalSec={fetchIntervalSec}
             search={search}
             defaultIde={defaultIde}
             isCollapsed={collapsed.has(repo.id)}

@@ -98,6 +98,7 @@ describe('RepoDashboard', () => {
       <RepoDashboard
         repos={[]}
         pollIntervalSec={60}
+        fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
         onReorder={() => {}}
@@ -136,6 +137,7 @@ describe('RepoDashboard', () => {
       <RepoDashboard
         repos={repos}
         pollIntervalSec={60}
+        fetchIntervalSec={300}
         search={'feat'}
         defaultIde="vscode"
         onReorder={() => {}}
@@ -154,6 +156,7 @@ describe('RepoDashboard', () => {
       <RepoDashboard
         repos={repos}
         pollIntervalSec={60}
+        fetchIntervalSec={300}
         search={'missing'}
         defaultIde="vscode"
         onReorder={() => {}}

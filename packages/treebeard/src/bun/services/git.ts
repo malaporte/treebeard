@@ -168,6 +168,11 @@ export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeS
   return { hasUncommittedChanges, unpushedCommits, unpulledCommits, linesAdded, linesDeleted }
 }
 
+/** Fetch from origin (with prune) for a repo. */
+export async function fetchRepo(repoPath: string): Promise<void> {
+  await gitSilent(['fetch', '--prune', 'origin'], repoPath)
+}
+
 /** Pull the latest changes from upstream in a worktree. */
 export async function pullWorktree(worktreePath: string): Promise<{ success: boolean; error?: string }> {
   try {

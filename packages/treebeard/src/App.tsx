@@ -274,6 +274,7 @@ export default function App() {
                 <RepoDashboard
                   repos={orderedRepos}
                   pollIntervalSec={config.pollIntervalSec}
+                  fetchIntervalSec={config.fetchIntervalSec}
                   search={search}
                   defaultIde={config.defaultIde}
                   onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
