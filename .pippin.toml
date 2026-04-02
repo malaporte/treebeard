@@ -1,5 +1,0 @@
-# Pippin sandbox configuration
-# See https://github.com/example/pippin for documentation
-
-[sandbox]
-init = "bun install"
