@@ -142,7 +142,7 @@ export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeS
   let linesDeleted = 0
 
   const statusOut = await gitSilent(['status', '--porcelain'], worktreePath)
-  hasUncommittedChanges = statusOut ? statusOut.trim().length > 0 : true
+  hasUncommittedChanges = statusOut !== null ? statusOut.trim().length > 0 : true
 
   const diffOut = await gitSilent(['diff', '--numstat', 'HEAD'], worktreePath)
   if (diffOut) {
