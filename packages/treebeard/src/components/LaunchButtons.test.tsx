@@ -5,12 +5,14 @@ import { renderWithMantine } from '../test/render'
 
 const launchIdeRequest = vi.fn()
 const launchGhosttyRequest = vi.fn()
+const opencodePathRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
       'launch:ide': launchIdeRequest,
-      'launch:ghostty': launchGhosttyRequest
+      'launch:ghostty': launchGhosttyRequest,
+      'system:opencodePath': opencodePathRequest
     }
   })
 }))
@@ -19,8 +21,10 @@ describe('LaunchButtons', () => {
   beforeEach(() => {
     launchIdeRequest.mockReset()
     launchGhosttyRequest.mockReset()
+    opencodePathRequest.mockReset()
     launchIdeRequest.mockResolvedValue(undefined)
     launchGhosttyRequest.mockResolvedValue(undefined)
+    opencodePathRequest.mockResolvedValue(null)
   })
 
   it('launches configured IDE and Ghostty for the selected worktree', () => {

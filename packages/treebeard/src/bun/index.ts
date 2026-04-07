@@ -18,7 +18,8 @@ import {
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
-import { launchIde, launchGhostty, launchURL } from './services/launcher'
+import { launchIde, launchGhostty, launchOpencode, launchURL } from './services/launcher'
+import { getShellEnv } from './services/shell-env'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -210,6 +211,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
+      'launch:opencode': ({ worktreePath }) => {
+        launchOpencode(worktreePath)
+      },
       'launch:url': async ({ url }) => {
         if (Utils.openExternal(url)) {
           return { success: true }
@@ -226,6 +230,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'system:homedir': () => {
         return os.homedir()
+      },
+      'system:opencodePath': async () => {
+        const env = await getShellEnv()
+        const proc = Bun.spawn(['which', 'opencode'], { stdout: 'pipe', stderr: 'ignore', env })
+        const result = (await new Response(proc.stdout).text()).trim()
+        return result || null
       },
       'dialog:openDirectory': async () => {
         const paths = await Utils.openFileDialog({

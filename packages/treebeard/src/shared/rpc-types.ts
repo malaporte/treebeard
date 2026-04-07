@@ -90,6 +90,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:opencode': {
+        params: { worktreePath: string }
+        response: void
+      }
       'launch:url': {
         params: { url: string }
         response: { success: boolean; error?: string }
@@ -97,6 +101,10 @@ export type TreebeardRPC = {
       'system:homedir': {
         params: Record<string, never>
         response: string
+      }
+      'system:opencodePath': {
+        params: Record<string, never>
+        response: string | null
       }
       'dialog:openDirectory': {
         params: Record<string, never>
