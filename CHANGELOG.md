@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/malaporte/treebeard/compare/v2.7.1...v2.8.0) (2026-04-07)
+
+
+### Features
+
+* add OpenCode quick action button to worktree cards ([#14](https://github.com/malaporte/treebeard/issues/14)) ([877175c](https://github.com/malaporte/treebeard/commit/877175c15047249aed52755df17cde8267ae673e))
+
 ## [2.7.1](https://github.com/malaporte/treebeard/compare/v2.7.0...v2.7.1) (2026-04-02)
 
 
