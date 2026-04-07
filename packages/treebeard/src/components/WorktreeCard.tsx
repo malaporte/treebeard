@@ -117,7 +117,6 @@ export function WorktreeCard({
             </Group>
 
             <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-              <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
               {!worktree.isMain && (
                 <Tooltip label="Delete worktree">
                   <ActionIcon
@@ -130,6 +129,7 @@ export function WorktreeCard({
                   </ActionIcon>
                 </Tooltip>
               )}
+              <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
             </Group>
           </>
         )}
