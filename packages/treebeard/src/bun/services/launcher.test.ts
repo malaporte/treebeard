@@ -29,13 +29,13 @@ describe('launcher service', () => {
     )
   })
 
-  it('launches ghostty with open -a and path argument', async () => {
+  it('launches ghostty with AppleScript and sets tab title', async () => {
     const spawn = setBunSpawnQueue([{ stdout: '' }])
 
-    await launchGhostty('/repo/worktree')
+    await launchGhostty('/Users/user/projects/node-commons/this-is-the-worktree')
 
     expect(spawn).toHaveBeenCalledWith(
-      ['open', '-a', 'Ghostty.app', '/repo/worktree'],
+      ['/usr/bin/osascript', '-e', expect.stringContaining('tell application "Ghostty"')],
       expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
     )
   })
