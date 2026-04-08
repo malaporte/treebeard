@@ -15,7 +15,10 @@ export async function launchGhostty(worktreePath: string): Promise<void> {
   // Use AppleScript to switch to an existing Ghostty tab for this worktree,
   // or open a new tab in the correct directory if none exists.
   // This ensures proper tab naming and tab management like the opencode launcher.
-  const tabTitle = path.basename(worktreePath)
+  const pathParts = worktreePath.split('/')
+  const worktreeName = pathParts.pop() || ''
+  const projectName = pathParts.pop() || ''
+  const tabTitle = `${projectName} / ${worktreeName}`
   const script = `
 tell application "Ghostty"
   set targetPath to "${worktreePath}"
