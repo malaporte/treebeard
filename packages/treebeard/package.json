@@ -1,6 +1,6 @@
 {
   "name": "treebeard",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "scripts": {
     "dev": "electrobun dev",
     "build": "electrobun build --env=stable",

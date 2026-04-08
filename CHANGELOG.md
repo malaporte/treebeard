@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/malaporte/treebeard/compare/v2.8.0...v2.9.0) (2026-04-08)
+
+
+### Features
+
+* implement Ghostty tab naming with project and worktree names ([#15](https://github.com/malaporte/treebeard/issues/15)) ([666b5a4](https://github.com/malaporte/treebeard/commit/666b5a49c7937d8edfd49fe1249f1a93a0ec7f46))
+
 # [2.8.0](https://github.com/malaporte/treebeard/compare/v2.7.1...v2.8.0) (2026-04-07)
 
 
