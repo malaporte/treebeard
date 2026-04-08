@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { launchGhostty, launchIde } from './launcher'
+import { launchGhostty, launchIde, launchPippinShell } from './launcher'
 import { setBunSpawnQueue } from '../../test/bun'
 
 vi.mock('./shell-env', () => ({
@@ -36,6 +36,29 @@ describe('launcher service', () => {
 
     expect(spawn).toHaveBeenCalledWith(
       ['/usr/bin/osascript', '-e', expect.stringContaining('tell application "Ghostty"')],
+      expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
+    )
+  })
+
+  it('launches a Ghostty tab running pippin shell in the worktree', async () => {
+    const spawn = setBunSpawnQueue([{ stdout: '/opt/homebrew/bin/pippin\n' }, { stdout: '' }])
+
+    await launchPippinShell('/repo/worktree')
+
+    expect(spawn).toHaveBeenCalledWith(
+      ['which', 'pippin'],
+      expect.objectContaining({ stdout: 'pipe', stderr: 'ignore', env: { PATH: '/usr/bin' } })
+    )
+    expect(spawn).toHaveBeenCalledWith(
+      ['/usr/bin/osascript', '-e', expect.stringContaining('set command of cfg to "/opt/homebrew/bin/pippin shell"')],
+      expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
+    )
+    expect(spawn).toHaveBeenCalledWith(
+      ['/usr/bin/osascript', '-e', expect.stringContaining('set environment variables of cfg to {"PATH=/usr/bin"}')],
+      expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
+    )
+    expect(spawn).toHaveBeenCalledWith(
+      ['/usr/bin/osascript', '-e', expect.stringContaining('set initial working directory of cfg to "/repo/worktree"')],
       expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
     )
   })

@@ -18,7 +18,7 @@ import {
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
-import { launchIde, launchGhostty, launchOpencode, launchURL } from './services/launcher'
+import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
 import { getShellEnv } from './services/shell-env'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
@@ -211,6 +211,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:ghostty': ({ worktreePath }) => {
         launchGhostty(worktreePath)
       },
+      'launch:pippinShell': ({ worktreePath }) => {
+        launchPippinShell(worktreePath)
+      },
       'launch:opencode': ({ worktreePath }) => {
         launchOpencode(worktreePath)
       },
@@ -234,6 +237,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'system:opencodePath': async () => {
         const env = await getShellEnv()
         const proc = Bun.spawn(['which', 'opencode'], { stdout: 'pipe', stderr: 'ignore', env })
+        const result = (await new Response(proc.stdout).text()).trim()
+        return result || null
+      },
+      'system:pippinPath': async () => {
+        const env = await getShellEnv()
+        const proc = Bun.spawn(['which', 'pippin'], { stdout: 'pipe', stderr: 'ignore', env })
         const result = (await new Response(proc.stdout).text()).trim()
         return result || null
       },

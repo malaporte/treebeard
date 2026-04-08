@@ -40,6 +40,31 @@ end tell
   Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
 }
 
+export async function launchPippinShell(worktreePath: string): Promise<void> {
+  const env = await getShellEnv()
+  const whichProc = Bun.spawn(['which', 'pippin'], { stdout: 'pipe', stderr: 'ignore', env })
+  const pippinPath = (await new Response(whichProc.stdout).text()).trim()
+  if (!pippinPath) return
+  const shellPath = env.PATH || process.env.PATH || ''
+
+  const script = `
+tell application "Ghostty"
+  set cfg to new surface configuration
+  set initial working directory of cfg to "${worktreePath}"
+  set command of cfg to "${pippinPath} shell"
+  set environment variables of cfg to {"PATH=${shellPath}"}
+  if (count of windows) is 0 then
+    new window with configuration cfg
+    return
+  end if
+  tell window 1
+    new tab with configuration cfg
+  end tell
+end tell
+`
+  Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
+}
+
 export async function launchOpencode(worktreePath: string): Promise<void> {
   // Use AppleScript to switch to an existing Ghostty tab for this worktree,
   // or open a new tab running opencode if none exists.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
-import { IconGhost } from '@tabler/icons-react'
+import { IconGhost, IconPrison } from '@tabler/icons-react'
 import { IdeIcon } from './IdeIcon'
 import { IDE_REGISTRY } from '../shared/ide-registry'
 import { rpc } from '../rpc'
@@ -13,6 +13,30 @@ interface LaunchButtonsProps {
 
 export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) {
   const ide = IDE_REGISTRY[defaultIde]
+  const [pippinPath, setPippinPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPippinPath = async () => {
+      try {
+        const result = await rpc().request['system:pippinPath']({})
+        if (!cancelled) {
+          setPippinPath(result)
+        }
+      } catch {
+        if (!cancelled) {
+          setPippinPath(null)
+        }
+      }
+    }
+
+    void loadPippinPath()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleIde = async () => {
     await rpc().request['launch:ide']({ ideId: defaultIde, worktreePath })
@@ -20,6 +44,10 @@ export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) 
 
   const handleGhostty = async () => {
     await rpc().request['launch:ghostty']({ worktreePath })
+  }
+
+  const handlePippinShell = async () => {
+    await rpc().request['launch:pippinShell']({ worktreePath })
   }
 
   return (
@@ -34,6 +62,13 @@ export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) 
           <IconGhost size={16} />
         </ActionIcon>
       </Tooltip>
+      {pippinPath && (
+        <Tooltip label="Open Pippin shell">
+          <ActionIcon variant="subtle" color="grape" size="sm" onClick={handlePippinShell}>
+            <IconPrison size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
     </Group>
   )
 }
