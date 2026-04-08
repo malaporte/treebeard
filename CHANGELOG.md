@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/malaporte/treebeard/compare/v2.9.0...v2.10.0) (2026-04-08)
+
+
+### Features
+
+* add Pippin shell action button to worktree launch buttons ([#16](https://github.com/malaporte/treebeard/issues/16)) ([5ba7e97](https://github.com/malaporte/treebeard/commit/5ba7e97a51e503db72cfe640ad1a9b181e2c6525))
+
 # [2.9.0](https://github.com/malaporte/treebeard/compare/v2.8.0...v2.9.0) (2026-04-08)
 
 
