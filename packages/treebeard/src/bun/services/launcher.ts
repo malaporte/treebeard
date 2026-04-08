@@ -12,15 +12,29 @@ export async function launchIde(ideId: IdeId, worktreePath: string): Promise<voi
 }
 
 export async function launchGhostty(worktreePath: string): Promise<void> {
-  // Pass the path as a file argument so open(1) forwards it to the running
-  // instance via application:openFile:, which Ghostty maps to a new tab/window
-  // in the correct directory without spawning a second process.
-  const env = await getShellEnv()
-  Bun.spawn(['open', '-a', 'Ghostty.app', worktreePath], {
-    stdout: 'ignore',
-    stderr: 'ignore',
-    env
-  })
+  // Use AppleScript to switch to an existing Ghostty tab for this worktree,
+  // or open a new tab in the correct directory if none exists.
+  // This ensures proper tab naming and tab management like the opencode launcher.
+  const tabTitle = path.basename(worktreePath)
+  const script = `
+tell application "Ghostty"
+  set targetPath to "${worktreePath}"
+  set targetWindow to window 1
+  repeat with t in every tab of targetWindow
+    set term to focused terminal of t
+    if working directory of term is targetPath then
+      select tab t
+      focus term
+      return
+    end if
+  end repeat
+  set cfg to new surface configuration
+  set initial working directory of cfg to targetPath
+  set newTab to new tab in targetWindow with configuration cfg
+  perform action "set_tab_title:${tabTitle}" on (focused terminal of newTab)
+end tell
+`
+  Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
 }
 
 export async function launchOpencode(worktreePath: string): Promise<void> {
