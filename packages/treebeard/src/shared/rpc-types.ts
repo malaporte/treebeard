@@ -90,6 +90,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:pippinShell': {
+        params: { worktreePath: string }
+        response: void
+      }
       'launch:opencode': {
         params: { worktreePath: string }
         response: void
@@ -103,6 +107,10 @@ export type TreebeardRPC = {
         response: string
       }
       'system:opencodePath': {
+        params: Record<string, never>
+        response: string | null
+      }
+      'system:pippinPath': {
         params: Record<string, never>
         response: string | null
       }
