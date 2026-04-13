@@ -1,3 +1,15 @@
+# [2.11.0](https://github.com/malaporte/treebeard/compare/v2.10.0...v2.11.0) (2026-04-13)
+
+
+### Bug Fixes
+
+* update LaunchButtons tests to match copy-path button replacement ([5662444](https://github.com/malaporte/treebeard/commit/56624443129582ef5d6d2ba830a4ea357a328eb9))
+
+
+### Features
+
+* **LaunchButtons:** replace Pippin shell button with copy path to clipboard ([#17](https://github.com/malaporte/treebeard/issues/17)) ([a1a1b33](https://github.com/malaporte/treebeard/commit/a1a1b332bd945e0d35d943fdec9d6fb33850e171))
+
 # [2.10.0](https://github.com/malaporte/treebeard/compare/v2.9.0...v2.10.0) (2026-04-08)
 
 
