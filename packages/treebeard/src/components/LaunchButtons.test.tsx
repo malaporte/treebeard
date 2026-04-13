@@ -5,16 +5,12 @@ import { renderWithMantine } from '../test/render'
 
 const launchIdeRequest = vi.fn()
 const launchGhosttyRequest = vi.fn()
-const launchPippinShellRequest = vi.fn()
-const systemPippinPathRequest = vi.fn()
 
 vi.mock('../rpc', () => ({
   rpc: () => ({
     request: {
       'launch:ide': launchIdeRequest,
       'launch:ghostty': launchGhosttyRequest,
-      'launch:pippinShell': launchPippinShellRequest,
-      'system:pippinPath': systemPippinPathRequest
     }
   })
 }))
@@ -23,15 +19,14 @@ describe('LaunchButtons', () => {
   beforeEach(() => {
     launchIdeRequest.mockReset()
     launchGhosttyRequest.mockReset()
-    launchPippinShellRequest.mockReset()
-    systemPippinPathRequest.mockReset()
     launchIdeRequest.mockResolvedValue(undefined)
     launchGhosttyRequest.mockResolvedValue(undefined)
-    launchPippinShellRequest.mockResolvedValue(undefined)
-    systemPippinPathRequest.mockResolvedValue('/opt/homebrew/bin/pippin')
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }
+    })
   })
 
-  it('launches configured IDE, Ghostty, and Pippin shell for the selected worktree', async () => {
+  it('launches configured IDE and Ghostty for the selected worktree', async () => {
     renderWithMantine(<LaunchButtons worktreePath={'/repo/worktrees/feat'} defaultIde="vscode" />)
 
     await waitFor(() => {
@@ -41,21 +36,22 @@ describe('LaunchButtons', () => {
     const buttons = screen.getAllByRole('button')
     fireEvent.click(buttons[0])
     fireEvent.click(buttons[1])
-    fireEvent.click(buttons[2])
 
     expect(launchIdeRequest).toHaveBeenCalledWith({ ideId: 'vscode', worktreePath: '/repo/worktrees/feat' })
     expect(launchGhosttyRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/feat' })
-    expect(launchPippinShellRequest).toHaveBeenCalledWith({ worktreePath: '/repo/worktrees/feat' })
   })
 
-  it('hides the Pippin shell button when pippin is unavailable', async () => {
-    systemPippinPathRequest.mockResolvedValue(null)
-
+  it('copies the worktree path to clipboard', async () => {
     renderWithMantine(<LaunchButtons worktreePath={'/repo/worktrees/feat'} defaultIde="vscode" />)
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button')).toHaveLength(2)
+      expect(screen.getAllByRole('button')).toHaveLength(3)
     })
+
+    const buttons = screen.getAllByRole('button')
+    fireEvent.click(buttons[2])
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('/repo/worktrees/feat')
   })
 
   it('uses the configured IDE when set to intellij', () => {
