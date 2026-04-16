@@ -12,7 +12,7 @@
     },
     "packages/treebeard": {
       "name": "treebeard",
-      "version": "2.3.0",
+      "version": "2.11.0",
       "dependencies": {
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
@@ -40,6 +40,9 @@
         "vitest": "^4.0.18",
       },
     },
+  },
+  "patchedDependencies": {
+    "electrobun@1.15.1": "patches/electrobun@1.15.1.patch",
   },
   "packages": {
     "@acemir/cssom": ["@acemir/cssom@0.9.31", "", {}, "sha512-ZnR3GSaH+/vJ0YlHau21FjfLYjMpYVIzTD8M8vIEQvIGxeOXyXdzCI140rrCY862p/C/BbzWsjc1dgnM9mkoTA=="],

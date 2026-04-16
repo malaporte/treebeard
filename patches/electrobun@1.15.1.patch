@@ -1,0 +1,12 @@
+diff --git a/dist/api/bun/core/Socket.ts b/dist/api/bun/core/Socket.ts
+--- a/dist/api/bun/core/Socket.ts
++++ b/dist/api/bun/core/Socket.ts
+@@ -48,7 +48,7 @@ export const socketMap: {
+ } = {};
+ 
+ const startRPCServer = () => {
+-	const startPort = 50000;
++	const startPort = 51000;
+ 	const endPort = 65535;
+ 	const payloadLimit = 1024 * 1024 * 500; // 500MB
+ 	let port = startPort;
