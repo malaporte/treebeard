@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/malaporte/treebeard/compare/v2.11.0...v2.11.1) (2026-04-16)
+
+
+### Bug Fixes
+
+* use different port in Electrobun to avoid conflicts with local setup ([cd43128](https://github.com/malaporte/treebeard/commit/cd431281dfebadee3405fad83af28d373a0e87b6))
+
 # [2.11.0](https://github.com/malaporte/treebeard/compare/v2.10.0...v2.11.0) (2026-04-13)
 
 
