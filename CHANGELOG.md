@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/malaporte/treebeard/compare/v2.11.1...v2.12.0) (2026-04-27)
+
+
+### Features
+
+* display inactive projects at the end of the list ([#18](https://github.com/malaporte/treebeard/issues/18)) ([74dab6a](https://github.com/malaporte/treebeard/commit/74dab6a973602af2e44a63882734221f664a8c68))
+
 ## [2.11.1](https://github.com/malaporte/treebeard/compare/v2.11.0...v2.11.1) (2026-04-16)
 
 
