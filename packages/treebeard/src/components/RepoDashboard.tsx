@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Stack, Group, Title, Text, ActionIcon, Loader, Alert, Collapse, Code } from '@mantine/core'
 import { IconRefresh, IconPlus, IconChevronDown, IconChevronRight, IconGripVertical, IconAlertCircle, IconCheck, IconX } from '@tabler/icons-react'
 import {
@@ -9,13 +9,36 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { WorktreeCard } from './WorktreeCard'
 import { AddWorktreeModal } from './AddWorktreeModal'
+import { DirtyBadge } from './DirtyBadge'
+import { LaunchButtons } from './LaunchButtons'
 import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import { useFetchRepo } from '../hooks/useFetchRepo'
-import type { IdeId, RepoConfig } from '../shared/types'
+import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
+import type { IdeId, RepoConfig, Worktree } from '../shared/types'
+
+type RepoActivity = 'active' | 'inactive' | 'unknown'
 
 // --- RepoSection ---
+
+interface MainWorktreeControlsProps {
+  worktree: Worktree
+  pollIntervalSec: number
+  refreshKey: number
+  defaultIde: IdeId
+}
+
+function MainWorktreeControls({ worktree, pollIntervalSec, refreshKey, defaultIde }: MainWorktreeControlsProps) {
+  const { status, loading, refresh } = useWorktreeStatus(worktree.path, pollIntervalSec, refreshKey)
+
+  return (
+    <Group gap={8} wrap="nowrap" style={{ flexShrink: 0 }}>
+      <DirtyBadge status={status} loading={loading} worktreePath={worktree.path} onPullComplete={refresh} />
+      <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
+    </Group>
+  )
+}
 
 interface RepoSectionProps {
   repo: RepoConfig
@@ -28,6 +51,7 @@ interface RepoSectionProps {
   isDropTarget: boolean
   isOver: boolean
   jiraDropBranch: string | null
+  onActivityChange: (repoId: string, activity: RepoActivity) => void
   onJiraDropBranchClear: () => void
 }
 
@@ -42,9 +66,10 @@ function RepoSection({
   isDropTarget,
   isOver,
   jiraDropBranch,
+  onActivityChange,
   onJiraDropBranchClear
 }: RepoSectionProps) {
-  const { worktrees, loading, error, deleteError, deletingPaths, startDelete, clearDeleteError, settingUpPaths, setupError, startSetup, clearSetupError, refresh } = useWorktrees(repo.path, pollIntervalSec)
+  const { worktrees, loading, loaded, error, deleteError, deletingPaths, startDelete, clearDeleteError, settingUpPaths, setupError, startSetup, clearSetupError, refresh } = useWorktrees(repo.path, pollIntervalSec)
   const [addOpened, setAddOpened] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: repo.id })
@@ -72,15 +97,25 @@ function RepoSection({
   const dropHighlight = isDropTarget && isOver
 
   const query = search.toLowerCase()
-  const filtered = query
+  const visibleWorktrees = query
     ? worktrees.filter(
         (wt) =>
           wt.branch.toLowerCase().includes(query) ||
           wt.path.toLowerCase().includes(query)
       )
-    : worktrees
+    : worktrees.filter((wt) => !wt.isMain)
+  const mainWorktree = worktrees.find((wt) => wt.isMain)
+  const hasActiveWorktrees = worktrees.some((wt) => !wt.isMain)
+  const activity: RepoActivity = loaded && !error
+    ? hasActiveWorktrees ? 'active' : 'inactive'
+    : 'unknown'
+  const shouldShowBody = loading || Boolean(error) || Boolean(deleteError) || Boolean(setupError) || visibleWorktrees.length > 0
 
-  if (!loading && filtered.length === 0 && query) return null
+  useEffect(() => {
+    onActivityChange(repo.id, activity)
+  }, [repo.id, activity, onActivityChange])
+
+  if (!loading && visibleWorktrees.length === 0 && query) return null
 
   return (
     <div
@@ -116,17 +151,31 @@ function RepoSection({
           >
             <IconGripVertical size={14} />
           </ActionIcon>
-          <ActionIcon variant="subtle" color="dimmed" size="sm" onClick={onToggleCollapse}>
-            {isCollapsed ? <IconChevronRight size={14} /> : <IconChevronDown size={14} />}
-          </ActionIcon>
-          <Title order={4} style={{ fontFamily: 'monospace', cursor: 'pointer' }} onClick={onToggleCollapse}>
+          {shouldShowBody && (
+            <ActionIcon variant="subtle" color="dimmed" size="sm" onClick={onToggleCollapse}>
+              {isCollapsed ? <IconChevronRight size={14} /> : <IconChevronDown size={14} />}
+            </ActionIcon>
+          )}
+          <Title
+            order={4}
+            style={{ fontFamily: 'monospace', cursor: shouldShowBody ? 'pointer' : 'default' }}
+            onClick={shouldShowBody ? onToggleCollapse : undefined}
+          >
             {repo.name}
           </Title>
           <Text size="xs" c="dimmed">
             {shortenPath(repo.path)}
           </Text>
         </Group>
-        <Group gap={4}>
+        <Group gap={8} wrap="nowrap" style={{ flexShrink: 0 }}>
+          {mainWorktree && (
+            <MainWorktreeControls
+              worktree={mainWorktree}
+              pollIntervalSec={pollIntervalSec}
+              refreshKey={refreshKey}
+              defaultIde={defaultIde}
+            />
+          )}
           <ActionIcon variant="subtle" color="neon" onClick={() => setAddOpened(true)}>
             <IconPlus size={16} />
           </ActionIcon>
@@ -144,7 +193,7 @@ function RepoSection({
         initialBranch={jiraDropBranch ?? undefined}
       />
 
-      <Collapse in={!isCollapsed}>
+      <Collapse in={!isCollapsed && shouldShowBody}>
         {error && (
           <Alert color="pink" variant="light" title="Error" mb="sm">{error}</Alert>
         )}
@@ -181,7 +230,7 @@ function RepoSection({
           </Group>
         ) : (
           <Stack gap="sm">
-            {filtered.map((wt) => (
+            {visibleWorktrees.map((wt) => (
               <WorktreeCard
                 key={wt.path}
                 worktree={wt}
@@ -217,6 +266,12 @@ interface RepoDashboardProps {
   onJiraDropBranchClear: (repoId: string) => void
 }
 
+function activityRank(activity: RepoActivity | undefined): number {
+  if (activity === 'active') return 0
+  if (activity === 'inactive') return 2
+  return 1
+}
+
 export function RepoDashboard({
   repos,
   pollIntervalSec,
@@ -231,10 +286,38 @@ export function RepoDashboard({
 }: RepoDashboardProps) {
   const { collapsed, toggle } = useCollapsed()
   const [orderedRepos, setOrderedRepos] = useState(repos)
+  const [repoActivityById, setRepoActivityById] = useState<Record<string, RepoActivity>>({})
 
   useEffect(() => {
     setOrderedRepos(repos)
   }, [repos])
+
+  useEffect(() => {
+    setRepoActivityById((prev) => {
+      const repoIds = new Set(repos.map((repo) => repo.id))
+      const next: Record<string, RepoActivity> = {}
+      for (const [repoId, activity] of Object.entries(prev)) {
+        if (repoIds.has(repoId)) next[repoId] = activity
+      }
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next
+    })
+  }, [repos])
+
+  const handleActivityChange = useCallback((repoId: string, activity: RepoActivity) => {
+    setRepoActivityById((prev) => {
+      if (prev[repoId] === activity) return prev
+      return { ...prev, [repoId]: activity }
+    })
+  }, [])
+
+  const displayRepos = useMemo(() => {
+    const orderById = new Map(orderedRepos.map((repo, index) => [repo.id, index]))
+    return [...orderedRepos].sort((a, b) => {
+      const rankDiff = activityRank(repoActivityById[a.id]) - activityRank(repoActivityById[b.id])
+      if (rankDiff !== 0) return rankDiff
+      return (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0)
+    })
+  }, [orderedRepos, repoActivityById])
 
   if (orderedRepos.length === 0) {
     return (
@@ -246,9 +329,9 @@ export function RepoDashboard({
   }
 
   return (
-    <SortableContext items={orderedRepos.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+    <SortableContext items={displayRepos.map((r) => r.id)} strategy={verticalListSortingStrategy}>
       <Stack gap="xl">
-        {orderedRepos.map((repo) => (
+        {displayRepos.map((repo) => (
           <RepoSection
             key={repo.id}
             repo={repo}
@@ -261,6 +344,7 @@ export function RepoDashboard({
             isDropTarget={isDraggingJira}
             isOver={overRepoId === repo.id}
             jiraDropBranch={jiraDropTargets[repo.id] ?? null}
+            onActivityChange={handleActivityChange}
             onJiraDropBranchClear={() => onJiraDropBranchClear(repo.id)}
           />
         ))}
