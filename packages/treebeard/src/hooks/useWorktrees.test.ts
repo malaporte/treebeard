@@ -26,6 +26,7 @@ describe('useWorktrees', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
+      expect(result.current.loaded).toBe(true)
       expect(result.current.worktrees).toHaveLength(1)
     })
 
@@ -44,6 +45,7 @@ describe('useWorktrees', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
+      expect(result.current.loaded).toBe(true)
       expect(result.current.error).toBe('rpc failed')
       expect(result.current.worktrees).toEqual([])
     })

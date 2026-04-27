@@ -10,6 +10,7 @@ export interface SetupFailure {
 export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
   const [worktrees, setWorktrees] = useState<Worktree[]>([])
   const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingPaths, setDeletingPaths] = useState<Set<string>>(new Set())
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -36,6 +37,7 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
       setError(err instanceof Error ? err.message : 'Failed to list worktrees')
       setWorktrees([])
     } finally {
+      setLoaded(true)
       setLoading(false)
     }
   }, [repoPath])
@@ -112,6 +114,7 @@ export function useWorktrees(repoPath: string | null, pollIntervalSec: number) {
   return {
     worktrees,
     loading,
+    loaded,
     error,
     deleteError,
     deletingPaths,
