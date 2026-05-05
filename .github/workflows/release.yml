@@ -92,7 +92,7 @@ jobs:
             packages/treebeard/artifacts/*.dmg
             packages/treebeard/artifacts/*.tar.zst
             packages/treebeard/artifacts/*-update.json
-          retention-days: 30
+          retention-days: 1
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
