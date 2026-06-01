@@ -13,14 +13,16 @@ import {
   Divider,
   Switch,
   Alert,
-  Select
+  Select,
+  MultiSelect
 } from '@mantine/core'
 import { IconTrash, IconPlus, IconFolderOpen, IconCheck, IconX, IconChevronRight, IconChevronDown } from '@tabler/icons-react'
 import { IdeIcon } from './IdeIcon'
 import { IDE_REGISTRY, IDE_OPTIONS } from '../shared/ide-registry'
 import { useHomedir } from '../hooks/useHomedir'
+import { useWorkspaces } from '../hooks/useWorkspaces'
 import { rpc } from '../rpc'
-import type { AppConfig, DependencyStatus, IdeId, RepoConfig } from '../shared/types'
+import type { AppConfig, DependencyStatus, IdeId, RepoConfig, Workspace } from '../shared/types'
 
 const INSTALL_URLS: Record<string, string> = {
   gh: 'https://cli.github.com/',
@@ -41,7 +43,13 @@ interface SettingsModalProps {
   onSetRepoSetupCommands: (repoId: string, commands: string[]) => Promise<void>
 }
 
-type SettingsSection = 'general' | 'editor' | 'updates' | 'dependencies'
+type SettingsSection = 'general' | 'editor' | 'updates' | 'dependencies' | 'workspaces'
+
+const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*$/
+
+function deriveSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 export function SettingsModal({
   opened,
@@ -67,6 +75,25 @@ export function SettingsModal({
   const [expandedRepoId, setExpandedRepoId] = useState<string | null>(null)
   const { shortenPath } = useHomedir()
 
+  // Workspace state
+  const { workspaces, addWorkspace, updateWorkspace, removeWorkspace } = useWorkspaces()
+  const [expandedWorkspaceId, setExpandedWorkspaceId] = useState<string | null>(null)
+  const [pendingDeleteWorkspaceId, setPendingDeleteWorkspaceId] = useState<string | null>(null)
+  // Edit form state per workspace (keyed by id)
+  const [editName, setEditName] = useState('')
+  const [editSlug, setEditSlug] = useState('')
+  const [editSlugManual, setEditSlugManual] = useState(false)
+  const [editRepoIds, setEditRepoIds] = useState<string[]>([])
+  const [editSlugError, setEditSlugError] = useState<string | null>(null)
+  // Add workspace form
+  const [newWsName, setNewWsName] = useState('')
+  const [newWsSlug, setNewWsSlug] = useState('')
+  const [newWsSlugManual, setNewWsSlugManual] = useState(false)
+  const [newWsRepoIds, setNewWsRepoIds] = useState<string[]>([])
+  const [newWsSlugError, setNewWsSlugError] = useState<string | null>(null)
+  // Cascading delete alert for repo removal
+  const [cascadeAlert, setCascadeAlert] = useState<{ repo: RepoConfig; affectedWorkspaces: Workspace[] } | null>(null)
+
   const loadDependencies = async (refresh: boolean) => {
     setCheckingDependencies(true)
     try {
@@ -89,8 +116,20 @@ export function SettingsModal({
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return
+    const affected = workspaces.filter((ws) => ws.repoIds.includes(pendingDelete.id))
+    if (affected.length > 0) {
+      setCascadeAlert({ repo: pendingDelete, affectedWorkspaces: affected })
+      setPendingDelete(null)
+      return
+    }
     await onRemoveRepo(pendingDelete.id)
     setPendingDelete(null)
+  }
+
+  const handleConfirmCascadeDelete = async () => {
+    if (!cascadeAlert) return
+    await onRemoveRepo(cascadeAlert.repo.id)
+    setCascadeAlert(null)
   }
 
   const handleAdd = async () => {
@@ -165,15 +204,74 @@ export function SettingsModal({
         .join(' | ')
     : 'Unable to read dependency status.'
 
+  const handleAddWorkspace = async () => {
+    const trimmedName = newWsName.trim()
+    const slug = newWsSlug.trim()
+    if (!trimmedName || !slug) return
+    if (!SLUG_REGEX.test(slug)) {
+      setNewWsSlugError('Slug must match [a-z0-9][a-z0-9-]*')
+      return
+    }
+    if (workspaces.some((ws) => ws.slug === slug)) {
+      setNewWsSlugError('Slug already in use')
+      return
+    }
+    if (newWsRepoIds.length < 2) return
+    const workspace: Workspace = {
+      id: crypto.randomUUID(),
+      name: trimmedName,
+      slug,
+      repoIds: newWsRepoIds
+    }
+    await addWorkspace(workspace)
+    setNewWsName('')
+    setNewWsSlug('')
+    setNewWsSlugManual(false)
+    setNewWsRepoIds([])
+    setNewWsSlugError(null)
+  }
+
+  const handleExpandWorkspace = (ws: Workspace) => {
+    if (expandedWorkspaceId === ws.id) {
+      setExpandedWorkspaceId(null)
+    } else {
+      setExpandedWorkspaceId(ws.id)
+      setEditName(ws.name)
+      setEditSlug(ws.slug)
+      setEditSlugManual(false)
+      setEditRepoIds(ws.repoIds)
+      setEditSlugError(null)
+    }
+  }
+
+  const handleSaveWorkspace = async (ws: Workspace) => {
+    const trimmedName = editName.trim()
+    const slug = editSlug.trim()
+    if (!trimmedName || !slug) return
+    if (!SLUG_REGEX.test(slug)) {
+      setEditSlugError('Slug must match [a-z0-9][a-z0-9-]*')
+      return
+    }
+    if (workspaces.some((w) => w.slug === slug && w.id !== ws.id)) {
+      setEditSlugError('Slug already in use')
+      return
+    }
+    if (editRepoIds.length < 2) return
+    await updateWorkspace({ ...ws, name: trimmedName, slug, repoIds: editRepoIds })
+    setExpandedWorkspaceId(null)
+    setEditSlugError(null)
+  }
+
   const sectionItems: Array<{ key: SettingsSection; label: string }> = [
     { key: 'general', label: 'General' },
     { key: 'editor', label: 'Editor' },
     { key: 'updates', label: 'Updates' },
-    { key: 'dependencies', label: 'Dependencies' }
+    { key: 'dependencies', label: 'Dependencies' },
+    { key: 'workspaces', label: 'Workspaces' }
   ]
 
   return (
-    <Modal opened={opened} onClose={() => { setPendingDelete(null); onClose() }} title="Settings" size="lg">
+    <Modal opened={opened} onClose={() => { setPendingDelete(null); setCascadeAlert(null); onClose() }} title="Settings" size="lg">
       <Group align="flex-start" gap="md" wrap="nowrap">
         <Stack gap="xs" style={{ width: 180 }}>
           {sectionItems.map((item) => (
@@ -507,6 +605,216 @@ export function SettingsModal({
                   </Stack>
                 </Alert>
               )}
+            </Stack>
+          )}
+
+          {activeSection === 'workspaces' && (
+            <Stack gap="lg">
+              {cascadeAlert && (
+                <Alert color="orange" variant="light" title="Repo used by workspaces">
+                  <Stack gap="xs">
+                    <Text size="sm">
+                      Removing <strong>{cascadeAlert.repo.name}</strong> will affect these workspaces:{' '}
+                      {cascadeAlert.affectedWorkspaces.map((ws) => ws.name).join(', ')}.
+                      Treebeard will automatically clean up the affected workspaces on the next config save.
+                    </Text>
+                    <Group gap="xs">
+                      <Button size="xs" color="pink" onClick={() => void handleConfirmCascadeDelete()}>
+                        Remove anyway
+                      </Button>
+                      <Button size="xs" variant="subtle" onClick={() => setCascadeAlert(null)}>
+                        Cancel
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Alert>
+              )}
+
+              <div>
+                <Text fw={600} size="sm" mb="xs">Configured Workspaces</Text>
+                {workspaces.length === 0 ? (
+                  <Text size="sm" c="dimmed">No workspaces configured. Add one below.</Text>
+                ) : (
+                  <Stack gap="xs">
+                    {workspaces.map((ws) => {
+                      const isExpanded = expandedWorkspaceId === ws.id
+                      const memberRepos = config.repositories.filter((r) => ws.repoIds.includes(r.id))
+                      return (
+                        <div key={ws.id} style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 6 }}>
+                          <Group
+                            justify="space-between"
+                            align="center"
+                            p="xs"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleExpandWorkspace(ws)}
+                          >
+                            <Group gap="xs">
+                              {isExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                              <Text size="sm" fw={500}>{ws.name}</Text>
+                              <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>{ws.slug}</Text>
+                              <Text size="xs" c="dimmed">{memberRepos.length} repo{memberRepos.length !== 1 ? 's' : ''}</Text>
+                            </Group>
+                            <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                              {pendingDeleteWorkspaceId === ws.id ? (
+                                <Group gap={4} wrap="nowrap">
+                                  <Text size="xs" c="pink">Remove?</Text>
+                                  <ActionIcon
+                                    variant="filled"
+                                    color="pink"
+                                    size="sm"
+                                    onClick={() => {
+                                      void removeWorkspace(ws.id)
+                                      setPendingDeleteWorkspaceId(null)
+                                      if (expandedWorkspaceId === ws.id) setExpandedWorkspaceId(null)
+                                    }}
+                                  >
+                                    <IconCheck size={12} />
+                                  </ActionIcon>
+                                  <ActionIcon
+                                    variant="subtle"
+                                    color="dimmed"
+                                    size="sm"
+                                    onClick={() => setPendingDeleteWorkspaceId(null)}
+                                  >
+                                    <IconX size={12} />
+                                  </ActionIcon>
+                                </Group>
+                              ) : (
+                                <ActionIcon
+                                  variant="subtle"
+                                  color="pink"
+                                  size="sm"
+                                  onClick={() => setPendingDeleteWorkspaceId(ws.id)}
+                                >
+                                  <IconTrash size={14} />
+                                </ActionIcon>
+                              )}
+                            </div>
+                          </Group>
+
+                          {isExpanded && (
+                            <Stack gap="xs" p="xs" style={{ borderTop: '1px solid var(--mantine-color-default-border)', background: 'rgba(0, 136, 255, 0.03)' }}>
+                              <TextInput
+                                label="Name"
+                                size="xs"
+                                value={editName}
+                                onChange={(e) => {
+                                  setEditName(e.currentTarget.value)
+                                  if (!editSlugManual) {
+                                    setEditSlug(deriveSlug(e.currentTarget.value))
+                                    setEditSlugError(null)
+                                  }
+                                }}
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                spellCheck={false}
+                              />
+                              <TextInput
+                                label="Slug"
+                                size="xs"
+                                value={editSlug}
+                                error={editSlugError}
+                                onChange={(e) => {
+                                  setEditSlug(e.currentTarget.value)
+                                  setEditSlugManual(true)
+                                  setEditSlugError(null)
+                                }}
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                style={{ fontFamily: 'monospace' }}
+                              />
+                              <MultiSelect
+                                label="Repositories"
+                                size="xs"
+                                data={config.repositories.map((r) => ({ value: r.id, label: r.name }))}
+                                value={editRepoIds}
+                                onChange={setEditRepoIds}
+                                placeholder="Select repos"
+                              />
+                              {editRepoIds.length < 2 && (
+                                <Text size="xs" c="orange">At least 2 repositories required.</Text>
+                              )}
+                              <Group gap="xs">
+                                <Button
+                                  size="xs"
+                                  onClick={() => void handleSaveWorkspace(ws)}
+                                  disabled={editRepoIds.length < 2 || !editName.trim() || !editSlug.trim()}
+                                >
+                                  Save
+                                </Button>
+                                <Button size="xs" variant="subtle" onClick={() => setExpandedWorkspaceId(null)}>
+                                  Cancel
+                                </Button>
+                              </Group>
+                            </Stack>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </Stack>
+                )}
+              </div>
+
+              <Divider />
+
+              <div>
+                <Text fw={600} size="sm" mb="xs">Add Workspace</Text>
+                <Stack gap="xs">
+                  <TextInput
+                    label="Name"
+                    placeholder="My Workspace"
+                    size="sm"
+                    value={newWsName}
+                    onChange={(e) => {
+                      setNewWsName(e.currentTarget.value)
+                      if (!newWsSlugManual) {
+                        setNewWsSlug(deriveSlug(e.currentTarget.value))
+                        setNewWsSlugError(null)
+                      }
+                    }}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <TextInput
+                    label="Slug"
+                    placeholder="my-workspace"
+                    size="sm"
+                    value={newWsSlug}
+                    error={newWsSlugError}
+                    onChange={(e) => {
+                      setNewWsSlug(e.currentTarget.value)
+                      setNewWsSlugManual(true)
+                      setNewWsSlugError(null)
+                    }}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    style={{ fontFamily: 'monospace' }}
+                  />
+                  <MultiSelect
+                    label="Repositories"
+                    size="sm"
+                    data={config.repositories.map((r) => ({ value: r.id, label: r.name }))}
+                    value={newWsRepoIds}
+                    onChange={setNewWsRepoIds}
+                    placeholder="Select at least 2 repos"
+                  />
+                  {newWsRepoIds.length > 0 && newWsRepoIds.length < 2 && (
+                    <Text size="xs" c="orange">At least 2 repositories required.</Text>
+                  )}
+                  <Button
+                    leftSection={<IconPlus size={14} />}
+                    size="sm"
+                    style={{ alignSelf: 'flex-start' }}
+                    onClick={() => void handleAddWorkspace()}
+                    disabled={!newWsName.trim() || !newWsSlug.trim() || newWsRepoIds.length < 2}
+                  >
+                    Add Workspace
+                  </Button>
+                </Stack>
+              </div>
             </Stack>
           )}
         </div>

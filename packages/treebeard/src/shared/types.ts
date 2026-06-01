@@ -11,6 +11,7 @@ export interface RepoConfig {
 
 export interface AppConfig {
   repositories: RepoConfig[]
+  workspaces?: Workspace[]
   pollIntervalSec: number
   fetchIntervalSec: number
   autoUpdateEnabled: boolean
@@ -75,4 +76,33 @@ export interface DependencyCheck {
 export interface DependencyStatus {
   checkedAt: string
   checks: DependencyCheck[]
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  slug: string
+  repoIds: string[]
+  setupCommands?: string[]
+}
+
+export interface WorkspaceWorktreeMember {
+  repoId: string
+  repoName: string
+  path: string | null
+  worktree: Worktree | null
+}
+
+export interface WorkspaceWorktree {
+  workspaceId: string
+  branch: string
+  rootPath: string
+  members: WorkspaceWorktreeMember[]
+  isComplete: boolean
+}
+
+export interface WorkspaceWorktreeStatus {
+  rollup: WorktreeStatus
+  perRepo: { repoId: string; status: WorktreeStatus | null }[]
+  dirtyRepoCount: number
 }

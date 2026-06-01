@@ -273,6 +273,7 @@ export default function App() {
                 )}
                 <RepoDashboard
                   repos={orderedRepos}
+                  workspaces={config.workspaces ?? []}
                   pollIntervalSec={config.pollIntervalSec}
                   fetchIntervalSec={config.fetchIntervalSec}
                   search={search}

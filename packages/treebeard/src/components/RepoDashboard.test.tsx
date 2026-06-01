@@ -66,6 +66,36 @@ vi.mock('../hooks/useHomedir', () => ({
   })
 }))
 
+vi.mock('../hooks/useFetchRepo', () => ({
+  useFetchRepo: vi.fn()
+}))
+
+vi.mock('../rpc', () => ({
+  rpc: () => ({
+    request: {
+      'git:fetchRepo': () => Promise.resolve(undefined),
+      'workspace:fetch': () => Promise.resolve(undefined),
+      'workspace:removeWorktree': () => Promise.resolve({ success: true, perRepo: [] }),
+      'workspace:repair': () => Promise.resolve({ success: true, perRepo: [] })
+    }
+  })
+}))
+
+vi.mock('../hooks/useWorkspaceWorktrees', () => ({
+  useWorkspaceWorktrees: () => ({
+    worktrees: [],
+    loading: false,
+    refresh: vi.fn(),
+    createWorktree: vi.fn(),
+    removeWorktree: vi.fn(),
+    repairWorktree: vi.fn()
+  })
+}))
+
+vi.mock('./WorkspaceSection', () => ({
+  WorkspaceSection: () => null
+}))
+
 interface DirtyBadgeProps {
   worktreePath?: string
 }

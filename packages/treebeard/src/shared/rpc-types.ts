@@ -7,6 +7,8 @@ import type {
   PRInfo,
   SetupCommandResult,
   Worktree,
+  WorkspaceWorktree,
+  WorkspaceWorktreeStatus,
   WorktreeStatus
 } from './types'
 
@@ -133,6 +135,46 @@ export type TreebeardRPC = {
       'app:checkForUpdates': {
         params: Record<string, never>
         response: { success: boolean; updateAvailable: boolean; error?: string }
+      }
+      'workspace:list': {
+        params: { workspaceId: string }
+        response: WorkspaceWorktree[]
+      }
+      'workspace:addWorktree': {
+        params: { workspaceId: string; branch: string; isNewBranch: boolean }
+        response: { success: boolean; perRepo: { repoId: string; success: boolean; error?: string }[]; workspacePath?: string }
+      }
+      'workspace:removeWorktree': {
+        params: { workspaceId: string; branch: string; force?: boolean }
+        response: { success: boolean; perRepo: { repoId: string; success: boolean; error?: string }[] }
+      }
+      'workspace:status': {
+        params: { workspaceId: string; branch: string }
+        response: WorkspaceWorktreeStatus
+      }
+      'workspace:fetch': {
+        params: { workspaceId: string }
+        response: void
+      }
+      'workspace:pull': {
+        params: { workspaceId: string; branch: string }
+        response: { perRepo: { repoId: string; success: boolean; error?: string }[] }
+      }
+      'workspace:remoteBranches': {
+        params: { workspaceId: string }
+        response: string[]
+      }
+      'workspace:repair': {
+        params: { workspaceId: string; branch: string }
+        response: { success: boolean; perRepo: { repoId: string; success: boolean; error?: string }[] }
+      }
+      'launch:workspaceIde': {
+        params: { ideId: IdeId; workspacePath: string }
+        response: void
+      }
+      'launch:workspaceGhostty': {
+        params: { workspacePath: string; title: string }
+        response: void
       }
     }
     messages: Record<string, never>

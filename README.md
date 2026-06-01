@@ -31,9 +31,13 @@ Create new worktrees from the app — either a new branch or an existing remote 
 
 Open any worktree in VS Code or Ghostty with a single click (or double-click a card to open it in VS Code). Jira and GitHub links open in your default browser.
 
+### Multi-repo workspaces
+
+Group two or more repositories into a named workspace and manage their worktrees together. Creating a workspace worktree checks out the same branch across every member repo and places them as siblings in a single parent folder — open it once in your IDE and work across all repos together. See [docs/workspaces.md](docs/workspaces.md) for the full guide.
+
 ### Auto-updates and settings
 
-Built-in auto-update checks for new releases on a configurable schedule. The settings modal lets you manage your repo list, set the polling interval, and check the health of optional CLI dependencies (`gh` and `jira`).
+Built-in auto-update checks for new releases on a configurable schedule. The settings modal lets you manage your repo list, configure workspaces, set the polling interval, and check the health of optional CLI dependencies (`gh` and `jira`).
 
 ## Prerequisites
 

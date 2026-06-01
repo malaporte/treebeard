@@ -19,6 +19,16 @@ import {
 import { getPRForBranch } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
 import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
+import {
+  listWorkspaceWorktrees,
+  addWorkspaceWorktree,
+  removeWorkspaceWorktree,
+  getWorkspaceWorktreeStatus,
+  fetchWorkspace,
+  pullWorkspaceWorktree,
+  getWorkspaceRemoteBranches,
+  repairWorkspaceWorktree
+} from './services/workspace'
 import { getShellEnv } from './services/shell-env'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
@@ -268,6 +278,77 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'app:checkForUpdates': async () => {
         return checkForAppUpdate()
+      },
+
+      // --- Workspace RPC Handlers ---
+
+      'workspace:list': async ({ workspaceId }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return []
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return listWorkspaceWorktrees(workspace, repos)
+      },
+      'workspace:addWorktree': async ({ workspaceId, branch, isNewBranch }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return { success: false, perRepo: [] }
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return addWorkspaceWorktree(workspace, repos, branch, isNewBranch)
+      },
+      'workspace:removeWorktree': async ({ workspaceId, branch, force }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return { success: false, perRepo: [] }
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return removeWorkspaceWorktree(workspace, repos, branch, force ?? false)
+      },
+      'workspace:status': async ({ workspaceId, branch }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) {
+          return {
+            rollup: { hasUncommittedChanges: false, unpushedCommits: 0, unpulledCommits: 0, linesAdded: 0, linesDeleted: 0 },
+            perRepo: [],
+            dirtyRepoCount: 0
+          }
+        }
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return getWorkspaceWorktreeStatus(workspace, repos, branch)
+      },
+      'workspace:fetch': async ({ workspaceId }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        await fetchWorkspace(workspace, repos)
+      },
+      'workspace:pull': async ({ workspaceId, branch }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return { perRepo: [] }
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return pullWorkspaceWorktree(workspace, repos, branch)
+      },
+      'workspace:remoteBranches': async ({ workspaceId }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return []
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return getWorkspaceRemoteBranches(workspace, repos)
+      },
+      'workspace:repair': async ({ workspaceId, branch }) => {
+        const config = getConfig()
+        const workspace = (config.workspaces ?? []).find((w) => w.id === workspaceId)
+        if (!workspace) return { success: false, perRepo: [] }
+        const repos = config.repositories.filter((r) => workspace.repoIds.includes(r.id))
+        return repairWorkspaceWorktree(workspace, repos, branch)
+      },
+      'launch:workspaceIde': async ({ ideId, workspacePath }) => {
+        await launchIde(ideId, workspacePath)
+      },
+      'launch:workspaceGhostty': ({ workspacePath }) => {
+        launchGhostty(workspacePath)
       }
     },
     messages: {}

@@ -11,14 +11,19 @@ import { WorktreeCard } from './WorktreeCard'
 import { AddWorktreeModal } from './AddWorktreeModal'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
+import { WorkspaceSection } from './WorkspaceSection'
 import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import { useFetchRepo } from '../hooks/useFetchRepo'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
-import type { IdeId, RepoConfig, Worktree } from '../shared/types'
+import type { IdeId, RepoConfig, Workspace, Worktree } from '../shared/types'
 
 type RepoActivity = 'active' | 'inactive' | 'unknown'
+
+type SectionItem =
+  | { type: 'repo'; id: string; repo: RepoConfig }
+  | { type: 'workspace'; id: string; workspace: Workspace }
 
 // --- RepoSection ---
 
@@ -254,6 +259,7 @@ function RepoSection({
 
 interface RepoDashboardProps {
   repos: RepoConfig[]
+  workspaces?: Workspace[]
   pollIntervalSec: number
   fetchIntervalSec: number
   search: string
@@ -263,7 +269,7 @@ interface RepoDashboardProps {
   isDraggingJira: boolean
   overRepoId: string | null
   jiraDropTargets: Record<string, string | null>
-  onJiraDropBranchClear: (repoId: string) => void
+  onJiraDropBranchClear: (id: string) => void
 }
 
 function activityRank(activity: RepoActivity | undefined): number {
@@ -274,6 +280,7 @@ function activityRank(activity: RepoActivity | undefined): number {
 
 export function RepoDashboard({
   repos,
+  workspaces = [],
   pollIntervalSec,
   fetchIntervalSec,
   search,
@@ -288,9 +295,29 @@ export function RepoDashboard({
   const [orderedRepos, setOrderedRepos] = useState(repos)
   const [repoActivityById, setRepoActivityById] = useState<Record<string, RepoActivity>>({})
 
+  // Combined ordered section ids: repos first, then workspaces
+  const [sectionOrder, setSectionOrder] = useState<string[]>(() => [
+    ...repos.map((r) => r.id),
+    ...workspaces.map((w) => w.id),
+  ])
+
   useEffect(() => {
     setOrderedRepos(repos)
   }, [repos])
+
+  // Keep sectionOrder in sync when repos/workspaces change (add/remove)
+  useEffect(() => {
+    setSectionOrder((prev) => {
+      const allIds = new Set([...repos.map((r) => r.id), ...workspaces.map((w) => w.id)])
+      // Remove stale ids, then append any new ones (repos first, workspaces after)
+      const kept = prev.filter((id) => allIds.has(id))
+      const keptSet = new Set(kept)
+      const newRepoIds = repos.map((r) => r.id).filter((id) => !keptSet.has(id))
+      const newWorkspaceIds = workspaces.map((w) => w.id).filter((id) => !keptSet.has(id))
+      return [...kept, ...newRepoIds, ...newWorkspaceIds]
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repos.map((r) => r.id).join(','), workspaces.map((w) => w.id).join(',')])
 
   useEffect(() => {
     setRepoActivityById((prev) => {
@@ -310,16 +337,41 @@ export function RepoDashboard({
     })
   }, [])
 
-  const displayRepos = useMemo(() => {
-    const orderById = new Map(orderedRepos.map((repo, index) => [repo.id, index]))
-    return [...orderedRepos].sort((a, b) => {
-      const rankDiff = activityRank(repoActivityById[a.id]) - activityRank(repoActivityById[b.id])
-      if (rankDiff !== 0) return rankDiff
-      return (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0)
-    })
-  }, [orderedRepos, repoActivityById])
+  // Build unified section list in sectionOrder, with repo activity sorting applied within repo items
+  const displaySections = useMemo((): SectionItem[] => {
+    const repoById = new Map(repos.map((r) => [r.id, r]))
+    const workspaceById = new Map(workspaces.map((w) => [w.id, w]))
 
-  if (orderedRepos.length === 0) {
+    // Separate repo ids and workspace ids from sectionOrder
+    const repoIds = sectionOrder.filter((id) => repoById.has(id))
+    const workspaceIds = sectionOrder.filter((id) => workspaceById.has(id))
+
+    // Sort repo ids by activity rank, preserving relative order within same rank
+    const orderById = new Map(repoIds.map((id, index) => [id, index]))
+    const sortedRepoIds = [...repoIds].sort((a, b) => {
+      const rankDiff = activityRank(repoActivityById[a]) - activityRank(repoActivityById[b])
+      if (rankDiff !== 0) return rankDiff
+      return (orderById.get(a) ?? 0) - (orderById.get(b) ?? 0)
+    })
+
+    const repoSections: SectionItem[] = sortedRepoIds.reduce<SectionItem[]>((acc, id) => {
+      const repo = repoById.get(id)
+      if (repo) acc.push({ type: 'repo', id, repo })
+      return acc
+    }, [])
+
+    const workspaceSections: SectionItem[] = workspaceIds.reduce<SectionItem[]>((acc, id) => {
+      const workspace = workspaceById.get(id)
+      if (workspace) acc.push({ type: 'workspace', id, workspace })
+      return acc
+    }, [])
+
+    return [...repoSections, ...workspaceSections]
+  }, [sectionOrder, repos, workspaces, repoActivityById])
+
+  const allSectionIds = displaySections.map((s) => s.id)
+
+  if (repos.length === 0 && workspaces.length === 0) {
     return (
       <Stack align="center" justify="center" h={300} gap="md">
         <Text size="lg" c="dimmed">No repositories configured</Text>
@@ -329,25 +381,47 @@ export function RepoDashboard({
   }
 
   return (
-    <SortableContext items={displayRepos.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+    <SortableContext items={allSectionIds} strategy={verticalListSortingStrategy}>
       <Stack gap="xl">
-        {displayRepos.map((repo) => (
-          <RepoSection
-            key={repo.id}
-            repo={repo}
-            pollIntervalSec={pollIntervalSec}
-            fetchIntervalSec={fetchIntervalSec}
-            search={search}
-            defaultIde={defaultIde}
-            isCollapsed={collapsed.has(repo.id)}
-            onToggleCollapse={() => toggle(repo.id)}
-            isDropTarget={isDraggingJira}
-            isOver={overRepoId === repo.id}
-            jiraDropBranch={jiraDropTargets[repo.id] ?? null}
-            onActivityChange={handleActivityChange}
-            onJiraDropBranchClear={() => onJiraDropBranchClear(repo.id)}
-          />
-        ))}
+        {displaySections.map((section) => {
+          if (section.type === 'repo') {
+            return (
+              <RepoSection
+                key={section.id}
+                repo={section.repo}
+                pollIntervalSec={pollIntervalSec}
+                fetchIntervalSec={fetchIntervalSec}
+                search={search}
+                defaultIde={defaultIde}
+                isCollapsed={collapsed.has(section.id)}
+                onToggleCollapse={() => toggle(section.id)}
+                isDropTarget={isDraggingJira}
+                isOver={overRepoId === section.id}
+                jiraDropBranch={jiraDropTargets[section.id] ?? null}
+                onActivityChange={handleActivityChange}
+                onJiraDropBranchClear={() => onJiraDropBranchClear(section.id)}
+              />
+            )
+          }
+
+          return (
+            <WorkspaceSection
+              key={section.id}
+              workspace={section.workspace}
+              repos={repos}
+              pollIntervalSec={pollIntervalSec}
+              fetchIntervalSec={fetchIntervalSec}
+              search={search}
+              defaultIde={defaultIde}
+              isCollapsed={collapsed.has(section.id)}
+              onToggleCollapse={() => toggle(section.id)}
+              isDropTarget={isDraggingJira}
+              isOver={overRepoId === section.id}
+              jiraDropBranch={jiraDropTargets[section.id] ?? null}
+              onJiraDropBranchClear={() => onJiraDropBranchClear(section.id)}
+            />
+          )
+        })}
       </Stack>
     </SortableContext>
   )

@@ -2,7 +2,7 @@ import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
 import { isValidIdeId } from '../../shared/ide-registry'
-import type { AppConfig } from '../../shared/types'
+import type { AppConfig, Workspace } from '../../shared/types'
 
 const CONFIG_FILENAME = 'treebeard-config.json'
 const MIN_POLL_INTERVAL_SEC = 10
@@ -18,6 +18,7 @@ const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', CONFIG_FILEN
 
 const DEFAULTS: AppConfig = {
   repositories: [],
+  workspaces: [],
   pollIntervalSec: 60,
   fetchIntervalSec: 300,
   autoUpdateEnabled: true,
@@ -26,6 +27,49 @@ const DEFAULTS: AppConfig = {
   defaultIde: 'vscode',
   jiraPanelOpen: false,
   jiraPanelWidth: 260
+}
+
+const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*$/
+
+function sanitizeWorkspaces(raw: unknown, repositoryIds: Set<string>): Workspace[] {
+  if (!Array.isArray(raw)) return []
+
+  const seen = new Set<string>()
+  const result: Workspace[] = []
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue
+
+    const { id, name, slug, repoIds, setupCommands } = entry as Record<string, unknown>
+
+    if (typeof id !== 'string' || typeof name !== 'string' || typeof slug !== 'string') continue
+    if (!Array.isArray(repoIds)) continue
+
+    // Validate slug format
+    if (!SLUG_REGEX.test(slug)) continue
+
+    // Deduplicate by slug — keep first occurrence
+    if (seen.has(slug)) continue
+
+    // All repoIds must reference existing repositories
+    const validRepoIds = (repoIds as unknown[]).filter((rid): rid is string =>
+      typeof rid === 'string' && repositoryIds.has(rid)
+    )
+
+    // Must have at least 2 members
+    if (validRepoIds.length < 2) continue
+
+    seen.add(slug)
+    result.push({
+      id,
+      name,
+      slug,
+      repoIds: validRepoIds,
+      ...(Array.isArray(setupCommands) ? { setupCommands: setupCommands.filter((c): c is string => typeof c === 'string') } : {})
+    })
+  }
+
+  return result
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -45,8 +89,12 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
     ? clamp(Math.round(config.updateCheckIntervalMin), MIN_UPDATE_CHECK_INTERVAL_MIN, MAX_UPDATE_CHECK_INTERVAL_MIN)
     : DEFAULTS.updateCheckIntervalMin
 
+  const repositories = Array.isArray(config.repositories) ? [...config.repositories] : []
+  const repositoryIds = new Set(repositories.map((r) => r.id))
+
   return {
-    repositories: Array.isArray(config.repositories) ? [...config.repositories] : [],
+    repositories,
+    workspaces: sanitizeWorkspaces(config.workspaces, repositoryIds),
     pollIntervalSec,
     fetchIntervalSec,
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,
