@@ -97,15 +97,15 @@ export function WorktreeCard({
                   main
                 </Badge>
               )}
+              {repoName && (
+                <Badge variant="light" color="gray" size="xs" style={{ flexShrink: 0 }}>
+                  {repoName}
+                </Badge>
+              )}
             </Group>
             <Text size="xs" c="dimmed" truncate>
               {shortenPath(worktree.path)}
             </Text>
-            {repoName && (
-              <Text size="xs" c="dimmed" fs="italic" truncate>
-                {repoName}
-              </Text>
-            )}
           </div>
         </Group>
 
