@@ -12,6 +12,7 @@ import {
   getRemoteBranches,
   getWorktreeStatus,
   removeWorktree,
+  renameWorktree,
   runSetupCommands,
   pullWorktree,
   fetchRepo
@@ -193,6 +194,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'git:removeWorktree': async ({ repoPath, worktreePath, force }) => {
         return removeWorktree(repoPath, worktreePath, force)
+      },
+      'git:renameWorktree': async ({ repoPath, worktreePath, newName }) => {
+        return renameWorktree(repoPath, worktreePath, newName)
       },
       'jira:issue': async ({ issueKey }) => {
         return getJiraIssue(issueKey)

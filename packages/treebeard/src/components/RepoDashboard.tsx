@@ -242,6 +242,7 @@ function RepoSection({
                 deleting={deletingPaths.has(wt.path)}
                 settingUp={settingUpPaths.has(wt.path)}
                 onConfirmDelete={(force) => startDelete(wt.path, force)}
+                onRenamed={refresh}
               />
             ))}
           </Stack>

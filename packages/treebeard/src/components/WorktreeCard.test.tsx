@@ -101,6 +101,7 @@ describe('WorktreeCard', () => {
         refreshKey={0}
         defaultIde="vscode"
         onConfirmDelete={() => {}}
+        onRenamed={() => {}}
       />
     )
 
@@ -121,6 +122,7 @@ describe('WorktreeCard', () => {
         refreshKey={0}
         defaultIde="intellij"
         onConfirmDelete={() => {}}
+        onRenamed={() => {}}
       />
     )
 
@@ -142,6 +144,7 @@ describe('WorktreeCard', () => {
         refreshKey={0}
         defaultIde="intellij"
         onConfirmDelete={() => {}}
+        onRenamed={() => {}}
       />
     )
 

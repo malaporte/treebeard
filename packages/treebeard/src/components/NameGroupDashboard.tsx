@@ -15,6 +15,7 @@ interface RepoWorktreeEntry {
   deleting: boolean
   settingUp: boolean
   onConfirmDelete: (force: boolean) => void
+  onRenamed: () => void
 }
 
 interface RepoLoaderProps {
@@ -26,7 +27,7 @@ interface RepoLoaderProps {
 }
 
 function RepoLoader({ repo, pollIntervalSec, fetchIntervalSec, onData, onFetched }: RepoLoaderProps) {
-  const { worktrees, loading, deletingPaths, settingUpPaths, startDelete } = useWorktrees(repo.path, pollIntervalSec)
+  const { worktrees, loading, deletingPaths, settingUpPaths, startDelete, refresh } = useWorktrees(repo.path, pollIntervalSec)
 
   useFetchRepo(repo.path, fetchIntervalSec, onFetched)
 
@@ -41,8 +42,9 @@ function RepoLoader({ repo, pollIntervalSec, fetchIntervalSec, onData, onFetched
           deleting: deletingPaths.has(wt.path),
           settingUp: settingUpPaths.has(wt.path),
           onConfirmDelete: (force: boolean) => startDelete(wt.path, force),
+          onRenamed: refresh,
         })),
-    [worktrees, repo, deletingPaths, settingUpPaths, startDelete]
+    [worktrees, repo, deletingPaths, settingUpPaths, startDelete, refresh]
   )
 
   // Report data to parent
@@ -105,6 +107,7 @@ function NameGroupSection({ group, pollIntervalSec, defaultIde, refreshKey }: Na
               settingUp={entry.settingUp}
               repoName={entry.repo.name}
               onConfirmDelete={entry.onConfirmDelete}
+              onRenamed={entry.onRenamed}
             />
           ))}
         </Stack>

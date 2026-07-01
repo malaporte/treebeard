@@ -70,6 +70,10 @@ export type TreebeardRPC = {
         params: { repoPath: string; worktreePath: string; force?: boolean }
         response: { success: boolean; error?: string }
       }
+      'git:renameWorktree': {
+        params: { repoPath: string; worktreePath: string; newName: string }
+        response: { success: boolean; error?: string }
+      }
       'jira:issue': {
         params: { issueKey: string }
         response: JiraIssue | null
