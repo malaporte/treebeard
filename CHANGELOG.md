@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/malaporte/treebeard/compare/v2.12.0...v2.13.0) (2026-07-01)
+
+
+### Features
+
+* group worktrees by name across repos with rename support ([#20](https://github.com/malaporte/treebeard/issues/20)) ([1528fac](https://github.com/malaporte/treebeard/commit/1528fac48ec7f5e7afa6fe29ea06ce3ee7be7388))
+
 # [2.12.0](https://github.com/malaporte/treebeard/compare/v2.11.1...v2.12.0) (2026-04-27)
 
 
