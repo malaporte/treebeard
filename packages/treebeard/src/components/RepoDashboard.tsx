@@ -11,6 +11,7 @@ import { WorktreeCard } from './WorktreeCard'
 import { AddWorktreeModal } from './AddWorktreeModal'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
+import { NameGroupDashboard } from './NameGroupDashboard'
 import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
@@ -241,6 +242,7 @@ function RepoSection({
                 deleting={deletingPaths.has(wt.path)}
                 settingUp={settingUpPaths.has(wt.path)}
                 onConfirmDelete={(force) => startDelete(wt.path, force)}
+                onRenamed={refresh}
               />
             ))}
           </Stack>
@@ -258,6 +260,7 @@ interface RepoDashboardProps {
   fetchIntervalSec: number
   search: string
   defaultIde: IdeId
+  viewMode: 'repo' | 'name'
   onReorder: (repos: RepoConfig[]) => void
   // Jira drag state from native drag (useJiraDrag)
   isDraggingJira: boolean
@@ -278,6 +281,7 @@ export function RepoDashboard({
   fetchIntervalSec,
   search,
   defaultIde,
+  viewMode,
   onReorder,
   isDraggingJira,
   overRepoId,
@@ -325,6 +329,18 @@ export function RepoDashboard({
         <Text size="lg" c="dimmed">No repositories configured</Text>
         <Text size="sm" c="dimmed">Open Settings to add your Git repositories.</Text>
       </Stack>
+    )
+  }
+
+  if (viewMode === 'name') {
+    return (
+      <NameGroupDashboard
+        repos={orderedRepos}
+        pollIntervalSec={pollIntervalSec}
+        fetchIntervalSec={fetchIntervalSec}
+        search={search}
+        defaultIde={defaultIde}
+      />
     )
   }
 

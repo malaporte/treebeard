@@ -201,6 +201,23 @@ export async function removeWorktree(
   }
 }
 
+/** Rename a worktree by moving it to a new path within the same parent directory. */
+export async function renameWorktree(
+  repoPath: string,
+  worktreePath: string,
+  newName: string
+): Promise<{ success: boolean; error?: string }> {
+  const parentDir = path.dirname(worktreePath)
+  const newPath = path.join(parentDir, newName)
+  try {
+    await git(['worktree', 'move', worktreePath, newPath], repoPath)
+    return { success: true }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
 /** Add a new worktree. If isNewBranch is true, creates the branch off baseBranch. */
 export async function addWorktree(
   repoPath: string,

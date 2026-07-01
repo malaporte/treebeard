@@ -131,6 +131,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -171,6 +172,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'feat'}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -190,6 +192,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'missing'}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -244,6 +247,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -288,6 +292,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -332,6 +337,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="intellij"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -373,6 +379,7 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'main'}
         defaultIde="vscode"
+        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}

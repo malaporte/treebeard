@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader } from '@mantine/core'
-import { IconGitBranch, IconTrash } from '@tabler/icons-react'
+import { IconGitBranch, IconTrash, IconPencil } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
 import { DeleteWorktreeModal } from './DeleteWorktreeModal'
+import { RenameWorktreeModal } from './RenameWorktreeModal'
 import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
@@ -21,7 +22,9 @@ interface WorktreeCardProps {
   defaultIde: IdeId
   deleting?: boolean
   settingUp?: boolean
+  repoName?: string
   onConfirmDelete: (force: boolean) => void
+  onRenamed: () => void
 }
 
 const JIRA_KEY_REGEX = /([a-zA-Z][a-zA-Z0-9]+-\d+)/i
@@ -39,9 +42,12 @@ export function WorktreeCard({
   defaultIde,
   deleting,
   settingUp,
-  onConfirmDelete
+  repoName,
+  onConfirmDelete,
+  onRenamed
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
+  const [renameOpened, setRenameOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
   const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey, pollIntervalSec, refreshKey)
@@ -91,6 +97,11 @@ export function WorktreeCard({
                   main
                 </Badge>
               )}
+              {repoName && (
+                <Badge variant="light" color="gray" size="xs" style={{ flexShrink: 0 }}>
+                  {repoName}
+                </Badge>
+              )}
             </Group>
             <Text size="xs" c="dimmed" truncate>
               {shortenPath(worktree.path)}
@@ -118,6 +129,18 @@ export function WorktreeCard({
 
             <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
               {!worktree.isMain && (
+                <Tooltip label="Rename worktree">
+                  <ActionIcon
+                    variant="subtle"
+                    color="neon"
+                    size="sm"
+                    onClick={() => setRenameOpened(true)}
+                  >
+                    <IconPencil size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              {!worktree.isMain && (
                 <Tooltip label="Delete worktree">
                   <ActionIcon
                     variant="subtle"
@@ -140,6 +163,13 @@ export function WorktreeCard({
         opened={deleteOpened}
         onClose={() => setDeleteOpened(false)}
         onConfirm={onConfirmDelete}
+      />
+      <RenameWorktreeModal
+        worktree={worktree}
+        repoPath={repoPath}
+        opened={renameOpened}
+        onClose={() => setRenameOpened(false)}
+        onRenamed={onRenamed}
       />
     </Card>
   )
