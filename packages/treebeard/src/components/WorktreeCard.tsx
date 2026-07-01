@@ -21,6 +21,7 @@ interface WorktreeCardProps {
   defaultIde: IdeId
   deleting?: boolean
   settingUp?: boolean
+  repoName?: string
   onConfirmDelete: (force: boolean) => void
 }
 
@@ -39,6 +40,7 @@ export function WorktreeCard({
   defaultIde,
   deleting,
   settingUp,
+  repoName,
   onConfirmDelete
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
@@ -95,6 +97,11 @@ export function WorktreeCard({
             <Text size="xs" c="dimmed" truncate>
               {shortenPath(worktree.path)}
             </Text>
+            {repoName && (
+              <Text size="xs" c="dimmed" fs="italic" truncate>
+                {repoName}
+              </Text>
+            )}
           </div>
         </Group>
 
