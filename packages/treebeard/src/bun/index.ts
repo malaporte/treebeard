@@ -19,6 +19,7 @@ import {
 } from './services/git'
 import { getPRForBranch } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
+import { isKiroCrewAvailable, openKiroCrewSession } from './services/kiro-crew'
 import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
 import { getShellEnv } from './services/shell-env'
 import type { TreebeardRPC } from '../shared/rpc-types'
@@ -33,6 +34,7 @@ let isUpdateCheckInFlight = false
 let isUpdatePromptOpen = false
 let dependencyStatus: DependencyStatus | null = null
 let dependencyCheckInFlight: Promise<DependencyStatus> | null = null
+let kiroCrewAvailability: Promise<boolean> | null = null
 
 interface UpdateCheckResult {
   success: boolean
@@ -221,6 +223,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       'launch:opencode': ({ worktreePath }) => {
         launchOpencode(worktreePath)
       },
+      'launch:kiroCrew': async ({ worktreePath }) => {
+        return openKiroCrewSession(worktreePath)
+      },
       'launch:url': async ({ url }) => {
         if (Utils.openExternal(url)) {
           return { success: true }
@@ -249,6 +254,12 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         const proc = Bun.spawn(['which', 'pippin'], { stdout: 'pipe', stderr: 'ignore', env })
         const result = (await new Response(proc.stdout).text()).trim()
         return result || null
+      },
+      'system:kiroCrewAvailable': () => {
+        if (!kiroCrewAvailability) {
+          kiroCrewAvailability = isKiroCrewAvailable()
+        }
+        return kiroCrewAvailability
       },
       'dialog:openDirectory': async () => {
         const paths = await Utils.openFileDialog({

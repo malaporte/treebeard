@@ -11,6 +11,7 @@ export interface RepoConfig {
 
 export interface AppConfig {
   repositories: RepoConfig[]
+  kiroCrewSessions: Record<string, string>
   pollIntervalSec: number
   fetchIntervalSec: number
   autoUpdateEnabled: boolean
