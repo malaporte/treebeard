@@ -1,3 +1,10 @@
+# [2.14.0](https://github.com/malaporte/treebeard/compare/v2.13.0...v2.14.0) (2026-08-07)
+
+
+### Features
+
+* add Kiro Crew worktree action ([#21](https://github.com/malaporte/treebeard/issues/21)) ([a3dec5c](https://github.com/malaporte/treebeard/commit/a3dec5cad8732d17648c015ed8b18b26c72f8ff0))
+
 # [2.13.0](https://github.com/malaporte/treebeard/compare/v2.12.0...v2.13.0) (2026-07-01)
 
 
