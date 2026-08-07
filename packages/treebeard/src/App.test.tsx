@@ -45,6 +45,7 @@ vi.mock('./components/SettingsModal', () => ({
 
 const config: AppConfig = {
   repositories: [{ id: 'repo-1', name: 'treebeard', path: '/repo' }],
+  kiroCrewSessions: {},
   pollIntervalSec: 60,
   fetchIntervalSec: 300,
   autoUpdateEnabled: true,
