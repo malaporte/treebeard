@@ -15,6 +15,13 @@ vi.mock('@dnd-kit/core', () => ({
   PointerSensor: class {},
   useSensor: () => ({}),
   useSensors: () => [],
+  useDraggable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: () => {},
+    transform: null,
+    isDragging: false
+  }),
   useDroppable: () => ({ setNodeRef: () => {}, isOver: false }),
   DragOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }))
@@ -41,6 +48,9 @@ vi.mock('@dnd-kit/sortable', () => ({
 vi.mock('@dnd-kit/utilities', () => ({
   CSS: {
     Transform: {
+      toString: () => ''
+    },
+    Translate: {
       toString: () => ''
     }
   }
