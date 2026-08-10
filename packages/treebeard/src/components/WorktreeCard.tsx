@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader } from '@mantine/core'
-import { IconGitBranch, IconTrash, IconPencil } from '@tabler/icons-react'
+import { IconGitBranch, IconTrash, IconPencil, IconUnlink } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
 import { DirtyBadge } from './DirtyBadge'
@@ -23,7 +23,8 @@ interface WorktreeCardProps {
   deleting?: boolean
   settingUp?: boolean
   repoName?: string
-  onConfirmDelete: (force: boolean) => void
+  onConfirmDelete?: (force: boolean) => void
+  onDetach?: () => void
   onRenamed: () => void
 }
 
@@ -44,6 +45,7 @@ export function WorktreeCard({
   settingUp,
   repoName,
   onConfirmDelete,
+  onDetach,
   onRenamed
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
@@ -140,7 +142,19 @@ export function WorktreeCard({
                   </ActionIcon>
                 </Tooltip>
               )}
-              {!worktree.isMain && (
+              {onDetach && (
+                <Tooltip label="Remove from workspace">
+                  <ActionIcon
+                    variant="subtle"
+                    color="orange"
+                    size="sm"
+                    onClick={onDetach}
+                  >
+                    <IconUnlink size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              {!onDetach && !worktree.isMain && onConfirmDelete && (
                 <Tooltip label="Delete worktree">
                   <ActionIcon
                     variant="subtle"
@@ -158,12 +172,14 @@ export function WorktreeCard({
         )}
       </Group>
 
-      <DeleteWorktreeModal
-        worktree={worktree}
-        opened={deleteOpened}
-        onClose={() => setDeleteOpened(false)}
-        onConfirm={onConfirmDelete}
-      />
+      {onConfirmDelete && (
+        <DeleteWorktreeModal
+          worktree={worktree}
+          opened={deleteOpened}
+          onClose={() => setDeleteOpened(false)}
+          onConfirm={onConfirmDelete}
+        />
+      )}
       <RenameWorktreeModal
         worktree={worktree}
         repoPath={repoPath}

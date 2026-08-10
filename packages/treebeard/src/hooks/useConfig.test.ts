@@ -25,6 +25,7 @@ describe('useConfig', () => {
   it('loads configuration on mount', async () => {
     const initial: AppConfig = {
       repositories: [],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
@@ -48,6 +49,7 @@ describe('useConfig', () => {
   it('adds and removes repos through config:set', async () => {
     const initial: AppConfig = {
       repositories: [{ id: '1', name: 'repo', path: '/repo' }],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
@@ -99,6 +101,7 @@ describe('useConfig', () => {
         { id: '1', name: 'repo-a', path: '/repo-a' },
         { id: '2', name: 'repo-b', path: '/repo-b' }
       ],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,

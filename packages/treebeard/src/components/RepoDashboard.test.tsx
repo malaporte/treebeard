@@ -15,6 +15,13 @@ vi.mock('@dnd-kit/core', () => ({
   PointerSensor: class {},
   useSensor: () => ({}),
   useSensors: () => [],
+  useDraggable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: () => {},
+    transform: null,
+    isDragging: false
+  }),
   useDroppable: () => ({ setNodeRef: () => {}, isOver: false }),
   DragOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }))
@@ -41,6 +48,9 @@ vi.mock('@dnd-kit/sortable', () => ({
 vi.mock('@dnd-kit/utilities', () => ({
   CSS: {
     Transform: {
+      toString: () => ''
+    },
+    Translate: {
       toString: () => ''
     }
   }
@@ -131,7 +141,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -172,7 +181,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'feat'}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -192,7 +200,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'missing'}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -247,7 +254,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -292,7 +298,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -337,7 +342,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="intellij"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
@@ -379,7 +383,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'main'}
         defaultIde="vscode"
-        viewMode="repo"
         onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}

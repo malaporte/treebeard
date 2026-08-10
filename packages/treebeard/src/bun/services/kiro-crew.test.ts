@@ -20,6 +20,7 @@ vi.mock('./shell-env', () => ({
 function createConfig(kiroCrewSessions: Record<string, string> = {}): AppConfig {
   return {
     repositories: [],
+    workspaces: [],
     kiroCrewSessions,
     pollIntervalSec: 60,
     fetchIntervalSec: 300,

@@ -2,7 +2,7 @@ import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
 import { isValidIdeId } from '../../shared/ide-registry'
-import type { AppConfig } from '../../shared/types'
+import type { AppConfig, Workspace, WorkspaceMember } from '../../shared/types'
 
 const CONFIG_FILENAME = 'treebeard-config.json'
 const MIN_POLL_INTERVAL_SEC = 10
@@ -15,9 +15,11 @@ const MIN_JIRA_PANEL_WIDTH = 180
 const MAX_JIRA_PANEL_WIDTH = 600
 
 const CONFIG_PATH = path.join(os.homedir(), '.config', 'treebeard', CONFIG_FILENAME)
+const WORKSPACES_ROOT = path.join(os.homedir(), 'Developer', 'workspaces')
 
 const DEFAULTS: AppConfig = {
   repositories: [],
+  workspaces: [],
   kiroCrewSessions: {},
   pollIntervalSec: 60,
   fetchIntervalSec: 300,
@@ -43,6 +45,70 @@ function sanitizeKiroCrewSessions(sessions: unknown): Record<string, string> {
   )
 }
 
+function isWorkspacePath(workspacePath: string): boolean {
+  const relative = path.relative(WORKSPACES_ROOT, workspacePath)
+  return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative)
+}
+
+function isPathInside(parentPath: string, candidatePath: string): boolean {
+  const relative = path.relative(parentPath, candidatePath)
+  return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative)
+}
+
+function sanitizeWorkspaceMember(member: unknown, workspacePath: string): WorkspaceMember | null {
+  if (!member || typeof member !== 'object' || Array.isArray(member)) return null
+  const candidate = member as Partial<WorkspaceMember>
+  if (typeof candidate.repoId !== 'string' || !candidate.repoId) return null
+  if (typeof candidate.worktreePath !== 'string' || !path.isAbsolute(candidate.worktreePath)) return null
+  const linkPath = typeof candidate.linkPath === 'string' && isPathInside(workspacePath, candidate.linkPath)
+    ? candidate.linkPath
+    : isPathInside(workspacePath, candidate.worktreePath)
+      ? candidate.worktreePath
+      : null
+  if (!linkPath) return null
+  return { repoId: candidate.repoId, worktreePath: candidate.worktreePath, linkPath }
+}
+
+function sanitizeWorkspaces(workspaces: unknown): Workspace[] {
+  if (!Array.isArray(workspaces)) return []
+
+  const workspaceIds = new Set<string>()
+  const workspacePaths = new Set<string>()
+  const sanitized: Workspace[] = []
+
+  for (const workspace of workspaces) {
+    if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace)) continue
+    const candidate = workspace as Partial<Workspace>
+    if (typeof candidate.id !== 'string' || !candidate.id || workspaceIds.has(candidate.id)) continue
+    if (typeof candidate.name !== 'string' || !candidate.name.trim()) continue
+    if (typeof candidate.path !== 'string' || !isWorkspacePath(candidate.path) || workspacePaths.has(candidate.path)) continue
+
+    const memberRepoIds = new Set<string>()
+    const memberPaths = new Set<string>()
+    const memberLinkPaths = new Set<string>()
+    const members = (Array.isArray(candidate.members) ? candidate.members : [])
+      .map((member) => sanitizeWorkspaceMember(member, candidate.path!))
+      .filter((member): member is WorkspaceMember => {
+        if (!member || memberRepoIds.has(member.repoId) || memberPaths.has(member.worktreePath) || memberLinkPaths.has(member.linkPath)) return false
+        memberRepoIds.add(member.repoId)
+        memberPaths.add(member.worktreePath)
+        memberLinkPaths.add(member.linkPath)
+        return true
+      })
+
+    workspaceIds.add(candidate.id)
+    workspacePaths.add(candidate.path)
+    sanitized.push({
+      id: candidate.id,
+      name: candidate.name.trim(),
+      path: candidate.path,
+      members
+    })
+  }
+
+  return sanitized
+}
+
 function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
   const pollIntervalSec = typeof config.pollIntervalSec === 'number'
     ? clamp(Math.round(config.pollIntervalSec), MIN_POLL_INTERVAL_SEC, MAX_POLL_INTERVAL_SEC)
@@ -58,6 +124,7 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
 
   return {
     repositories: Array.isArray(config.repositories) ? [...config.repositories] : [],
+    workspaces: sanitizeWorkspaces(config.workspaces),
     kiroCrewSessions: sanitizeKiroCrewSessions(config.kiroCrewSessions),
     pollIntervalSec,
     fetchIntervalSec,

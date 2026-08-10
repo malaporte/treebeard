@@ -6,6 +6,7 @@ import type {
   JiraIssue,
   PRInfo,
   SetupCommandResult,
+  Workspace,
   Worktree,
   WorktreeStatus
 } from './types'
@@ -72,6 +73,22 @@ export type TreebeardRPC = {
       }
       'git:renameWorktree': {
         params: { repoPath: string; worktreePath: string; newName: string }
+        response: { success: boolean; error?: string }
+      }
+      'workspace:create': {
+        params: { name: string }
+        response: { success: boolean; workspace?: Workspace; error?: string }
+      }
+      'workspace:attachWorktree': {
+        params: { workspaceId: string; repoId: string; worktreePath: string }
+        response: { success: boolean; error?: string }
+      }
+      'workspace:removeMember': {
+        params: { workspaceId: string; repoId: string }
+        response: { success: boolean; error?: string }
+      }
+      'workspace:remove': {
+        params: { workspaceId: string }
         response: { success: boolean; error?: string }
       }
       'jira:issue': {

@@ -6,17 +6,18 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { WorktreeCard } from './WorktreeCard'
 import { AddWorktreeModal } from './AddWorktreeModal'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
-import { NameGroupDashboard } from './NameGroupDashboard'
 import { useWorktrees } from '../hooks/useWorktrees'
 import { useCollapsed } from '../hooks/useCollapsed'
 import { useHomedir } from '../hooks/useHomedir'
 import { useFetchRepo } from '../hooks/useFetchRepo'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
+import { WORKTREE_DRAG_PREFIX } from '../shared/workspace-dnd'
 import type { IdeId, RepoConfig, Worktree } from '../shared/types'
 
 type RepoActivity = 'active' | 'inactive' | 'unknown'
@@ -38,6 +39,59 @@ function MainWorktreeControls({ worktree, pollIntervalSec, refreshKey, defaultId
       <DirtyBadge status={status} loading={loading} worktreePath={worktree.path} onPullComplete={refresh} />
       <LaunchButtons worktreePath={worktree.path} defaultIde={defaultIde} />
     </Group>
+  )
+}
+
+interface DraggableWorktreeCardProps {
+  repo: RepoConfig
+  worktree: Worktree
+  pollIntervalSec: number
+  refreshKey: number
+  defaultIde: IdeId
+  deleting: boolean
+  settingUp: boolean
+  onConfirmDelete: (force: boolean) => void
+  onRenamed: () => void
+}
+
+function DraggableWorktreeCard({
+  repo,
+  worktree,
+  pollIntervalSec,
+  refreshKey,
+  defaultIde,
+  deleting,
+  settingUp,
+  onConfirmDelete,
+  onRenamed
+}: DraggableWorktreeCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `${WORKTREE_DRAG_PREFIX}${repo.id}:${worktree.path}`
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        opacity: isDragging ? 0.45 : 1,
+        transform: CSS.Translate.toString(transform),
+        touchAction: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <WorktreeCard
+        worktree={worktree}
+        repoPath={repo.path}
+        pollIntervalSec={pollIntervalSec}
+        refreshKey={refreshKey}
+        defaultIde={defaultIde}
+        deleting={deleting}
+        settingUp={settingUp}
+        onConfirmDelete={onConfirmDelete}
+        onRenamed={onRenamed}
+      />
+    </div>
   )
 }
 
@@ -232,18 +286,33 @@ function RepoSection({
         ) : (
           <Stack gap="sm">
             {visibleWorktrees.map((wt) => (
-              <WorktreeCard
-                key={wt.path}
-                worktree={wt}
-                repoPath={repo.path}
-                pollIntervalSec={pollIntervalSec}
-                refreshKey={refreshKey}
-                defaultIde={defaultIde}
-                deleting={deletingPaths.has(wt.path)}
-                settingUp={settingUpPaths.has(wt.path)}
-                onConfirmDelete={(force) => startDelete(wt.path, force)}
-                onRenamed={refresh}
-              />
+              wt.isMain ? (
+                <WorktreeCard
+                  key={wt.path}
+                  worktree={wt}
+                  repoPath={repo.path}
+                  pollIntervalSec={pollIntervalSec}
+                  refreshKey={refreshKey}
+                  defaultIde={defaultIde}
+                  deleting={deletingPaths.has(wt.path)}
+                  settingUp={settingUpPaths.has(wt.path)}
+                  onConfirmDelete={(force) => startDelete(wt.path, force)}
+                  onRenamed={refresh}
+                />
+              ) : (
+                <DraggableWorktreeCard
+                  key={wt.path}
+                  repo={repo}
+                  worktree={wt}
+                  pollIntervalSec={pollIntervalSec}
+                  refreshKey={refreshKey}
+                  defaultIde={defaultIde}
+                  deleting={deletingPaths.has(wt.path)}
+                  settingUp={settingUpPaths.has(wt.path)}
+                  onConfirmDelete={(force) => startDelete(wt.path, force)}
+                  onRenamed={refresh}
+                />
+              )
             ))}
           </Stack>
         )}
@@ -260,7 +329,6 @@ interface RepoDashboardProps {
   fetchIntervalSec: number
   search: string
   defaultIde: IdeId
-  viewMode: 'repo' | 'name'
   onReorder: (repos: RepoConfig[]) => void
   // Jira drag state from native drag (useJiraDrag)
   isDraggingJira: boolean
@@ -281,7 +349,6 @@ export function RepoDashboard({
   fetchIntervalSec,
   search,
   defaultIde,
-  viewMode,
   onReorder,
   isDraggingJira,
   overRepoId,
@@ -329,18 +396,6 @@ export function RepoDashboard({
         <Text size="lg" c="dimmed">No repositories configured</Text>
         <Text size="sm" c="dimmed">Open Settings to add your Git repositories.</Text>
       </Stack>
-    )
-  }
-
-  if (viewMode === 'name') {
-    return (
-      <NameGroupDashboard
-        repos={orderedRepos}
-        pollIntervalSec={pollIntervalSec}
-        fetchIntervalSec={fetchIntervalSec}
-        search={search}
-        defaultIde={defaultIde}
-      />
     )
   }
 

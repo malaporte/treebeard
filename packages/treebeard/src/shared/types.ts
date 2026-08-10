@@ -9,8 +9,22 @@ export interface RepoConfig {
   setupCommands?: string[]
 }
 
+export interface WorkspaceMember {
+  repoId: string
+  worktreePath: string
+  linkPath: string
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  path: string
+  members: WorkspaceMember[]
+}
+
 export interface AppConfig {
   repositories: RepoConfig[]
+  workspaces: Workspace[]
   kiroCrewSessions: Record<string, string>
   pollIntervalSec: number
   fetchIntervalSec: number

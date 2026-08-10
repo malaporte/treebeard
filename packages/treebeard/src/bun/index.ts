@@ -1,4 +1,5 @@
 import os from 'node:os'
+import path from 'node:path'
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from 'electrobun/bun'
 import Electrobun from 'electrobun/bun'
 import { getConfig, setConfig, getCollapsedRepos, setCollapsedRepos } from './services/config'
@@ -22,6 +23,14 @@ import { getJiraIssue, getMyJiraIssues } from './services/jira'
 import { isKiroCrewAvailable, openKiroCrewSession } from './services/kiro-crew'
 import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
 import { getShellEnv } from './services/shell-env'
+import {
+  attachWorkspaceWorktree,
+  createWorkspace,
+  detachWorkspaceWorktree,
+  removeWorkspace,
+  removeWorkspaceMember,
+  updateWorkspaceWorktreePath
+} from './services/workspaces'
 import type { TreebeardRPC } from '../shared/rpc-types'
 import type { AppConfig, DependencyStatus } from '../shared/types'
 
@@ -195,10 +204,26 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         return pullWorktree(worktreePath)
       },
       'git:removeWorktree': async ({ repoPath, worktreePath, force }) => {
-        return removeWorktree(repoPath, worktreePath, force)
+        const result = await removeWorktree(repoPath, worktreePath, force)
+        if (result.success) detachWorkspaceWorktree(worktreePath)
+        return result
       },
       'git:renameWorktree': async ({ repoPath, worktreePath, newName }) => {
-        return renameWorktree(repoPath, worktreePath, newName)
+        const result = await renameWorktree(repoPath, worktreePath, newName)
+        if (result.success) updateWorkspaceWorktreePath(worktreePath, path.join(path.dirname(worktreePath), newName))
+        return result
+      },
+      'workspace:create': ({ name }) => {
+        return createWorkspace(name)
+      },
+      'workspace:attachWorktree': async ({ workspaceId, repoId, worktreePath }) => {
+        return attachWorkspaceWorktree(workspaceId, repoId, worktreePath)
+      },
+      'workspace:removeMember': ({ workspaceId, repoId }) => {
+        return removeWorkspaceMember(workspaceId, repoId)
+      },
+      'workspace:remove': ({ workspaceId }) => {
+        return removeWorkspace(workspaceId)
       },
       'jira:issue': async ({ issueKey }) => {
         return getJiraIssue(issueKey)

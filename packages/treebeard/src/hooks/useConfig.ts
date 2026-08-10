@@ -126,6 +126,7 @@ export function useConfig() {
   return {
     config,
     loading,
+    refresh: load,
     addRepo,
     removeRepo,
     setPollInterval,

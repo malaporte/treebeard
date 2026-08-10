@@ -48,6 +48,7 @@ describe('config service', () => {
   it('returns defaults when no file exists', () => {
     expect(getConfig()).toEqual({
       repositories: [],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
@@ -63,6 +64,7 @@ describe('config service', () => {
   it('sanitizes persisted values to supported ranges', () => {
     setConfig({
       repositories: [],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 1,
       fetchIntervalSec: 30,
@@ -76,6 +78,7 @@ describe('config service', () => {
 
     expect(getConfig()).toEqual({
       repositories: [],
+      workspaces: [],
       kiroCrewSessions: {},
       pollIntervalSec: 10,
       fetchIntervalSec: 60,
@@ -103,5 +106,30 @@ describe('config service', () => {
     }))
 
     expect(getConfig().kiroCrewSessions).toEqual({ '/repo/worktree': 'chat-123' })
+  })
+
+  it('preserves direct-path workspace members created before symlink support', () => {
+    mockReadFileSync.mockImplementation(() => JSON.stringify({
+      workspaces: [{
+        id: 'workspace-1',
+        name: 'Authentication',
+        path: '/Users/test/Developer/workspaces/authentication',
+        members: [{
+          repoId: 'repo-1',
+          worktreePath: '/Users/test/Developer/workspaces/authentication/treebeard'
+        }]
+      }]
+    }))
+
+    expect(getConfig().workspaces).toEqual([{
+      id: 'workspace-1',
+      name: 'Authentication',
+      path: '/Users/test/Developer/workspaces/authentication',
+      members: [{
+        repoId: 'repo-1',
+        worktreePath: '/Users/test/Developer/workspaces/authentication/treebeard',
+        linkPath: '/Users/test/Developer/workspaces/authentication/treebeard'
+      }]
+    }])
   })
 })

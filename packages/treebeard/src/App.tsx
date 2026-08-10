@@ -7,12 +7,12 @@ import {
   ActionIcon,
   Loader,
   Text,
+  Title,
   TextInput,
   Alert,
   Stack,
   Group,
   Tooltip,
-  SegmentedControl,
   createTheme
 } from '@mantine/core'
 import { IconSettings, IconSearch, IconX, IconTicket } from '@tabler/icons-react'
@@ -25,12 +25,14 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { RepoDashboard } from './components/RepoDashboard'
+import { WorkspaceDashboard } from './components/WorkspaceDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { JiraPanel } from './components/JiraPanel'
 import { useConfig } from './hooks/useConfig'
 import { useMyJiraIssues } from './hooks/useMyJiraIssues'
 import { useJiraDrag } from './hooks/useJiraDrag'
 import { rpc } from './rpc'
+import { WORKTREE_DRAG_PREFIX, WORKSPACE_TARGET_PREFIX } from './shared/workspace-dnd'
 import type { DragEndEvent } from '@dnd-kit/core'
 import type { DependencyStatus, RepoConfig } from './shared/types'
 import type { JiraIssueDragData } from './components/JiraIssueCard'
@@ -72,6 +74,7 @@ export default function App() {
   const {
     config,
     loading,
+    refresh: refreshConfig,
     addRepo,
     removeRepo,
     setPollInterval,
@@ -85,11 +88,11 @@ export default function App() {
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
-  const [viewMode, setViewMode] = useState<'repo' | 'name'>('repo')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [jiraDropTargets, setJiraDropTargets] = useState<Record<string, string | null>>({})
   const [orderedRepos, setOrderedRepos] = useState<RepoConfig[]>([])
   const [panelWidth, setPanelWidth] = useState<number>(260)
+  const [workspaceAttachError, setWorkspaceAttachError] = useState<string | null>(null)
 
   const jiraPanelOpen = config?.jiraPanelOpen ?? false
   const pollIntervalSec = config?.pollIntervalSec ?? 60
@@ -119,19 +122,48 @@ export default function App() {
   const { isDragging: isDraggingJira, draggingKey, overRepoId, onMouseDown: onIssueMouseDown } =
     useJiraDrag(handleJiraDrop)
 
-  // @dnd-kit only for repo section reordering
+  // @dnd-kit coordinates repository reordering and worktree-to-workspace links.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  const handleWorkspaceAttach = useCallback(async (workspaceId: string, repoId: string, worktreePath: string) => {
+    setWorkspaceAttachError(null)
+    try {
+      const result = await rpc().request['workspace:attachWorktree']({ workspaceId, repoId, worktreePath })
+      if (!result.success) {
+        setWorkspaceAttachError(result.error ?? 'Failed to link worktree into workspace.')
+        return
+      }
+      await refreshConfig()
+    } catch {
+      setWorkspaceAttachError('Failed to link worktree into workspace.')
+    }
+  }, [refreshConfig])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
-    if (!over || active.id === over.id) return
+    if (!over) return
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    if (activeId.startsWith(WORKTREE_DRAG_PREFIX) && overId.startsWith(WORKSPACE_TARGET_PREFIX)) {
+      const source = activeId.slice(WORKTREE_DRAG_PREFIX.length)
+      const separator = source.indexOf(':')
+      if (separator !== -1) {
+        void handleWorkspaceAttach(
+          overId.slice(WORKSPACE_TARGET_PREFIX.length),
+          source.slice(0, separator),
+          source.slice(separator + 1)
+        )
+      }
+      return
+    }
+    if (active.id === over.id) return
     const oldIndex = orderedRepos.findIndex((r) => r.id === active.id)
     const newIndex = orderedRepos.findIndex((r) => r.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
     const reordered = arrayMove(orderedRepos, oldIndex, newIndex)
     setOrderedRepos(reordered)
     void reorderRepos(reordered)
-  }, [orderedRepos, reorderRepos])
+  }, [handleWorkspaceAttach, orderedRepos, reorderRepos])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -194,8 +226,7 @@ export default function App() {
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <AppShell
+      <AppShell
           header={{ height: 38 }}
           aside={jiraPanelOpen ? { width: panelWidth, breakpoint: 'xs' } : undefined}
           padding="md"
@@ -227,15 +258,6 @@ export default function App() {
                 value={search}
                 onChange={(e) => setSearch(e.currentTarget.value)}
                 style={{ width: 220 }}
-              />
-              <SegmentedControl
-                size="xs"
-                value={viewMode}
-                onChange={(v) => setViewMode(v as 'repo' | 'name')}
-                data={[
-                  { label: 'Repos', value: 'repo' },
-                  { label: 'Names', value: 'name' },
-                ]}
               />
               <Tooltip label={jiraPanelOpen ? 'Hide my Jira issues' : 'Show my Jira issues'} openDelay={500}>
                 <ActionIcon
@@ -282,21 +304,39 @@ export default function App() {
                     {authDependencyMessage}
                   </Alert>
                 )}
-                <RepoDashboard
-                  repos={orderedRepos}
-                  pollIntervalSec={config.pollIntervalSec}
-                  fetchIntervalSec={config.fetchIntervalSec}
-                  search={search}
-                  defaultIde={config.defaultIde}
-                  viewMode={viewMode}
-                  onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
-                  isDraggingJira={isDraggingJira}
-                  overRepoId={overRepoId}
-                  jiraDropTargets={jiraDropTargets}
-                  onJiraDropBranchClear={(repoId) =>
-                    setJiraDropTargets((prev) => ({ ...prev, [repoId]: null }))
-                  }
-                />
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <Stack gap="xl">
+                    <WorkspaceDashboard
+                      workspaces={config.workspaces}
+                      repositories={orderedRepos}
+                      pollIntervalSec={config.pollIntervalSec}
+                      defaultIde={config.defaultIde}
+                      search={search}
+                      onChanged={refreshConfig}
+                      attachError={workspaceAttachError}
+                    />
+                    <Stack gap="md">
+                      <div>
+                        <Title order={3}>Worktrees</Title>
+                        <Text size="sm" c="dimmed">Manage worktrees across all configured repositories.</Text>
+                      </div>
+                      <RepoDashboard
+                        repos={orderedRepos}
+                        pollIntervalSec={config.pollIntervalSec}
+                        fetchIntervalSec={config.fetchIntervalSec}
+                        search={search}
+                        defaultIde={config.defaultIde}
+                        onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
+                        isDraggingJira={isDraggingJira}
+                        overRepoId={overRepoId}
+                        jiraDropTargets={jiraDropTargets}
+                        onJiraDropBranchClear={(repoId) =>
+                          setJiraDropTargets((prev) => ({ ...prev, [repoId]: null }))
+                        }
+                      />
+                    </Stack>
+                  </Stack>
+                </DndContext>
               </Stack>
             </Box>
           </AppShell.Main>
@@ -313,8 +353,7 @@ export default function App() {
               />
             </AppShell.Aside>
           )}
-        </AppShell>
-      </DndContext>
+      </AppShell>
 
       <SettingsModal
         opened={settingsOpened}

@@ -31,6 +31,10 @@ interface SettingsModalProps {
   opened: boolean
 }
 
+interface WorkspaceDashboardProps {
+  attachError: string | null
+}
+
 vi.mock('./components/RepoDashboard', () => ({
   RepoDashboard: ({ search }: RepoDashboardProps) => (
     <div>
@@ -43,8 +47,15 @@ vi.mock('./components/SettingsModal', () => ({
   SettingsModal: ({ opened }: SettingsModalProps) => <div data-testid="settings-modal">{String(opened)}</div>
 }))
 
+vi.mock('./components/WorkspaceDashboard', () => ({
+  WorkspaceDashboard: ({ attachError }: WorkspaceDashboardProps) => (
+    <div data-testid="workspace-dashboard">attach-error:{String(attachError)}</div>
+  )
+}))
+
 const config: AppConfig = {
   repositories: [{ id: 'repo-1', name: 'treebeard', path: '/repo' }],
+  workspaces: [],
   kiroCrewSessions: {},
   pollIntervalSec: 60,
   fetchIntervalSec: 300,
@@ -66,6 +77,7 @@ describe('App', () => {
     useConfigMock.mockReturnValue({
       config,
       loading: false,
+      refresh: vi.fn(async () => {}),
       addRepo: vi.fn(async () => {}),
       removeRepo: vi.fn(async () => {}),
       setPollInterval: vi.fn(async () => {}),
@@ -80,6 +92,17 @@ describe('App', () => {
     useConfigMock.mockReturnValue({ config: null, loading: true })
     renderWithMantine(<App />)
     expect(screen.getByText('Loading...')).toBeTruthy()
+  })
+
+  it('renders workspaces above the repository dashboard in Repos mode', () => {
+    renderWithMantine(<App />)
+
+    const workspaceDashboard = screen.getByTestId('workspace-dashboard')
+    const repoDashboard = screen.getByTestId('repo-dashboard')
+    expect(screen.getByRole('heading', { name: 'Worktrees' })).toBeTruthy()
+    expect(screen.getByText('Manage worktrees across all configured repositories.')).toBeTruthy()
+    expect(screen.queryByText('Names')).toBeNull()
+    expect(workspaceDashboard.compareDocumentPosition(repoDashboard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('renders dependency warnings and handles keyboard shortcuts', async () => {
