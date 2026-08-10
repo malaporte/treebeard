@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/malaporte/treebeard/compare/v2.14.0...v2.15.0) (2026-08-10)
+
+
+### Features
+
+* add support for creating multi-repo workspaces ([#22](https://github.com/malaporte/treebeard/issues/22)) ([92cb1f1](https://github.com/malaporte/treebeard/commit/92cb1f191be8a9402716c74b749861bea4f2a87d))
+
 # [2.14.0](https://github.com/malaporte/treebeard/compare/v2.13.0...v2.14.0) (2026-08-07)
 
 
