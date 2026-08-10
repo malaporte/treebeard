@@ -101,6 +101,7 @@ describe('App', () => {
     const repoDashboard = screen.getByTestId('repo-dashboard')
     expect(screen.getByRole('heading', { name: 'Worktrees' })).toBeTruthy()
     expect(screen.getByText('Manage worktrees across all configured repositories.')).toBeTruthy()
+    expect(screen.queryByText('Names')).toBeNull()
     expect(workspaceDashboard.compareDocumentPosition(repoDashboard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 

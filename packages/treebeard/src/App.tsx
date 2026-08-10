@@ -13,7 +13,6 @@ import {
   Stack,
   Group,
   Tooltip,
-  SegmentedControl,
   createTheme
 } from '@mantine/core'
 import { IconSettings, IconSearch, IconX, IconTicket } from '@tabler/icons-react'
@@ -89,7 +88,6 @@ export default function App() {
   } = useConfig()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [search, setSearch] = useState('')
-  const [viewMode, setViewMode] = useState<'repo' | 'name'>('repo')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [jiraDropTargets, setJiraDropTargets] = useState<Record<string, string | null>>({})
   const [orderedRepos, setOrderedRepos] = useState<RepoConfig[]>([])
@@ -261,15 +259,6 @@ export default function App() {
                 onChange={(e) => setSearch(e.currentTarget.value)}
                 style={{ width: 220 }}
               />
-              <SegmentedControl
-                size="xs"
-                value={viewMode}
-                onChange={(v) => setViewMode(v as 'repo' | 'name')}
-                data={[
-                  { label: 'Repos', value: 'repo' },
-                  { label: 'Names', value: 'name' }
-                ]}
-              />
               <Tooltip label={jiraPanelOpen ? 'Hide my Jira issues' : 'Show my Jira issues'} openDelay={500}>
                 <ActionIcon
                   variant={jiraPanelOpen ? 'light' : 'subtle'}
@@ -315,58 +304,39 @@ export default function App() {
                     {authDependencyMessage}
                   </Alert>
                 )}
-                {viewMode === 'repo' ? (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <Stack gap="xl">
-                      <WorkspaceDashboard
-                        workspaces={config.workspaces}
-                        repositories={orderedRepos}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <Stack gap="xl">
+                    <WorkspaceDashboard
+                      workspaces={config.workspaces}
+                      repositories={orderedRepos}
+                      pollIntervalSec={config.pollIntervalSec}
+                      defaultIde={config.defaultIde}
+                      search={search}
+                      onChanged={refreshConfig}
+                      attachError={workspaceAttachError}
+                    />
+                    <Stack gap="md">
+                      <div>
+                        <Title order={3}>Worktrees</Title>
+                        <Text size="sm" c="dimmed">Manage worktrees across all configured repositories.</Text>
+                      </div>
+                      <RepoDashboard
+                        repos={orderedRepos}
                         pollIntervalSec={config.pollIntervalSec}
-                        defaultIde={config.defaultIde}
+                        fetchIntervalSec={config.fetchIntervalSec}
                         search={search}
-                        onChanged={refreshConfig}
-                        attachError={workspaceAttachError}
+                        defaultIde={config.defaultIde}
+                        onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
+                        isDraggingJira={isDraggingJira}
+                        overRepoId={overRepoId}
+                        jiraDropTargets={jiraDropTargets}
+                        onJiraDropBranchClear={(repoId) =>
+                          setJiraDropTargets((prev) => ({ ...prev, [repoId]: null }))
+                        }
                       />
-                      <Stack gap="md">
-                        <div>
-                          <Title order={3}>Worktrees</Title>
-                          <Text size="sm" c="dimmed">Manage worktrees across all configured repositories.</Text>
-                        </div>
-                        <RepoDashboard
-                          repos={orderedRepos}
-                          pollIntervalSec={config.pollIntervalSec}
-                          fetchIntervalSec={config.fetchIntervalSec}
-                          search={search}
-                          defaultIde={config.defaultIde}
-                          viewMode="repo"
-                          onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
-                          isDraggingJira={isDraggingJira}
-                          overRepoId={overRepoId}
-                          jiraDropTargets={jiraDropTargets}
-                          onJiraDropBranchClear={(repoId) =>
-                            setJiraDropTargets((prev) => ({ ...prev, [repoId]: null }))
-                          }
-                        />
-                      </Stack>
                     </Stack>
-                  </DndContext>
-                ) : (
-                  <RepoDashboard
-                    repos={orderedRepos}
-                    pollIntervalSec={config.pollIntervalSec}
-                    fetchIntervalSec={config.fetchIntervalSec}
-                    search={search}
-                    defaultIde={config.defaultIde}
-                    viewMode="name"
-                    onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
-                    isDraggingJira={isDraggingJira}
-                    overRepoId={overRepoId}
-                    jiraDropTargets={jiraDropTargets}
-                    onJiraDropBranchClear={(repoId) =>
-                      setJiraDropTargets((prev) => ({ ...prev, [repoId]: null }))
-                    }
-                  />
-                )}
+                  </Stack>
+                </DndContext>
               </Stack>
             </Box>
           </AppShell.Main>
