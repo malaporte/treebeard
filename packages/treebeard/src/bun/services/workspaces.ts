@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { getConfig, setConfig } from './config'
 import { getWorktrees } from './git'
-import type { Workspace, WorkspaceMember } from '../../shared/types'
+import type { AppConfig, Workspace, WorkspaceMember } from '../../shared/types'
 
 const WORKSPACES_ROOT = path.join(os.homedir(), 'Developer', 'workspaces')
 
@@ -23,7 +23,41 @@ function isWorkspacePath(workspacePath: string): boolean {
 function removeEmptyWorkspaceDirectory(workspacePath: string): void {
   if (!isWorkspacePath(workspacePath)) return
   try {
+    fs.unlinkSync(path.join(workspacePath, 'AGENTS.md'))
+  } catch {
+    // no-op if it was never written
+  }
+  try {
     fs.rmdirSync(workspacePath)
+  } catch {
+    return
+  }
+}
+
+function generateAgentsMd(workspace: Workspace, config: AppConfig): string {
+  const memberLines = workspace.members.map((member) => {
+    const repo = config.repositories.find((candidate) => candidate.id === member.repoId)
+    const folder = path.basename(member.linkPath)
+    return `- \`${folder}/\` → ${repo?.name ?? member.repoId} (\`${member.worktreePath}\`)`
+  })
+
+  return `# ${workspace.name}
+
+This is a Treebeard **workspace**: a folder that groups worktrees from multiple
+repositories for a single unit of work.
+
+Each subfolder here is a **symlink**, not a real directory — it points at a Git
+worktree checked out elsewhere on disk. Edits made inside a subfolder affect the
+worktree it points to directly.
+${memberLines.length > 0 ? `\n## Repositories\n\n${memberLines.join('\n')}\n` : '\nNo repositories are attached to this workspace yet.\n'}
+This file is managed by Treebeard and regenerated automatically when the
+workspace's repositories change.
+`
+}
+
+function writeWorkspaceAgentsMd(workspace: Workspace, config: AppConfig): void {
+  try {
+    fs.writeFileSync(path.join(workspace.path, 'AGENTS.md'), generateAgentsMd(workspace, config))
   } catch {
     return
   }
@@ -72,7 +106,9 @@ export function createWorkspace(name: string): { success: boolean; workspace?: W
 
   try {
     fs.mkdirSync(workspacePath, { recursive: true })
-    setConfig({ ...config, workspaces: [...config.workspaces, workspace] })
+    const nextConfig = { ...config, workspaces: [...config.workspaces, workspace] }
+    writeWorkspaceAgentsMd(workspace, nextConfig)
+    setConfig(nextConfig)
     return { success: true, workspace }
   } catch (err: unknown) {
     removeEmptyWorkspaceDirectory(workspacePath)
@@ -112,12 +148,13 @@ export async function attachWorkspaceWorktree(
 
   try {
     fs.symlinkSync(worktreePath, linkPath, 'dir')
-    setConfig({
+    const nextWorkspace = { ...workspace, members: [...workspace.members, { repoId, worktreePath, linkPath }] }
+    const nextConfig = {
       ...config,
-      workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId
-        ? { ...candidate, members: [...candidate.members, { repoId, worktreePath, linkPath }] }
-        : candidate)
-    })
+      workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId ? nextWorkspace : candidate)
+    }
+    writeWorkspaceAgentsMd(nextWorkspace, nextConfig)
+    setConfig(nextConfig)
     return { success: true }
   } catch (err: unknown) {
     removeWorkspaceLink({ repoId, worktreePath, linkPath })
@@ -136,14 +173,17 @@ export function removeWorkspaceMember(
   if (!workspace || !member) return { success: false, error: 'The workspace member no longer exists.' }
   removeWorkspaceLink(member)
 
+  const nextWorkspace = { ...workspace, members: workspace.members.filter((item) => item.repoId !== repoId) }
   setConfig({
     ...config,
-    workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId
-      ? { ...candidate, members: candidate.members.filter((item) => item.repoId !== repoId) }
-      : candidate),
+    workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId ? nextWorkspace : candidate),
     kiroCrewSessions: config.kiroCrewSessions
   })
-  removeEmptyWorkspaceDirectory(workspace.path)
+  if (nextWorkspace.members.length > 0) {
+    writeWorkspaceAgentsMd(nextWorkspace, config)
+  } else {
+    removeEmptyWorkspaceDirectory(workspace.path)
+  }
   return { success: true }
 }
 
@@ -172,25 +212,35 @@ export function detachWorkspaceWorktree(worktreePath: string): void {
   const config = getConfig()
   let changed = false
   const removedMembers: WorkspaceMember[] = []
+  const changedWorkspaceIds = new Set<string>()
   const workspaces = config.workspaces.map((workspace) => {
     const members = workspace.members.filter((member) => {
       if (member.worktreePath !== worktreePath) return true
       removedMembers.push(member)
       return false
     })
-    if (members.length !== workspace.members.length) changed = true
+    if (members.length !== workspace.members.length) {
+      changed = true
+      changedWorkspaceIds.add(workspace.id)
+    }
     return members.length === workspace.members.length ? workspace : { ...workspace, members }
   })
   if (!changed) return
   for (const member of removedMembers) removeWorkspaceLink(member)
 
-  setConfig({
+  const nextConfig = {
     ...config,
     workspaces,
     kiroCrewSessions: Object.fromEntries(
       Object.entries(config.kiroCrewSessions).filter(([pathKey]) => pathKey !== worktreePath)
     )
-  })
+  }
+  setConfig(nextConfig)
+  for (const workspace of workspaces) {
+    if (!changedWorkspaceIds.has(workspace.id)) continue
+    if (workspace.members.length > 0) writeWorkspaceAgentsMd(workspace, nextConfig)
+    else removeEmptyWorkspaceDirectory(workspace.path)
+  }
 }
 
 /** Keep workspace membership and Kiro Crew sessions aligned after a standard worktree rename. */
@@ -198,6 +248,7 @@ export function updateWorkspaceWorktreePath(previousPath: string, nextPath: stri
   const config = getConfig()
   let changed = false
   const linksToUpdate: WorkspaceMember[] = []
+  const changedWorkspaceIds = new Set<string>()
   const workspaces = config.workspaces.map((workspace) => {
     let workspaceChanged = false
     const members = workspace.members.map((member) => {
@@ -211,6 +262,7 @@ export function updateWorkspaceWorktreePath(previousPath: string, nextPath: stri
         linkPath: member.linkPath === previousPath ? nextPath : member.linkPath
       }
     })
+    if (workspaceChanged) changedWorkspaceIds.add(workspace.id)
     return workspaceChanged ? { ...workspace, members } : workspace
   })
   if (!changed) return
@@ -221,5 +273,9 @@ export function updateWorkspaceWorktreePath(previousPath: string, nextPath: stri
     sessions[nextPath] = sessions[previousPath]
     delete sessions[previousPath]
   }
-  setConfig({ ...config, workspaces, kiroCrewSessions: sessions })
+  const nextConfig = { ...config, workspaces, kiroCrewSessions: sessions }
+  setConfig(nextConfig)
+  for (const workspace of workspaces) {
+    if (changedWorkspaceIds.has(workspace.id)) writeWorkspaceAgentsMd(workspace, nextConfig)
+  }
 }
