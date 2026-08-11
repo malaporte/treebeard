@@ -15,17 +15,20 @@ const { getConfig, setConfig } = vi.hoisted(() => ({
 const { getWorktrees } = vi.hoisted(() => ({
   getWorktrees: vi.fn()
 }))
-const { existsSync, lstatSync, mkdirSync, rmdirSync, symlinkSync, unlinkSync } = vi.hoisted(() => ({
+const { existsSync, lstatSync, mkdirSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } = vi.hoisted(() => ({
   existsSync: vi.fn(),
   lstatSync: vi.fn(),
   mkdirSync: vi.fn(),
   rmdirSync: vi.fn(),
   symlinkSync: vi.fn(),
-  unlinkSync: vi.fn()
+  unlinkSync: vi.fn(),
+  writeFileSync: vi.fn()
 }))
 
 vi.mock('node:os', () => ({ default: { homedir: () => '/Users/test' } }))
-vi.mock('node:fs', () => ({ default: { existsSync, lstatSync, mkdirSync, rmdirSync, symlinkSync, unlinkSync } }))
+vi.mock('node:fs', () => ({
+  default: { existsSync, lstatSync, mkdirSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync }
+}))
 vi.mock('./config', () => ({ getConfig, setConfig }))
 vi.mock('./git', () => ({ getWorktrees }))
 
@@ -56,6 +59,7 @@ describe('workspace service', () => {
     rmdirSync.mockReset()
     symlinkSync.mockReset()
     unlinkSync.mockReset()
+    writeFileSync.mockReset()
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000000')
     getConfig.mockReturnValue(createConfig())
     existsSync.mockReturnValue(false)
@@ -81,6 +85,10 @@ describe('workspace service', () => {
     expect(setConfig).toHaveBeenCalledWith(expect.objectContaining({
       workspaces: [expect.objectContaining({ id: '00000000-0000-4000-8000-000000000000' })]
     }))
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md',
+      expect.stringContaining('No repositories are attached to this workspace yet.')
+    )
   })
 
   it('links a verified existing worktree into the workspace', async () => {
@@ -108,6 +116,10 @@ describe('workspace service', () => {
       '/Users/test/Developer/worktrees/treebeard-app/feat/refresh',
       '/Users/test/Developer/workspaces/authentication-refresh/treebeard-app',
       'dir'
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md',
+      expect.stringContaining('`treebeard-app/` → Treebeard App (`/Users/test/Developer/worktrees/treebeard-app/feat/refresh`)')
     )
   })
 
@@ -151,6 +163,43 @@ describe('workspace service', () => {
 
     expect(removeWorkspaceMember('workspace-1', 'repo-1')).toEqual({ success: true })
     expect(unlinkSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh/treebeard-app')
+    expect(unlinkSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md')
+    expect(rmdirSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh')
+  })
+
+  it('regenerates AGENTS.md when a workspace still has members left after removal', () => {
+    const config = createConfig()
+    config.repositories.push({ id: 'repo-2', name: 'Website', path: '/repos/website' })
+    config.workspaces = [{
+      id: 'workspace-1',
+      name: 'Authentication Refresh',
+      path: '/Users/test/Developer/workspaces/authentication-refresh',
+      members: [
+        {
+          repoId: 'repo-1',
+          worktreePath: '/Users/test/Developer/worktrees/treebeard-app/feat/refresh',
+          linkPath: '/Users/test/Developer/workspaces/authentication-refresh/treebeard-app'
+        },
+        {
+          repoId: 'repo-2',
+          worktreePath: '/Users/test/Developer/worktrees/website/feat/refresh',
+          linkPath: '/Users/test/Developer/workspaces/authentication-refresh/website'
+        }
+      ]
+    }]
+    getConfig.mockReturnValue(config)
+    lstatSync.mockReturnValue({ isSymbolicLink: () => true })
+
+    expect(removeWorkspaceMember('workspace-1', 'repo-1')).toEqual({ success: true })
+    expect(rmdirSync).not.toHaveBeenCalled()
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md',
+      expect.stringContaining('Website')
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md',
+      expect.not.stringContaining('Treebeard App')
+    )
   })
 
   it('retargets a workspace link after a canonical worktree rename', () => {
@@ -188,6 +237,10 @@ describe('workspace service', () => {
         }]
       })]
     }))
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md',
+      expect.stringContaining('/Users/test/Developer/worktrees/treebeard-app/feat/refresh-v2')
+    )
   })
 
   it('removes all workspace links without deleting their worktrees', () => {
@@ -216,6 +269,7 @@ describe('workspace service', () => {
     expect(removeWorkspace('workspace-1')).toEqual({ success: true })
     expect(unlinkSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh/treebeard-app')
     expect(unlinkSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh/website')
+    expect(unlinkSync).toHaveBeenCalledWith('/Users/test/Developer/workspaces/authentication-refresh/AGENTS.md')
     expect(setConfig).toHaveBeenCalledWith(expect.objectContaining({
       workspaces: []
     }))
