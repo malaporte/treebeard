@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/malaporte/treebeard/compare/v2.15.0...v2.16.0) (2026-08-11)
+
+
+### Features
+
+* maintain an AGENTS.md file at the root of a workspace ([#23](https://github.com/malaporte/treebeard/issues/23)) ([d649b00](https://github.com/malaporte/treebeard/commit/d649b000d1c288ab69a8fe101afc23062df46f7c))
+
 # [2.15.0](https://github.com/malaporte/treebeard/compare/v2.14.0...v2.15.0) (2026-08-10)
 
 
