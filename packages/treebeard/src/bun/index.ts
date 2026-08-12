@@ -18,7 +18,7 @@ import {
   pullWorktree,
   fetchRepo
 } from './services/git'
-import { getPRForBranch } from './services/github'
+import { getPRForBranch, getPRStackDetails, getPRStackSummary } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
 import { isKiroCrewAvailable, openKiroCrewSession } from './services/kiro-crew'
 import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
@@ -235,6 +235,14 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         const ghRepo = await getGitHubRepo(repoPath)
         if (!ghRepo) return null
         return getPRForBranch(repoPath, branch, ghRepo)
+      },
+      'gh:stackSummary': async ({ worktreePath }) => {
+        return getPRStackSummary(worktreePath)
+      },
+      'gh:stackDetails': async ({ worktreePath }) => {
+        const ghRepo = await getGitHubRepo(worktreePath)
+        if (!ghRepo) return null
+        return getPRStackDetails(worktreePath, ghRepo)
       },
       'launch:ide': async ({ ideId, worktreePath }) => {
         await launchIde(ideId, worktreePath)

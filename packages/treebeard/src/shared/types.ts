@@ -63,6 +63,34 @@ export interface PRInfo {
   ciTotal: number
 }
 
+export interface StackPR {
+  number: number
+  url: string
+  state: 'OPEN' | 'CLOSED' | 'MERGED'
+}
+
+export interface PRStackSummaryLayer {
+  branch: string
+  isCurrent: boolean
+  isMerged: boolean
+  needsRebase: boolean
+  pr: StackPR | null
+}
+
+export interface PRStackSummary {
+  trunk: string
+  layers: PRStackSummaryLayer[]
+}
+
+export interface PRStackDetailLayer extends PRStackSummaryLayer {
+  prInfo: PRInfo | null
+}
+
+export interface PRStackDetails {
+  trunk: string
+  layers: PRStackDetailLayer[]
+}
+
 export interface WorktreeStatus {
   hasUncommittedChanges: boolean
   unpushedCommits: number
