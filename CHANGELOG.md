@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/malaporte/treebeard/compare/v2.16.0...v2.17.0) (2026-08-12)
+
+
+### Features
+
+* show gh stack PR layers ([#24](https://github.com/malaporte/treebeard/issues/24)) ([21c6a7e](https://github.com/malaporte/treebeard/commit/21c6a7ef5b2c14555a87294fe677395858b93b66))
+
 # [2.16.0](https://github.com/malaporte/treebeard/compare/v2.15.0...v2.16.0) (2026-08-11)
 
 
