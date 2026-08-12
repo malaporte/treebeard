@@ -45,6 +45,7 @@ Built-in auto-update checks for new releases on a configurable schedule. The set
 ### Optional (feature-dependent)
 
 - [GitHub CLI (`gh`)](https://cli.github.com/) for PR and CI badges
+- [GitHub Stack extension (`gh stack`)](https://github.com/github/gh-stack) for stacked PR layers and status. Install it with `gh extension install github/gh-stack`.
 - [Jira CLI (`jira`)](https://github.com/ankitpokhrel/jira-cli) for Jira badges
 - VS Code (`code` command available in PATH) for the VS Code launch button
 - [Ghostty](https://ghostty.org/) for the terminal launch button

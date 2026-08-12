@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader } from '@mantine/core'
+import { Card, Text, Group, Badge, ActionIcon, Tooltip, Loader, Button } from '@mantine/core'
 import { IconGitBranch, IconTrash, IconPencil, IconUnlink } from '@tabler/icons-react'
 import { JiraBadge } from './JiraBadge'
 import { PRBadge } from './PRBadge'
+import { PRStackDetails } from './PRStackDetails'
 import { DirtyBadge } from './DirtyBadge'
 import { LaunchButtons } from './LaunchButtons'
 import { DeleteWorktreeModal } from './DeleteWorktreeModal'
 import { RenameWorktreeModal } from './RenameWorktreeModal'
 import { useJiraIssue } from '../hooks/useJiraIssue'
 import { usePR } from '../hooks/usePR'
+import { usePRStack } from '../hooks/usePRStack'
 import { useWorktreeStatus } from '../hooks/useWorktreeStatus'
 import { useHomedir } from '../hooks/useHomedir'
 import { rpc } from '../rpc'
@@ -50,10 +52,18 @@ export function WorktreeCard({
 }: WorktreeCardProps) {
   const [deleteOpened, setDeleteOpened] = useState(false)
   const [renameOpened, setRenameOpened] = useState(false)
+  const [stackOpened, setStackOpened] = useState(false)
   const [hovered, setHovered] = useState(false)
   const jiraKey = extractJiraKey(worktree.branch)
   const { issue: jiraIssue, loading: jiraLoading } = useJiraIssue(jiraKey, pollIntervalSec, refreshKey)
   const { pr, loading: prLoading } = usePR(repoPath, worktree.isMain ? null : worktree.branch, pollIntervalSec, refreshKey)
+  const { summary: prStack, details: prStackDetails, detailsLoading: prStackDetailsLoading } = usePRStack(
+    worktree.isMain ? null : worktree.path,
+    !worktree.isMain && pr !== null,
+    stackOpened,
+    pollIntervalSec,
+    refreshKey
+  )
   const { status: wtStatus, loading: wtStatusLoading, refresh: refreshStatus } = useWorktreeStatus(worktree.path, pollIntervalSec, refreshKey)
   const { shortenPath } = useHomedir()
 
@@ -126,6 +136,17 @@ export function WorktreeCard({
               )}
               <JiraBadge jiraKey={jiraKey} issue={jiraIssue} loading={jiraLoading} />
               <PRBadge pr={pr} loading={prLoading} />
+              {prStack && prStack.layers.length > 1 && (
+                <Button
+                  variant="light"
+                  color="violet"
+                  size="compact-xs"
+                  leftSection={<IconGitBranch size={12} />}
+                  onClick={() => setStackOpened((opened) => !opened)}
+                >
+                  Stack · {prStack.layers.length}
+                </Button>
+              )}
               <DirtyBadge status={wtStatus} loading={wtStatusLoading} worktreePath={worktree.path} onPullComplete={refreshStatus} />
             </Group>
 
@@ -171,6 +192,13 @@ export function WorktreeCard({
           </>
         )}
       </Group>
+
+      <PRStackDetails
+        summary={prStack}
+        details={prStackDetails}
+        loading={prStackDetailsLoading}
+        opened={stackOpened}
+      />
 
       {onConfirmDelete && (
         <DeleteWorktreeModal

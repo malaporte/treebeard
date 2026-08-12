@@ -5,6 +5,8 @@ import type {
   IdeId,
   JiraIssue,
   PRInfo,
+  PRStackDetails,
+  PRStackSummary,
   SetupCommandResult,
   Workspace,
   Worktree,
@@ -102,6 +104,14 @@ export type TreebeardRPC = {
       'gh:pr': {
         params: { repoPath: string; branch: string }
         response: PRInfo | null
+      }
+      'gh:stackSummary': {
+        params: { worktreePath: string }
+        response: PRStackSummary | null
+      }
+      'gh:stackDetails': {
+        params: { worktreePath: string }
+        response: PRStackDetails | null
       }
       'launch:ide': {
         params: { ideId: IdeId; worktreePath: string }
