@@ -9,6 +9,16 @@ const useWorktreesMock = vi.fn()
 const useCollapsedMock = vi.fn()
 const useWorktreeStatusMock = vi.fn()
 
+vi.mock('@mantine/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mantine/core')>()
+  return {
+    ...actual,
+    Collapse: ({ in: open, children }: { in: boolean; children: ReactNode }) => (
+      <div data-testid="repo-collapse" data-open={String(open)}>{open ? children : null}</div>
+    )
+  }
+})
+
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   closestCenter: () => null,
@@ -101,8 +111,14 @@ vi.mock('./WorktreeCard', () => ({
   WorktreeCard: ({ worktree }: WorktreeCardProps) => <div data-testid="worktree-card">{worktree.branch}</div>
 }))
 
+interface AddWorktreeModalProps {
+  onCreated: (worktreePath: string) => Promise<void>
+}
+
 vi.mock('./AddWorktreeModal', () => ({
-  AddWorktreeModal: () => null
+  AddWorktreeModal: ({ onCreated }: AddWorktreeModalProps) => (
+    <button onClick={() => { void onCreated('/repo/wt/feature') }}>Create worktree</button>
+  )
 }))
 
 describe('RepoDashboard', () => {
@@ -110,7 +126,7 @@ describe('RepoDashboard', () => {
     useCollapsedMock.mockReset()
     useWorktreesMock.mockReset()
     useWorktreeStatusMock.mockReset()
-    useCollapsedMock.mockReturnValue({ collapsed: new Set<string>(), toggle: vi.fn() })
+    useCollapsedMock.mockReturnValue({ collapsed: new Set<string>(), toggle: vi.fn(), expand: vi.fn() })
     useWorktreeStatusMock.mockReturnValue({
       status: null,
       loading: false,
@@ -310,6 +326,119 @@ describe('RepoDashboard', () => {
     expect(screen.getByTestId('main-status').textContent).toBe('/repo/wt/main')
     expect(screen.getByTestId('main-actions').textContent).toBe('vscode:/repo/wt/main')
     expect(useWorktreeStatusMock).toHaveBeenCalledWith('/repo/wt/main', 60, 0)
+  })
+
+  it('keeps an uncollapsed section open when its first worktree is created', () => {
+    const repos: RepoConfig[] = [{ id: 'repo-1', name: 'treebeard', path: '/repo' }]
+    let worktrees = [
+      { path: '/repo/wt/main', branch: 'main', head: 'abc', isMain: true }
+    ]
+
+    useWorktreesMock.mockImplementation(() => ({
+      worktrees,
+      loading: false,
+      loaded: true,
+      error: null,
+      deleteError: null,
+      deletingPaths: new Set<string>(),
+      startDelete: vi.fn(),
+      clearDeleteError: vi.fn(),
+      settingUpPaths: new Set<string>(),
+      setupError: null,
+      startSetup: vi.fn(),
+      clearSetupError: vi.fn(),
+      refresh: vi.fn()
+    }))
+
+    const { rerender } = renderWithMantine(
+      <RepoDashboard
+        repos={repos}
+        pollIntervalSec={60}
+        fetchIntervalSec={300}
+        search=""
+        defaultIde="vscode"
+        onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
+      />
+    )
+
+    expect(screen.getByTestId('repo-collapse').dataset.open).toBe('true')
+
+    worktrees = [
+      ...worktrees,
+      { path: '/repo/wt/feature', branch: 'feat/first-worktree', head: 'def', isMain: false }
+    ]
+
+    rerender(
+      <RepoDashboard
+        repos={repos}
+        pollIntervalSec={60}
+        fetchIntervalSec={300}
+        search=""
+        defaultIde="vscode"
+        onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
+      />
+    )
+
+    expect(screen.getByTestId('repo-collapse').dataset.open).toBe('true')
+    expect(screen.getByText('feat/first-worktree')).toBeTruthy()
+  })
+
+  it('expands a collapsed repository after creating a worktree', async () => {
+    const repos: RepoConfig[] = [{ id: 'repo-1', name: 'treebeard', path: '/repo' }]
+    const expand = vi.fn()
+    const refresh = vi.fn()
+
+    useCollapsedMock.mockReturnValue({
+      collapsed: new Set<string>(['repo-1']),
+      toggle: vi.fn(),
+      expand
+    })
+    useWorktreesMock.mockReturnValue({
+      worktrees: [{ path: '/repo/wt/main', branch: 'main', head: 'abc', isMain: true }],
+      loading: false,
+      loaded: true,
+      error: null,
+      deleteError: null,
+      deletingPaths: new Set<string>(),
+      startDelete: vi.fn(),
+      clearDeleteError: vi.fn(),
+      settingUpPaths: new Set<string>(),
+      setupError: null,
+      startSetup: vi.fn(),
+      clearSetupError: vi.fn(),
+      refresh
+    })
+
+    renderWithMantine(
+      <RepoDashboard
+        repos={repos}
+        pollIntervalSec={60}
+        fetchIntervalSec={300}
+        search=""
+        defaultIde="vscode"
+        onReorder={() => {}}
+        isDraggingJira={false}
+        overRepoId={null}
+        jiraDropTargets={{}}
+        onJiraDropBranchClear={() => {}}
+      />
+    )
+
+    screen.getByRole('button', { name: 'Create worktree' }).click()
+
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalledOnce()
+      expect(expand).toHaveBeenCalledOnce()
+    })
+    expect(expand).toHaveBeenCalledWith('repo-1')
   })
 
   it('keeps main status and action controls visible for collapsed active repositories', () => {

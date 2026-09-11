@@ -103,6 +103,7 @@ interface RepoSectionProps {
   defaultIde: IdeId
   isCollapsed: boolean
   onToggleCollapse: () => void
+  onExpand: () => Promise<void>
   isDropTarget: boolean
   isOver: boolean
   jiraDropBranch: string | null
@@ -118,6 +119,7 @@ function RepoSection({
   defaultIde,
   isCollapsed,
   onToggleCollapse,
+  onExpand,
   isDropTarget,
   isOver,
   jiraDropBranch,
@@ -145,6 +147,7 @@ function RepoSection({
   const handleWorktreeCreated = async (worktreePath: string) => {
     onJiraDropBranchClear()
     await refresh()
+    await onExpand()
     const commands = repo.setupCommands ?? []
     if (commands.length > 0) void startSetup(worktreePath, commands)
   }
@@ -248,7 +251,7 @@ function RepoSection({
         initialBranch={jiraDropBranch ?? undefined}
       />
 
-      <Collapse in={!isCollapsed && shouldShowBody}>
+      <Collapse in={!isCollapsed}>
         {error && (
           <Alert color="pink" variant="light" title="Error" mb="sm">{error}</Alert>
         )}
@@ -355,7 +358,7 @@ export function RepoDashboard({
   jiraDropTargets,
   onJiraDropBranchClear
 }: RepoDashboardProps) {
-  const { collapsed, toggle } = useCollapsed()
+  const { collapsed, toggle, expand } = useCollapsed()
   const [orderedRepos, setOrderedRepos] = useState(repos)
   const [repoActivityById, setRepoActivityById] = useState<Record<string, RepoActivity>>({})
 
@@ -412,6 +415,7 @@ export function RepoDashboard({
             defaultIde={defaultIde}
             isCollapsed={collapsed.has(repo.id)}
             onToggleCollapse={() => toggle(repo.id)}
+            onExpand={() => expand(repo.id)}
             isDropTarget={isDraggingJira}
             isOver={overRepoId === repo.id}
             jiraDropBranch={jiraDropTargets[repo.id] ?? null}

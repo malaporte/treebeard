@@ -23,5 +23,15 @@ export function useCollapsed() {
     })
   }, [])
 
-  return { collapsed, toggle }
+  const expand = useCallback(async (id: string) => {
+    setCollapsed((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      rpc().request['config:setCollapsed']({ ids: [...next] })
+      return next
+    })
+  }, [])
+
+  return { collapsed, toggle, expand }
 }
