@@ -1,3 +1,10 @@
+## [2.17.1](https://github.com/malaporte/treebeard/compare/v2.17.0...v2.17.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* new worktrees are now visible when they are the first ([8cd78b3](https://github.com/malaporte/treebeard/commit/8cd78b33d220f0b7246000cbd3a8b442de33d431))
+
 # [2.17.0](https://github.com/malaporte/treebeard/compare/v2.16.0...v2.17.0) (2026-08-12)
 
 
