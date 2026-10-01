@@ -13,8 +13,15 @@ export async function launchIde(ideId: IdeId, worktreePath: string): Promise<voi
 
 export async function launchGhostty(worktreePath: string): Promise<void> {
   // Use AppleScript to switch to an existing Ghostty tab for this worktree,
-  // or open a new tab in the correct directory if none exists.
-  // This ensures proper tab naming and tab management like the opencode launcher.
+  // or open a new tab in the correct directory, split into two side-by-side
+  // panes, if none exists. The left pane resumes Claude Code when installed.
+  const env = await getShellEnv()
+  const whichProc = Bun.spawn(['which', 'claude'], { stdout: 'pipe', stderr: 'ignore', env })
+  const claudePath = (await new Response(whichProc.stdout).text()).trim()
+  // --continue fails when the folder has no prior session, so fall back to a fresh one
+  const claudeInput = claudePath
+    ? `\n  set initial input of leftCfg to "${claudePath} --continue || ${claudePath}\\n"`
+    : ''
   const pathParts = worktreePath.split('/')
   const worktreeName = pathParts.pop() || ''
   const projectName = pathParts.pop() || ''
@@ -33,8 +40,13 @@ tell application "Ghostty"
   end repeat
   set cfg to new surface configuration
   set initial working directory of cfg to targetPath
-  set newTab to new tab in targetWindow with configuration cfg
-  perform action "set_tab_title:${tabTitle}" on (focused terminal of newTab)
+  set leftCfg to new surface configuration
+  set initial working directory of leftCfg to targetPath${claudeInput}
+  set newTab to new tab in targetWindow with configuration leftCfg
+  set leftTerm to focused terminal of newTab
+  perform action "set_tab_title:${tabTitle}" on leftTerm
+  split leftTerm direction right with configuration cfg
+  focus leftTerm
 end tell
 `
   Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
