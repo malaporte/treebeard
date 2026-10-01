@@ -1,3 +1,10 @@
+# [2.19.0](https://github.com/malaporte/treebeard/compare/v2.18.0...v2.19.0) (2026-10-01)
+
+
+### Features
+
+* open Ghostty worktree tabs split with Claude Code ([#26](https://github.com/malaporte/treebeard/issues/26)) ([141c5b7](https://github.com/malaporte/treebeard/commit/141c5b7756bf2d786aa04612b0180252ef5e5607))
+
 # [2.18.0](https://github.com/malaporte/treebeard/compare/v2.17.1...v2.18.0) (2026-10-01)
 
 
