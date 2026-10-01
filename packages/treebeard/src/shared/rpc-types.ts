@@ -129,10 +129,6 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
-      'launch:kiroCrew': {
-        params: { worktreePath: string }
-        response: { success: boolean; error?: string }
-      }
       'launch:url': {
         params: { url: string }
         response: { success: boolean; error?: string }
@@ -148,10 +144,6 @@ export type TreebeardRPC = {
       'system:pippinPath': {
         params: Record<string, never>
         response: string | null
-      }
-      'system:kiroCrewAvailable': {
-        params: Record<string, never>
-        response: boolean
       }
       'dialog:openDirectory': {
         params: Record<string, never>

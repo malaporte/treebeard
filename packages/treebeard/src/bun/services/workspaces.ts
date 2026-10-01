@@ -176,8 +176,7 @@ export function removeWorkspaceMember(
   const nextWorkspace = { ...workspace, members: workspace.members.filter((item) => item.repoId !== repoId) }
   setConfig({
     ...config,
-    workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId ? nextWorkspace : candidate),
-    kiroCrewSessions: config.kiroCrewSessions
+    workspaces: config.workspaces.map((candidate) => candidate.id === workspaceId ? nextWorkspace : candidate)
   })
   if (nextWorkspace.members.length > 0) {
     writeWorkspaceAgentsMd(nextWorkspace, config)
@@ -196,12 +195,7 @@ export function removeWorkspace(workspaceId: string): { success: boolean; error?
 
   setConfig({
     ...config,
-    workspaces: config.workspaces.filter((candidate) => candidate.id !== workspaceId),
-    kiroCrewSessions: Object.fromEntries(
-      Object.entries(config.kiroCrewSessions).filter(([worktreePath]) =>
-        worktreePath !== workspace.path
-      )
-    )
+    workspaces: config.workspaces.filter((candidate) => candidate.id !== workspaceId)
   })
   removeEmptyWorkspaceDirectory(workspace.path)
   return { success: true }
@@ -228,13 +222,7 @@ export function detachWorkspaceWorktree(worktreePath: string): void {
   if (!changed) return
   for (const member of removedMembers) removeWorkspaceLink(member)
 
-  const nextConfig = {
-    ...config,
-    workspaces,
-    kiroCrewSessions: Object.fromEntries(
-      Object.entries(config.kiroCrewSessions).filter(([pathKey]) => pathKey !== worktreePath)
-    )
-  }
+  const nextConfig = { ...config, workspaces }
   setConfig(nextConfig)
   for (const workspace of workspaces) {
     if (!changedWorkspaceIds.has(workspace.id)) continue
@@ -243,7 +231,7 @@ export function detachWorkspaceWorktree(worktreePath: string): void {
   }
 }
 
-/** Keep workspace membership and Kiro Crew sessions aligned after a standard worktree rename. */
+/** Keep workspace membership aligned after a standard worktree rename. */
 export function updateWorkspaceWorktreePath(previousPath: string, nextPath: string): void {
   const config = getConfig()
   let changed = false
@@ -268,12 +256,7 @@ export function updateWorkspaceWorktreePath(previousPath: string, nextPath: stri
   if (!changed) return
   for (const member of linksToUpdate) replaceWorkspaceLink(member, nextPath)
 
-  const sessions = { ...config.kiroCrewSessions }
-  if (sessions[previousPath]) {
-    sessions[nextPath] = sessions[previousPath]
-    delete sessions[previousPath]
-  }
-  const nextConfig = { ...config, workspaces, kiroCrewSessions: sessions }
+  const nextConfig = { ...config, workspaces }
   setConfig(nextConfig)
   for (const workspace of workspaces) {
     if (changedWorkspaceIds.has(workspace.id)) writeWorkspaceAgentsMd(workspace, nextConfig)

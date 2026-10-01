@@ -26,7 +26,6 @@ describe('useConfig', () => {
     const initial: AppConfig = {
       repositories: [],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
       autoUpdateEnabled: true,
@@ -50,7 +49,6 @@ describe('useConfig', () => {
     const initial: AppConfig = {
       repositories: [{ id: '1', name: 'repo', path: '/repo' }],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
       autoUpdateEnabled: true,
@@ -102,7 +100,6 @@ describe('useConfig', () => {
         { id: '2', name: 'repo-b', path: '/repo-b' }
       ],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
       autoUpdateEnabled: true,

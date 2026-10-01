@@ -49,7 +49,6 @@ describe('config service', () => {
     expect(getConfig()).toEqual({
       repositories: [],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 60,
       fetchIntervalSec: 300,
       autoUpdateEnabled: true,
@@ -65,7 +64,6 @@ describe('config service', () => {
     setConfig({
       repositories: [],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 1,
       fetchIntervalSec: 30,
       autoUpdateEnabled: false,
@@ -79,7 +77,6 @@ describe('config service', () => {
     expect(getConfig()).toEqual({
       repositories: [],
       workspaces: [],
-      kiroCrewSessions: {},
       pollIntervalSec: 10,
       fetchIntervalSec: 60,
       autoUpdateEnabled: false,
@@ -94,18 +91,6 @@ describe('config service', () => {
   it('persists collapsed repos independently', () => {
     setCollapsedRepos(['repo-1', 'repo-2'])
     expect(getCollapsedRepos()).toEqual(['repo-1', 'repo-2'])
-  })
-
-  it('sanitizes Kiro Crew session associations', () => {
-    mockReadFileSync.mockImplementation(() => JSON.stringify({
-      kiroCrewSessions: {
-        '/repo/worktree': 'chat-123',
-        '/repo/invalid': 42,
-        '': 'chat-456'
-      }
-    }))
-
-    expect(getConfig().kiroCrewSessions).toEqual({ '/repo/worktree': 'chat-123' })
   })
 
   it('preserves direct-path workspace members created before symlink support', () => {
