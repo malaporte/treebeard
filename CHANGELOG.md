@@ -1,3 +1,10 @@
+# [2.20.0](https://github.com/malaporte/treebeard/compare/v2.19.0...v2.20.0) (2026-10-01)
+
+
+### Features
+
+* sort repositories alphabetically in worktree list ([#27](https://github.com/malaporte/treebeard/issues/27)) ([5edf3d5](https://github.com/malaporte/treebeard/commit/5edf3d53a4b849df185c187a0e37edcf652d3e57))
+
 # [2.19.0](https://github.com/malaporte/treebeard/compare/v2.18.0...v2.19.0) (2026-10-01)
 
 
