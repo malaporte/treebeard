@@ -77,14 +77,6 @@ export function useConfig() {
     [config, save]
   )
 
-  const reorderRepos = useCallback(
-    async (repositories: RepoConfig[]) => {
-      if (!config) return
-      await save({ ...config, repositories })
-    },
-    [config, save]
-  )
-
   const setDefaultIde = useCallback(
     async (ide: IdeId) => {
       if (!config) return
@@ -132,7 +124,6 @@ export function useConfig() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos,
     setDefaultIde,
     setRepoSetupCommands,
     setJiraPanelOpen,

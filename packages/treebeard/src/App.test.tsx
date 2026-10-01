@@ -82,7 +82,6 @@ describe('App', () => {
       setPollInterval: vi.fn(async () => {}),
       setAutoUpdateEnabled: vi.fn(async () => {}),
       setUpdateCheckInterval: vi.fn(async () => {}),
-      reorderRepos: vi.fn(async () => {}),
       setDefaultIde: vi.fn(async () => {})
     })
   })

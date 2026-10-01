@@ -36,25 +36,6 @@ vi.mock('@dnd-kit/core', () => ({
   DragOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }))
 
-vi.mock('@dnd-kit/sortable', () => ({
-  SortableContext: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  useSortable: () => ({
-    attributes: {},
-    listeners: {},
-    setNodeRef: () => {},
-    transform: null,
-    transition: null,
-    isDragging: false
-  }),
-  verticalListSortingStrategy: {},
-  arrayMove: <T,>(array: T[], from: number, to: number) => {
-    const copy = [...array]
-    const [item] = copy.splice(from, 1)
-    copy.splice(to, 0, item)
-    return copy
-  }
-}))
-
 vi.mock('@dnd-kit/utilities', () => ({
   CSS: {
     Transform: {
@@ -157,7 +138,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -197,7 +177,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'feat'}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -216,7 +195,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'missing'}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -227,7 +205,7 @@ describe('RepoDashboard', () => {
     expect(screen.queryByText('treebeard')).toBeNull()
   })
 
-  it('renders active repositories before inactive repositories without showing main worktrees by default', async () => {
+  it('renders repositories alphabetically regardless of activity without showing main worktrees by default', async () => {
     const repos: RepoConfig[] = [
       { id: 'repo-1', name: 'repo-one', path: '/repo-one' },
       { id: 'repo-2', name: 'repo-two', path: '/repo-two' },
@@ -270,7 +248,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -280,10 +257,10 @@ describe('RepoDashboard', () => {
 
     await waitFor(() => {
       const names = screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent)
-      expect(names).toEqual(['repo-two', 'repo-three', 'repo-one', 'repo-four'])
+      expect(names).toEqual(['repo-four', 'repo-one', 'repo-three', 'repo-two'])
     })
 
-    expect(screen.getAllByTestId('worktree-card').map((card) => card.textContent)).toEqual(['feat/two', 'feat/three'])
+    expect(screen.getAllByTestId('worktree-card').map((card) => card.textContent)).toEqual(['feat/three', 'feat/two'])
   })
 
   it('shows main status and action controls for inactive repositories without rendering a main card body', () => {
@@ -314,7 +291,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -357,7 +333,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search=""
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -379,7 +354,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search=""
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -424,7 +398,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search=""
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -471,7 +444,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={''}
         defaultIde="intellij"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
@@ -512,7 +484,6 @@ describe('RepoDashboard', () => {
         fetchIntervalSec={300}
         search={'main'}
         defaultIde="vscode"
-        onReorder={() => {}}
         isDraggingJira={false}
         overRepoId={null}
         jiraDropTargets={{}}
