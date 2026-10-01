@@ -25,7 +25,6 @@ export interface Workspace {
 export interface AppConfig {
   repositories: RepoConfig[]
   workspaces: Workspace[]
-  kiroCrewSessions: Record<string, string>
   pollIntervalSec: number
   fetchIntervalSec: number
   autoUpdateEnabled: boolean

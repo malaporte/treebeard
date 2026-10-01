@@ -20,7 +20,6 @@ const WORKSPACES_ROOT = path.join(os.homedir(), 'Developer', 'workspaces')
 const DEFAULTS: AppConfig = {
   repositories: [],
   workspaces: [],
-  kiroCrewSessions: {},
   pollIntervalSec: 60,
   fetchIntervalSec: 300,
   autoUpdateEnabled: true,
@@ -33,16 +32,6 @@ const DEFAULTS: AppConfig = {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
-}
-
-function sanitizeKiroCrewSessions(sessions: unknown): Record<string, string> {
-  if (!sessions || typeof sessions !== 'object' || Array.isArray(sessions)) return {}
-
-  return Object.fromEntries(
-    Object.entries(sessions).filter(([worktreePath, slotKey]) =>
-      worktreePath.length > 0 && typeof slotKey === 'string' && slotKey.length > 0
-    )
-  )
 }
 
 function isWorkspacePath(workspacePath: string): boolean {
@@ -125,7 +114,6 @@ function sanitizeConfig(config: Partial<AppConfig>): AppConfig {
   return {
     repositories: Array.isArray(config.repositories) ? [...config.repositories] : [],
     workspaces: sanitizeWorkspaces(config.workspaces),
-    kiroCrewSessions: sanitizeKiroCrewSessions(config.kiroCrewSessions),
     pollIntervalSec,
     fetchIntervalSec,
     autoUpdateEnabled: typeof config.autoUpdateEnabled === 'boolean' ? config.autoUpdateEnabled : DEFAULTS.autoUpdateEnabled,

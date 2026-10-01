@@ -36,7 +36,6 @@ function createConfig(): AppConfig {
   return {
     repositories: [{ id: 'repo-1', name: 'Treebeard App', path: '/repos/treebeard' }],
     workspaces: [],
-    kiroCrewSessions: {},
     pollIntervalSec: 60,
     fetchIntervalSec: 300,
     autoUpdateEnabled: true,
