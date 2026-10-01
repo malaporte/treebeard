@@ -1,3 +1,10 @@
+# [2.18.0](https://github.com/malaporte/treebeard/compare/v2.17.1...v2.18.0) (2026-10-01)
+
+
+### Features
+
+* remove Kiro Crew support ([#25](https://github.com/malaporte/treebeard/issues/25)) ([49a4950](https://github.com/malaporte/treebeard/commit/49a4950a3261988bb5d764c2651ffe629609f8d0))
+
 ## [2.17.1](https://github.com/malaporte/treebeard/compare/v2.17.0...v2.17.1) (2026-09-11)
 
 
