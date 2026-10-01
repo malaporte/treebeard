@@ -122,7 +122,6 @@ describe('useConfig', () => {
       await result.current.setPollInterval(120)
       await result.current.setAutoUpdateEnabled(false)
       await result.current.setUpdateCheckInterval(45)
-      await result.current.reorderRepos([initial.repositories[1], initial.repositories[0]])
     })
 
     expect(setConfigRequest).toHaveBeenNthCalledWith(1, {
@@ -133,9 +132,6 @@ describe('useConfig', () => {
     })
     expect(setConfigRequest).toHaveBeenNthCalledWith(3, {
       config: { ...initial, updateCheckIntervalMin: 45 }
-    })
-    expect(setConfigRequest).toHaveBeenNthCalledWith(4, {
-      config: { ...initial, repositories: [initial.repositories[1], initial.repositories[0]] }
     })
   })
 })

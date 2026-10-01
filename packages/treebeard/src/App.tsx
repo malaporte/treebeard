@@ -23,7 +23,6 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
 import { RepoDashboard } from './components/RepoDashboard'
 import { WorkspaceDashboard } from './components/WorkspaceDashboard'
 import { SettingsModal } from './components/SettingsModal'
@@ -34,7 +33,7 @@ import { useJiraDrag } from './hooks/useJiraDrag'
 import { rpc } from './rpc'
 import { WORKTREE_DRAG_PREFIX, WORKSPACE_TARGET_PREFIX } from './shared/workspace-dnd'
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { DependencyStatus, RepoConfig } from './shared/types'
+import type { DependencyStatus } from './shared/types'
 import type { JiraIssueDragData } from './components/JiraIssueCard'
 
 // Neon-blue palette tuned for dark backgrounds
@@ -80,7 +79,6 @@ export default function App() {
     setPollInterval,
     setAutoUpdateEnabled,
     setUpdateCheckInterval,
-    reorderRepos,
     setDefaultIde,
     setRepoSetupCommands,
     setJiraPanelOpen,
@@ -90,7 +88,6 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [dependencyStatus, setDependencyStatus] = useState<DependencyStatus | null>(null)
   const [jiraDropTargets, setJiraDropTargets] = useState<Record<string, string | null>>({})
-  const [orderedRepos, setOrderedRepos] = useState<RepoConfig[]>([])
   const [panelWidth, setPanelWidth] = useState<number>(260)
   const [workspaceAttachError, setWorkspaceAttachError] = useState<string | null>(null)
 
@@ -103,11 +100,6 @@ export default function App() {
   }, [config?.jiraPanelWidth])
 
   const { issues: jiraIssues, loading: jiraLoading, refresh: refreshJira } = useMyJiraIssues(pollIntervalSec)
-
-  // Keep ordered repos in sync with config
-  useEffect(() => {
-    if (config) setOrderedRepos(config.repositories)
-  }, [config])
 
   // Native mouse drag for Jira issues — works across AppShell panels
   const handleJiraDrop = useCallback((repoId: string, data: JiraIssueDragData) => {
@@ -122,7 +114,7 @@ export default function App() {
   const { isDragging: isDraggingJira, draggingKey, overRepoId, onMouseDown: onIssueMouseDown } =
     useJiraDrag(handleJiraDrop)
 
-  // @dnd-kit coordinates repository reordering and worktree-to-workspace links.
+  // @dnd-kit coordinates worktree-to-workspace links.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   const handleWorkspaceAttach = useCallback(async (workspaceId: string, repoId: string, worktreePath: string) => {
@@ -154,16 +146,8 @@ export default function App() {
           source.slice(separator + 1)
         )
       }
-      return
     }
-    if (active.id === over.id) return
-    const oldIndex = orderedRepos.findIndex((r) => r.id === active.id)
-    const newIndex = orderedRepos.findIndex((r) => r.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    const reordered = arrayMove(orderedRepos, oldIndex, newIndex)
-    setOrderedRepos(reordered)
-    void reorderRepos(reordered)
-  }, [handleWorkspaceAttach, orderedRepos, reorderRepos])
+  }, [handleWorkspaceAttach])
 
   const loadDependencies = useCallback(async () => {
     try {
@@ -308,7 +292,7 @@ export default function App() {
                   <Stack gap="xl">
                     <WorkspaceDashboard
                       workspaces={config.workspaces}
-                      repositories={orderedRepos}
+                      repositories={config.repositories}
                       pollIntervalSec={config.pollIntervalSec}
                       defaultIde={config.defaultIde}
                       search={search}
@@ -321,12 +305,11 @@ export default function App() {
                         <Text size="sm" c="dimmed">Manage worktrees across all configured repositories.</Text>
                       </div>
                       <RepoDashboard
-                        repos={orderedRepos}
+                        repos={config.repositories}
                         pollIntervalSec={config.pollIntervalSec}
                         fetchIntervalSec={config.fetchIntervalSec}
                         search={search}
                         defaultIde={config.defaultIde}
-                        onReorder={(repos) => { setOrderedRepos(repos); void reorderRepos(repos) }}
                         isDraggingJira={isDraggingJira}
                         overRepoId={overRepoId}
                         jiraDropTargets={jiraDropTargets}
