@@ -1,7 +1,16 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { getShellEnv } from './shell-env'
 import { IDE_REGISTRY } from '../../shared/ide-registry'
 import type { IdeId } from '../../shared/types'
+
+export interface ClaudeSession {
+  id: string
+  file: string
+}
+
+const SESSION_FILE_REGEX = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i
 
 /** Launch the configured IDE for a given worktree path */
 export async function launchIde(ideId: IdeId, worktreePath: string): Promise<void> {
@@ -107,6 +116,64 @@ tell application "Ghostty"
 end tell
 `
   Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
+}
+
+/** Find the most recently active Claude Code session transcript for a folder */
+export function findLatestClaudeSession(worktreePath: string): ClaudeSession | null {
+  const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude')
+  // Claude Code stores transcripts per folder, naming the folder with every non-alphanumeric char replaced by '-'
+  const projectDir = path.join(configDir, 'projects', worktreePath.replace(/[^a-zA-Z0-9]/g, '-'))
+  try {
+    let latest: (ClaudeSession & { mtimeMs: number }) | null = null
+    for (const entry of fs.readdirSync(projectDir)) {
+      const match = SESSION_FILE_REGEX.exec(entry)
+      if (!match) continue
+      const file = path.join(projectDir, entry)
+      const { mtimeMs } = fs.statSync(file)
+      if (!latest || mtimeMs > latest.mtimeMs) latest = { id: match[1], file, mtimeMs }
+    }
+    return latest ? { id: latest.id, file: latest.file } : null
+  } catch {
+    return null
+  }
+}
+
+/** Name an untitled Claude Code session, leaving titles set via /rename untouched */
+export function ensureClaudeSessionTitle(session: ClaudeSession, title: string): void {
+  try {
+    if (fs.readFileSync(session.file, 'utf-8').includes('"type":"custom-title"')) return
+    // Same entry the CLI appends for /rename; Claude Desktop reads it when importing the session
+    const entry = JSON.stringify({ type: 'custom-title', customTitle: title, sessionId: session.id })
+    fs.appendFileSync(session.file, `${entry}\n`)
+  } catch {}
+}
+
+async function createNamedClaudeSession(worktreePath: string, title: string): Promise<string | null> {
+  const env = await getShellEnv()
+  const whichProc = Bun.spawn(['which', 'claude'], { stdout: 'pipe', stderr: 'ignore', env })
+  const claudePath = (await new Response(whichProc.stdout).text()).trim()
+  if (!claudePath) return null
+  const sessionId = crypto.randomUUID()
+  // /rename runs locally without a model turn, leaving a titled transcript Desktop can import
+  const proc = Bun.spawn([claudePath, '-p', '--session-id', sessionId, `/rename ${title}`], {
+    cwd: worktreePath,
+    stdout: 'ignore',
+    stderr: 'ignore',
+    env
+  })
+  return (await proc.exited) === 0 ? sessionId : null
+}
+
+/** Open the worktree in Claude Desktop, resuming its latest Claude Code session or starting one named after the worktree */
+export async function launchClaudeDesktop(worktreePath: string): Promise<void> {
+  const title = path.basename(worktreePath)
+  const session = findLatestClaudeSession(worktreePath)
+  if (session) ensureClaudeSessionTitle(session, title)
+  const sessionId = session?.id ?? (await createNamedClaudeSession(worktreePath, title))
+  // claude://resume imports the CLI session (or reuses Desktop's copy of it); opening a
+  // bare folder starts an untitled Code session there instead
+  const args = sessionId ? [`claude://resume?session=${sessionId}`] : ['-a', 'Claude', worktreePath]
+  Bun.spawn(['/usr/bin/open', ...args], { stdout: 'ignore', stderr: 'ignore' })
 }
 
 export async function launchURL(url: string): Promise<void> {

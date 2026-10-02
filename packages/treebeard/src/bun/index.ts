@@ -20,7 +20,7 @@ import {
 } from './services/git'
 import { getPRForBranch, getPRStackDetails, getPRStackSummary } from './services/github'
 import { getJiraIssue, getMyJiraIssues } from './services/jira'
-import { launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
+import { launchClaudeDesktop, launchGhostty, launchIde, launchOpencode, launchPippinShell, launchURL } from './services/launcher'
 import { getShellEnv } from './services/shell-env'
 import {
   attachWorkspaceWorktree,
@@ -253,6 +253,9 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
       },
       'launch:opencode': ({ worktreePath }) => {
         launchOpencode(worktreePath)
+      },
+      'launch:claudeDesktop': ({ worktreePath }) => {
+        launchClaudeDesktop(worktreePath)
       },
       'launch:url': async ({ url }) => {
         if (Utils.openExternal(url)) {
