@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/malaporte/treebeard/compare/v2.20.0...v2.21.0) (2026-10-02)
+
+
+### Features
+
+* add Claude Code Desktop launch button ([#28](https://github.com/malaporte/treebeard/issues/28)) ([f32cc27](https://github.com/malaporte/treebeard/commit/f32cc27746c6b760ca127303062aa957bce406e1))
+
 # [2.20.0](https://github.com/malaporte/treebeard/compare/v2.19.0...v2.20.0) (2026-10-01)
 
 
