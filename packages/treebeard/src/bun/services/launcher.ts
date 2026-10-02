@@ -22,15 +22,7 @@ export async function launchIde(ideId: IdeId, worktreePath: string): Promise<voi
 
 export async function launchGhostty(worktreePath: string): Promise<void> {
   // Use AppleScript to switch to an existing Ghostty tab for this worktree,
-  // or open a new tab in the correct directory, split into two side-by-side
-  // panes, if none exists. The left pane resumes Claude Code when installed.
-  const env = await getShellEnv()
-  const whichProc = Bun.spawn(['which', 'claude'], { stdout: 'pipe', stderr: 'ignore', env })
-  const claudePath = (await new Response(whichProc.stdout).text()).trim()
-  // --continue fails when the folder has no prior session, so fall back to a fresh one
-  const claudeInput = claudePath
-    ? `\n  set initial input of leftCfg to "${claudePath} --continue || ${claudePath}\\n"`
-    : ''
+  // or open a new tab in the correct directory if none exists.
   const pathParts = worktreePath.split('/')
   const worktreeName = pathParts.pop() || ''
   const projectName = pathParts.pop() || ''
@@ -38,24 +30,25 @@ export async function launchGhostty(worktreePath: string): Promise<void> {
   const script = `
 tell application "Ghostty"
   set targetPath to "${worktreePath}"
-  set targetWindow to window 1
-  repeat with t in every tab of targetWindow
-    set term to focused terminal of t
-    if working directory of term is targetPath then
-      select tab t
-      focus term
-      return
-    end if
+  repeat with w in every window
+    repeat with t in every tab of w
+      set term to focused terminal of t
+      if working directory of term is targetPath then
+        select tab t
+        focus term
+        return
+      end if
+    end repeat
   end repeat
   set cfg to new surface configuration
   set initial working directory of cfg to targetPath
-  set leftCfg to new surface configuration
-  set initial working directory of leftCfg to targetPath${claudeInput}
-  set newTab to new tab in targetWindow with configuration leftCfg
-  set leftTerm to focused terminal of newTab
-  perform action "set_tab_title:${tabTitle}" on leftTerm
-  split leftTerm direction right with configuration cfg
-  focus leftTerm
+  -- Ghostty keeps running after its last window closes, leaving no window to add a tab to
+  if (count of windows) is 0 then
+    set newTab to selected tab of (new window with configuration cfg)
+  else
+    set newTab to new tab in front window with configuration cfg
+  end if
+  perform action "set_tab_title:${tabTitle}" on (focused terminal of newTab)
 end tell
 `
   Bun.spawn(['/usr/bin/osascript', '-e', script], { stdout: 'ignore', stderr: 'ignore' })
@@ -99,19 +92,24 @@ export async function launchOpencode(worktreePath: string): Promise<void> {
   const script = `
 tell application "Ghostty"
   set targetPath to "${worktreePath}"
-  set targetWindow to window 1
-  repeat with t in every tab of targetWindow
-    set term to focused terminal of t
-    if working directory of term is targetPath then
-      select tab t
-      focus term
-      return
-    end if
+  repeat with w in every window
+    repeat with t in every tab of w
+      set term to focused terminal of t
+      if working directory of term is targetPath then
+        select tab t
+        focus term
+        return
+      end if
+    end repeat
   end repeat
   set cfg to new surface configuration
   set initial working directory of cfg to targetPath
   set initial input of cfg to "${opencodePath}\n"
-  set newTab to new tab in targetWindow with configuration cfg
+  if (count of windows) is 0 then
+    set newTab to selected tab of (new window with configuration cfg)
+  else
+    set newTab to new tab in front window with configuration cfg
+  end if
   perform action "set_tab_title:${tabTitle}" on (focused terminal of newTab)
 end tell
 `
