@@ -1,3 +1,10 @@
+## [2.21.1](https://github.com/malaporte/treebeard/compare/v2.21.0...v2.21.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* open Ghostty as a single tab and handle no open windows ([#29](https://github.com/malaporte/treebeard/issues/29)) ([fb1cb59](https://github.com/malaporte/treebeard/commit/fb1cb591b82860207b862208284df727b29ba664))
+
 # [2.21.0](https://github.com/malaporte/treebeard/compare/v2.20.0...v2.21.0) (2026-10-02)
 
 
