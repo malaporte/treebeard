@@ -129,6 +129,10 @@ export type TreebeardRPC = {
         params: { worktreePath: string }
         response: void
       }
+      'launch:claudeDesktop': {
+        params: { worktreePath: string }
+        response: void
+      }
       'launch:url': {
         params: { url: string }
         response: { success: boolean; error?: string }

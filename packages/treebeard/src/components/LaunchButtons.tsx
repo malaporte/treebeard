@@ -1,5 +1,6 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconCopy, IconGhost } from '@tabler/icons-react'
+import { ClaudeIcon } from './ClaudeIcon'
 import { IdeIcon } from './IdeIcon'
 import { IDE_REGISTRY } from '../shared/ide-registry'
 import { rpc } from '../rpc'
@@ -21,6 +22,10 @@ export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) 
     await rpc().request['launch:ghostty']({ worktreePath })
   }
 
+  const handleClaudeDesktop = async () => {
+    await rpc().request['launch:claudeDesktop']({ worktreePath })
+  }
+
   const handleCopyPath = () => {
     void navigator.clipboard.writeText(worktreePath)
   }
@@ -35,6 +40,11 @@ export function LaunchButtons({ worktreePath, defaultIde }: LaunchButtonsProps) 
       <Tooltip label="Open Ghostty terminal">
         <ActionIcon variant="subtle" color="violet" size="sm" onClick={handleGhostty}>
           <IconGhost size={16} />
+        </ActionIcon>
+      </Tooltip>
+      <Tooltip label="Open in Claude Code Desktop">
+        <ActionIcon variant="subtle" color="orange" size="sm" onClick={handleClaudeDesktop}>
+          <ClaudeIcon size={16} />
         </ActionIcon>
       </Tooltip>
       <Tooltip label="Copy path">
