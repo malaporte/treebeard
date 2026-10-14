@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "bun run --filter treebeard dev",
     "build": "bun run --filter treebeard build",
+    "install:local": "bun run --filter treebeard install:local",
     "test": "bun run --filter '*' test",
     "test:treebeard": "bun run --filter treebeard test",
     "typecheck": "bun run --filter '*' typecheck"

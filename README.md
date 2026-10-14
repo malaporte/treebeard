@@ -74,6 +74,7 @@ bun run dev
 | `bun run test:coverage`  | Run Vitest with V8 coverage output                               |
 | `bun run typecheck`      | Run TypeScript type-checking (`tsc --noEmit`)                    |
 | `bun run start:packaged` | Open the packaged app from `build/stable-macos-arm64/Treebeard.app` |
+| `bun run install:local`  | Build, ad-hoc sign, and install the app to `/Applications` (restarts it if running) |
 | `bun run screenshot`     | Launch packaged app and capture `treebeard-current.png`          |
 
 `bun run screenshot` auto-captures the Treebeard window when Accessibility permissions are available, and falls back to manual window selection when they are not.

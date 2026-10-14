@@ -8,6 +8,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "start:packaged": "open build/stable-macos-arm64/Treebeard.app",
+    "install:local": "bun run scripts/install-local.ts",
     "screenshot": "bun run scripts/screenshot.ts",
     "typecheck": "bun run scripts/typecheck.ts",
     "postcss": "bun run scripts/build-css.ts"

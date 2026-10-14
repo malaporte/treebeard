@@ -12,7 +12,8 @@ export default {
   build: {
     mac: {
       icons: 'AppIcon.iconset',
-      codesign: true
+      // Local installs have no Developer ID; they opt out and get ad-hoc signed instead.
+      codesign: process.env.TREEBEARD_SKIP_CODESIGN !== '1'
     },
     bun: {
       entrypoint: 'src/bun/index.ts'
