@@ -6,14 +6,16 @@ vi.mock('./shell-env', () => ({
   getShellEnv: vi.fn(async () => ({ PATH: '/usr/bin' }))
 }))
 
+const TWG_AUTH_PROBE = 'twg user get -o json --output-summary none'
+
 describe('dependencies service', () => {
   it('marks dependencies installed and authenticated when probes pass', async () => {
     setBunSpawnResolver((command) => {
       const key = command.join(' ')
       if (key === 'gh --version') return { stdout: 'gh version 2.0.0\n' }
       if (key === 'gh auth status') return { stdout: 'logged in\n' }
-      if (key === 'jira --version') return { stdout: 'jira version 1.0.0\n' }
-      if (key === 'jira me --raw') return { stdout: '{"name":"sam"}' }
+      if (key === 'twg --version') return { stdout: '1.3.5\n' }
+      if (key === TWG_AUTH_PROBE) return { stdout: '{"data":{"name":"sam"}}' }
       return { stderr: `unexpected command: ${key}`, exitCode: 1 }
     })
 
@@ -29,31 +31,30 @@ describe('dependencies service', () => {
         authError: null
       },
       {
-        name: 'jira',
+        name: 'twg',
         required: true,
         installed: true,
         authenticated: true,
-        version: 'jira version 1.0.0',
+        version: '1.3.5',
         error: null,
         authError: null
       }
     ])
   })
 
-  it('reports missing jira when command probes fail', async () => {
+  it('reports missing twg when the version probe fails', async () => {
     setBunSpawnResolver((command) => {
       const key = command.join(' ')
       if (key === 'gh --version') return { stdout: 'gh version 2.0.0\n' }
       if (key === 'gh auth status') return { stdout: 'logged in\n' }
-      if (key === 'jira --version') return { stderr: 'command not found', exitCode: 1 }
-      if (key === 'jira version') return { stderr: 'command not found', exitCode: 1 }
+      if (key === 'twg --version') return { stderr: 'command not found', exitCode: 1 }
       return { stderr: `unexpected command: ${key}`, exitCode: 1 }
     })
 
     const status = await checkDependencies()
-    const jira = status.checks.find((check) => check.name === 'jira')
-    expect(jira).toEqual({
-      name: 'jira',
+    const twg = status.checks.find((check) => check.name === 'twg')
+    expect(twg).toEqual({
+      name: 'twg',
       required: true,
       installed: false,
       authenticated: null,
@@ -63,19 +64,35 @@ describe('dependencies service', () => {
     })
   })
 
+  it('reports twg as unauthenticated when the auth probe fails', async () => {
+    setBunSpawnResolver((command) => {
+      const key = command.join(' ')
+      if (key === 'gh --version') return { stdout: 'gh version 2.0.0\n' }
+      if (key === 'gh auth status') return { stdout: 'logged in\n' }
+      if (key === 'twg --version') return { stdout: '1.3.5\n' }
+      if (key === TWG_AUTH_PROBE) return { stderr: 'login required', exitCode: 1 }
+      return { stderr: `unexpected command: ${key}`, exitCode: 1 }
+    })
+
+    const status = await checkDependencies()
+    const twg = status.checks.find((check) => check.name === 'twg')
+    expect(twg?.authenticated).toBe(false)
+    expect(twg?.authError).toBe('login required')
+  })
+
   it('treats unsupported auth command as unknown auth state', async () => {
     setBunSpawnResolver((command) => {
       const key = command.join(' ')
       if (key === 'gh --version') return { stdout: 'gh version 2.0.0\n' }
       if (key === 'gh auth status') return { stdout: 'logged in\n' }
-      if (key === 'jira --version') return { stdout: 'jira version 1.0.0\n' }
-      if (key === 'jira me --raw') return { stderr: 'unknown command "me"', exitCode: 1 }
+      if (key === 'twg --version') return { stdout: '1.3.5\n' }
+      if (key === TWG_AUTH_PROBE) return { stderr: "error: unknown command 'user'", exitCode: 1 }
       return { stderr: `unexpected command: ${key}`, exitCode: 1 }
     })
 
     const status = await checkDependencies()
-    const jira = status.checks.find((check) => check.name === 'jira')
-    expect(jira?.authenticated).toBeNull()
-    expect(jira?.authError).toBeNull()
+    const twg = status.checks.find((check) => check.name === 'twg')
+    expect(twg?.authenticated).toBeNull()
+    expect(twg?.authError).toBeNull()
   })
 })

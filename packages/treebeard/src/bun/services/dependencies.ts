@@ -106,10 +106,7 @@ async function checkAuth(
 }
 
 async function checkDependency(name: DependencyName, env: Record<string, string>): Promise<DependencyCheck> {
-  const commandProbes = name === 'jira'
-    ? [['--version'], ['version']]
-    : [['--version']]
-  const commandStatus = await checkCommand(name, commandProbes, env)
+  const commandStatus = await checkCommand(name, [['--version']], env)
 
   if (!commandStatus.installed) {
     return {
@@ -125,7 +122,7 @@ async function checkDependency(name: DependencyName, env: Record<string, string>
 
   const authProbes = name === 'gh'
     ? [['auth', 'status']]
-    : [['me', '--raw'], ['me']]
+    : [['user', 'get', '-o', 'json', '--output-summary', 'none']]
   const authStatus = await checkAuth(name, authProbes, env)
 
   return {
@@ -144,7 +141,7 @@ export async function checkDependencies(): Promise<DependencyStatus> {
   const env = await getShellEnv()
   const checks = await Promise.all([
     checkDependency('gh', env),
-    checkDependency('jira', env)
+    checkDependency('twg', env)
   ])
 
   return {

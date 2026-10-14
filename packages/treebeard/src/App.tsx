@@ -66,7 +66,7 @@ const theme = createTheme({
 
 const INSTALL_URLS: Record<string, string> = {
   gh: 'https://cli.github.com/',
-  jira: 'https://github.com/ankitpokhrel/jira-cli'
+  twg: 'https://developer.atlassian.com/cloud/twg-cli/getting-started/installation/'
 }
 
 export default function App() {
@@ -186,13 +186,13 @@ export default function App() {
 
   const MISSING_LABELS: Record<string, string> = {
     gh: 'gh CLI missing (PR badges unavailable)',
-    jira: 'jira CLI missing (Jira badges unavailable)'
+    twg: 'twg CLI missing (Jira badges unavailable)'
   }
 
   const authDependencyMessage = unauthenticatedDependencies
     .map((c) => {
       if (c.name === 'gh') return 'gh CLI not authenticated (PR badges unavailable)'
-      if (c.name === 'jira') return 'jira CLI not authenticated (Jira badges unavailable)'
+      if (c.name === 'twg') return 'twg CLI not authenticated (Jira badges unavailable)'
       return `${c.name} not authenticated`
     })
     .join(' | ')

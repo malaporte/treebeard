@@ -33,7 +33,7 @@ Open any worktree in VS Code or Ghostty with a single click (or double-click a c
 
 ### Auto-updates and settings
 
-Built-in auto-update checks for new releases on a configurable schedule. The settings modal lets you manage your repo list, set the polling interval, and check the health of optional CLI dependencies (`gh` and `jira`).
+Built-in auto-update checks for new releases on a configurable schedule. The settings modal lets you manage your repo list, set the polling interval, and check the health of optional CLI dependencies (`gh` and `twg`).
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ Built-in auto-update checks for new releases on a configurable schedule. The set
 
 - [GitHub CLI (`gh`)](https://cli.github.com/) for PR and CI badges
 - [GitHub Stack extension (`gh stack`)](https://github.com/github/gh-stack) for stacked PR layers and status. Install it with `gh extension install github/gh-stack`.
-- [Jira CLI (`jira`)](https://github.com/ankitpokhrel/jira-cli) for Jira badges
+- [Atlassian TWG CLI (`twg`)](https://developer.atlassian.com/cloud/twg-cli/getting-started/installation/) for Jira badges. Install it with `curl -fsSL https://teamwork-graph.atlassian.com/cli/install | bash`.
 - VS Code (`code` command available in PATH) for the VS Code launch button
 - [Ghostty](https://ghostty.org/) for the terminal launch button
 

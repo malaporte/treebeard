@@ -58,11 +58,11 @@ describe('SettingsModal', () => {
           authError: null
         },
         {
-          name: 'jira',
+          name: 'twg',
           required: true,
           installed: true,
           authenticated: true,
-          version: 'jira version',
+          version: '1.3.5',
           error: null,
           authError: null
         }

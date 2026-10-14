@@ -193,5 +193,5 @@ Zero logging in the codebase. No `console.log`, `console.error`, or logging libr
 - **Persistence:** App config stored as JSON via `src/bun/services/config.ts` in
   `~/.config/treebeard/treebeard-config.json`.
 - **State management:** Local `useState` + custom hooks only. No external state library.
-- **External CLIs:** GitHub data via `gh` CLI, Jira data via `jira` CLI, both called from
+- **External CLIs:** GitHub data via `gh` CLI, Jira data via `twg` CLI (Atlassian TWG CLI), both called from
   the bun process via `Bun.spawn`. Failures return `null` silently.

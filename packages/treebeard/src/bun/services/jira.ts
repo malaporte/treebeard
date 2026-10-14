@@ -1,115 +1,83 @@
 import { getShellEnv } from './shell-env'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import type { JiraIssue } from '../../shared/types'
 
-const DONE_STATUSES = new Set(['done', 'closed', 'resolved', 'completed', 'cancelled', 'canceled', 'rejected'])
+const TWG_TIMEOUT_MS = 15000
+const ISSUE_FIELDS = 'summary,status,assignee,issuetype'
+const MY_ISSUES_JQL = 'assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC'
+const MY_ISSUES_LIMIT = '100'
+
+interface TwgIssue {
+  key?: string
+  summary?: string
+  url?: string
+  status?: { name?: string }
+  assignee?: { displayName?: string } | null
+  issuetype?: { name?: string }
+  issueType?: { name?: string }
+}
+
+// twg wraps JSON in a YAML envelope when it detects an agent caller, so the summary is always disabled.
+async function runTwg(args: string[]): Promise<unknown | null> {
+  const env = await getShellEnv()
+  const proc = Bun.spawn(['twg', ...args, '-o', 'json', '--output-summary', 'none'], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env
+  })
+
+  const timer = setTimeout(() => proc.kill(), TWG_TIMEOUT_MS)
+  const stdout = await new Response(proc.stdout).text()
+  const exitCode = await proc.exited
+  clearTimeout(timer)
+
+  if (exitCode !== 0) return null
+  return JSON.parse(stdout)
+}
+
+function toJiraIssue(item: TwgIssue): JiraIssue | null {
+  if (!item.key) return null
+  return {
+    key: item.key,
+    summary: item.summary || '',
+    status: item.status?.name || 'Unknown',
+    assignee: item.assignee?.displayName || null,
+    issueType: item.issuetype?.name || item.issueType?.name || 'Unknown',
+    url: item.url || ''
+  }
+}
 
 /** Fetch all open Jira issues assigned to the current user. */
 export async function getMyJiraIssues(): Promise<JiraIssue[]> {
   try {
-    const env = await getShellEnv()
-    const me = await getJiraMe(env)
-    if (!me) return []
+    const result = await runTwg([
+      'jira', 'workitem', 'query',
+      '--jql', MY_ISSUES_JQL,
+      '--limit', MY_ISSUES_LIMIT,
+      '--fields', ISSUE_FIELDS
+    ]) as { data?: { issues?: TwgIssue[] } } | null
 
-    const proc = Bun.spawn([
-      'jira', 'issue', 'list',
-      `--assignee=${me}`,
-      '-qproject IS NOT EMPTY',
-      '--paginate', '0:100',
-      '--raw'
-    ], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-      env
-    })
+    const issues = result?.data?.issues
+    if (!Array.isArray(issues)) return []
 
-    const timer = setTimeout(() => proc.kill(), 15000)
-    const stdout = await new Response(proc.stdout).text()
-    const exitCode = await proc.exited
-    clearTimeout(timer)
-
-    if (exitCode !== 0) return []
-
-    const data = JSON.parse(stdout)
-    if (!Array.isArray(data)) return []
-
-    return data
-      .filter((item) => {
-        const status: string = item.fields?.status?.name ?? ''
-        return !DONE_STATUSES.has(status.toLowerCase())
-      })
-      .map((item) => ({
-        key: item.key,
-        summary: item.fields?.summary || '',
-        status: item.fields?.status?.name || 'Unknown',
-        assignee: item.fields?.assignee?.displayName || null,
-        issueType: item.fields?.issueType?.name || item.fields?.issuetype?.name || 'Unknown',
-        url: `${getJiraBaseUrl()}browse/${item.key}`
-      }))
+    return issues
+      .map(toJiraIssue)
+      .filter((issue): issue is JiraIssue => issue !== null)
   } catch {
     return []
   }
 }
 
-async function getJiraMe(env: NodeJS.ProcessEnv): Promise<string | null> {
-  try {
-    const proc = Bun.spawn(['jira', 'me'], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-      env
-    })
-    const timer = setTimeout(() => proc.kill(), 5000)
-    const stdout = await new Response(proc.stdout).text()
-    const exitCode = await proc.exited
-    clearTimeout(timer)
-    if (exitCode !== 0) return null
-    return stdout.trim() || null
-  } catch {
-    return null
-  }
-}
-
+/** Fetch a single Jira issue by key. */
 export async function getJiraIssue(issueKey: string): Promise<JiraIssue | null> {
   try {
-    const env = await getShellEnv()
-    const proc = Bun.spawn(['jira', 'issue', 'view', issueKey, '--raw'], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-      env
-    })
+    const result = await runTwg([
+      'jira', 'workitem', 'get', issueKey,
+      '--fields', ISSUE_FIELDS
+    ]) as { data?: TwgIssue[] } | null
 
-    const timer = setTimeout(() => proc.kill(), 15000)
-    const stdout = await new Response(proc.stdout).text()
-    const exitCode = await proc.exited
-    clearTimeout(timer)
-
-    if (exitCode !== 0) return null
-
-    const data = JSON.parse(stdout)
-    const fields = data.fields
-
-    return {
-      key: data.key,
-      summary: fields.summary || '',
-      status: fields.status?.name || 'Unknown',
-      assignee: fields.assignee?.displayName || null,
-      issueType: fields.issuetype?.name || 'Unknown',
-      url: `${getJiraBaseUrl()}browse/${data.key}`
-    }
+    const item = Array.isArray(result?.data) ? result.data[0] : null
+    return item ? toJiraIssue(item) : null
   } catch {
     return null
-  }
-}
-
-function getJiraBaseUrl(): string {
-  try {
-    const config = readFileSync(join(homedir(), '.config', '.jira', '.config.yml'), 'utf-8')
-    const match = config.match(/^server:\s*(.+)$/m)
-    const server = match?.[1]?.trim()
-    return server ? (server.endsWith('/') ? server : `${server}/`) : ''
-  } catch {
-    return ''
   }
 }

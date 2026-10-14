@@ -24,7 +24,7 @@ import type { AppConfig, DependencyStatus, IdeId, RepoConfig } from '../shared/t
 
 const INSTALL_URLS: Record<string, string> = {
   gh: 'https://cli.github.com/',
-  jira: 'https://github.com/ankitpokhrel/jira-cli'
+  twg: 'https://developer.atlassian.com/cloud/twg-cli/getting-started/installation/'
 }
 
 interface SettingsModalProps {

@@ -105,7 +105,7 @@ export interface SetupCommandResult {
 }
 
 export interface DependencyCheck {
-  name: 'gh' | 'jira'
+  name: 'gh' | 'twg'
   required: boolean
   installed: boolean
   authenticated: boolean | null

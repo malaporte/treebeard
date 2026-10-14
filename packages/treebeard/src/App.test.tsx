@@ -117,11 +117,11 @@ describe('App', () => {
           authError: null
         },
         {
-          name: 'jira',
+          name: 'twg',
           required: true,
           installed: true,
           authenticated: false,
-          version: 'jira version',
+          version: '1.3.5',
           error: null,
           authError: 'auth required'
         }
