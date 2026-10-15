@@ -1,3 +1,10 @@
+# [2.22.0](https://github.com/malaporte/treebeard/compare/v2.21.1...v2.22.0) (2026-10-15)
+
+
+### Features
+
+* replace jira-cli with twg ([918a801](https://github.com/malaporte/treebeard/commit/918a801790600112b3802615670cedd5725fe552))
+
 ## [2.21.1](https://github.com/malaporte/treebeard/compare/v2.21.0...v2.21.1) (2026-10-02)
 
 
