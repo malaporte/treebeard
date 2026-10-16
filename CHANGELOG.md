@@ -1,3 +1,10 @@
+## [2.22.1](https://github.com/malaporte/treebeard/compare/v2.22.0...v2.22.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* display warning when Claude Code CLI is missing ([9fe7923](https://github.com/malaporte/treebeard/commit/9fe79237bb754b27d3d2c79534dc4257bbc5339f))
+
 # [2.22.0](https://github.com/malaporte/treebeard/compare/v2.21.1...v2.22.0) (2026-10-15)
 
 
