@@ -146,11 +146,14 @@ export function ensureClaudeSessionTitle(session: ClaudeSession, title: string):
   } catch {}
 }
 
-async function createNamedClaudeSession(worktreePath: string, title: string): Promise<string | null> {
+async function createNamedClaudeSession(
+  worktreePath: string,
+  title: string
+): Promise<{ sessionId: string | null; cliMissing: boolean }> {
   const env = await getShellEnv()
   const whichProc = Bun.spawn(['which', 'claude'], { stdout: 'pipe', stderr: 'ignore', env })
   const claudePath = (await new Response(whichProc.stdout).text()).trim()
-  if (!claudePath) return null
+  if (!claudePath) return { sessionId: null, cliMissing: true }
   const sessionId = crypto.randomUUID()
   // /rename runs locally without a model turn, leaving a titled transcript Desktop can import
   const proc = Bun.spawn([claudePath, '-p', '--session-id', sessionId, `/rename ${title}`], {
@@ -159,19 +162,33 @@ async function createNamedClaudeSession(worktreePath: string, title: string): Pr
     stderr: 'ignore',
     env
   })
-  return (await proc.exited) === 0 ? sessionId : null
+  return { sessionId: (await proc.exited) === 0 ? sessionId : null, cliMissing: false }
 }
 
-/** Open the worktree in Claude Desktop, resuming its latest Claude Code session or starting one named after the worktree */
-export async function launchClaudeDesktop(worktreePath: string): Promise<void> {
+/**
+ * Open the worktree in Claude Desktop, resuming its latest Claude Code session or starting one named after the worktree.
+ * When a new session is needed but the claude CLI is missing, `confirmWithoutCli` decides whether to open an untitled one.
+ */
+export async function launchClaudeDesktop(
+  worktreePath: string,
+  confirmWithoutCli?: () => Promise<boolean>
+): Promise<void> {
   const title = path.basename(worktreePath)
   const session = findLatestClaudeSession(worktreePath)
   if (session) ensureClaudeSessionTitle(session, title)
-  const sessionId = session?.id ?? (await createNamedClaudeSession(worktreePath, title))
-  // claude://resume imports the CLI session (or reuses Desktop's copy of it); opening a
-  // bare folder starts an untitled Code session there instead
-  const args = sessionId ? [`claude://resume?session=${sessionId}`] : ['-a', 'Claude', worktreePath]
-  Bun.spawn(['/usr/bin/open', ...args], { stdout: 'ignore', stderr: 'ignore' })
+  let sessionId = session?.id ?? null
+  if (!sessionId) {
+    const created = await createNamedClaudeSession(worktreePath, title)
+    if (created.cliMissing && confirmWithoutCli && !(await confirmWithoutCli())) return
+    sessionId = created.sessionId
+  }
+  // claude://resume imports the CLI session (or reuses Desktop's copy of it); without one,
+  // claude://code/new starts an untitled Code session there. `open -a Claude <folder>` is
+  // avoided because Desktop treats it as a folder drop into the current (chat) draft.
+  const url = sessionId
+    ? `claude://resume?session=${sessionId}`
+    : `claude://code/new?folder=${encodeURIComponent(worktreePath)}`
+  Bun.spawn(['/usr/bin/open', url], { stdout: 'ignore', stderr: 'ignore' })
 }
 
 export async function launchURL(url: string): Promise<void> {

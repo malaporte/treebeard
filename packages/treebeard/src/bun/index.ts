@@ -71,6 +71,21 @@ function configureAutoUpdateSchedule(config: AppConfig): void {
   }, intervalMin * 60_000)
 }
 
+async function confirmClaudeLaunchWithoutCli(): Promise<boolean> {
+  const { response } = await Utils.showMessageBox({
+    type: 'warning',
+    title: 'Claude CLI not found',
+    message: 'The claude command is not available in your shell PATH.',
+    detail:
+      'Treebeard needs the Claude Code CLI to create a session named after this worktree. ' +
+      'Install it from https://claude.com/claude-code, or open an untitled Claude Code session instead.',
+    buttons: ['Open Untitled Session', 'Cancel'],
+    defaultId: 0,
+    cancelId: 1
+  })
+  return response === 0
+}
+
 async function promptToRestartForUpdate(): Promise<void> {
   if (isUpdatePromptOpen) return
 
@@ -255,7 +270,7 @@ const mainviewRPC = BrowserView.defineRPC<TreebeardRPC>({
         launchOpencode(worktreePath)
       },
       'launch:claudeDesktop': ({ worktreePath }) => {
-        launchClaudeDesktop(worktreePath)
+        launchClaudeDesktop(worktreePath, confirmClaudeLaunchWithoutCli)
       },
       'launch:url': async ({ url }) => {
         if (Utils.openExternal(url)) {

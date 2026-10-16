@@ -148,15 +148,36 @@ describe('launcher service', () => {
       )
     })
 
-    it('opens the folder for an untitled session when the claude CLI is missing', async () => {
+    it('starts an untitled Code session when the claude CLI is missing and the user confirms', async () => {
       const spawn = setBunSpawnQueue([{ stdout: '' }, { stdout: '' }])
+      const confirm = vi.fn().mockResolvedValue(true)
 
-      await launchClaudeDesktop('/repo/worktree')
+      await launchClaudeDesktop('/repo/my worktree', confirm)
 
+      expect(confirm).toHaveBeenCalledOnce()
       expect(spawn).toHaveBeenLastCalledWith(
-        ['/usr/bin/open', '-a', 'Claude', '/repo/worktree'],
+        ['/usr/bin/open', 'claude://code/new?folder=%2Frepo%2Fmy%20worktree'],
         expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' })
       )
+    })
+
+    it('opens nothing when the claude CLI is missing and the user cancels', async () => {
+      const spawn = setBunSpawnQueue([{ stdout: '' }])
+
+      await launchClaudeDesktop('/repo/worktree', vi.fn().mockResolvedValue(false))
+
+      expect(spawn).toHaveBeenCalledOnce()
+      expect(spawn).not.toHaveBeenCalledWith(expect.arrayContaining(['/usr/bin/open']), expect.anything())
+    })
+
+    it('does not ask for confirmation when resuming an existing session', async () => {
+      writeSession('/repo/worktree', `${SESSION_A}.jsonl`, 1000)
+      setBunSpawnQueue([{ stdout: '' }])
+      const confirm = vi.fn()
+
+      await launchClaudeDesktop('/repo/worktree', confirm)
+
+      expect(confirm).not.toHaveBeenCalled()
     })
   })
 })
