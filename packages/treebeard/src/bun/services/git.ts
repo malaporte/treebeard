@@ -4,6 +4,14 @@ import type { Worktree, WorktreeStatus, SetupCommandResult } from '../../shared/
 
 const MAIN_BRANCH_NAMES = new Set(['main', 'master', 'develop', 'trunk'])
 
+// Claude Code creates temporary worktrees under <repo>/.claude/worktrees.
+const CLAUDE_WORKTREES_DIR = path.join('.claude', 'worktrees')
+
+function isClaudeWorktree(repoPath: string, worktreePath: string): boolean {
+  const rel = path.relative(path.join(repoPath, CLAUDE_WORKTREES_DIR), worktreePath)
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
+}
+
 /** Run a git command and return stdout. */
 async function git(args: string[], cwd: string): Promise<string> {
   const env = await getShellEnv()
@@ -66,9 +74,14 @@ function parseWorktreeOutput(output: string): Worktree[] {
   return worktrees
 }
 
-export async function getWorktrees(repoPath: string): Promise<Worktree[]> {
+async function listAllWorktrees(repoPath: string): Promise<Worktree[]> {
   const stdout = await git(['worktree', 'list', '--porcelain'], repoPath)
   return parseWorktreeOutput(stdout)
+}
+
+export async function getWorktrees(repoPath: string): Promise<Worktree[]> {
+  const worktrees = await listAllWorktrees(repoPath)
+  return worktrees.filter((wt) => !isClaudeWorktree(repoPath, wt.path))
 }
 
 /** Get the GitHub remote owner/repo for a git repository. */
@@ -114,7 +127,7 @@ export async function getRemoteBranches(repoPath: string): Promise<string[]> {
     repoPath
   )
 
-  const worktrees = await getWorktrees(repoPath)
+  const worktrees = await listAllWorktrees(repoPath)
   const usedBranches = new Set(worktrees.map((wt) => wt.branch))
 
   return stdout

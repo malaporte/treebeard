@@ -21,7 +21,7 @@ describe('git service', () => {
     vi.restoreAllMocks()
   })
 
-  it('parses porcelain worktree output and excludes bare trees', async () => {
+  it('parses porcelain worktree output and excludes bare and Claude Code trees', async () => {
     setBunSpawnQueue([
       {
         stdout: [
@@ -32,6 +32,10 @@ describe('git service', () => {
           'worktree /repo-feature',
           'HEAD 222',
           'branch refs/heads/feat/TB-123',
+          '',
+          'worktree /repo/.claude/worktrees/awesome-bardeen',
+          'HEAD 444',
+          'branch refs/heads/claude/awesome-bardeen',
           '',
           'worktree /repo-bare',
           'HEAD 333',
@@ -82,14 +86,19 @@ describe('git service', () => {
           'origin/feature/used',
           'origin/HEAD -> origin/main',
           'origin/zzz',
-          'origin/alpha'
+          'origin/alpha',
+          'origin/claude/awesome-bardeen'
         ].join('\n')
       },
       {
         stdout: [
           'worktree /repo',
           'HEAD 111',
-          'branch refs/heads/feature/used'
+          'branch refs/heads/feature/used',
+          '',
+          'worktree /repo/.claude/worktrees/awesome-bardeen',
+          'HEAD 222',
+          'branch refs/heads/claude/awesome-bardeen'
         ].join('\n')
       }
     ])
