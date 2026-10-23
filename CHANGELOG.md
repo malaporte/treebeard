@@ -1,3 +1,10 @@
+# [2.23.0](https://github.com/malaporte/treebeard/compare/v2.22.1...v2.23.0) (2026-10-23)
+
+
+### Features
+
+* filter out Claude temporary worktrees from the list ([76ffe30](https://github.com/malaporte/treebeard/commit/76ffe3088e00f7638096e86ad4c57cb5cf3b376e))
+
 ## [2.22.1](https://github.com/malaporte/treebeard/compare/v2.22.0...v2.22.1) (2026-10-16)
 
 
